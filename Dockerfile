@@ -1,4 +1,3 @@
-# Build stage
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -13,9 +12,9 @@ ARG VITE_FIREBASE_MESSAGING_SENDER_ID
 ARG VITE_FIREBASE_APP_ID
 RUN npm run build
 
-# Serve stage
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+FROM node:20-alpine
+RUN npm i -g serve
+WORKDIR /app
+COPY --from=build /app/dist .
+EXPOSE 8080
+CMD ["serve", "-s", ".", "-l", "8080"]
