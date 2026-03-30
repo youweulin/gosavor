@@ -58,8 +58,8 @@ export const deleteOrder = (id: string): SavedOrder[] => {
   return updated;
 };
 
-// === Helpers ===
-const createThumbnail = (dataUrl: string, maxDim = 300): Promise<string> => {
+// === Image Compression ===
+const compressImage = (dataUrl: string, maxDim = 500): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = dataUrl;
@@ -74,53 +74,72 @@ const createThumbnail = (dataUrl: string, maxDim = 300): Promise<string> => {
       canvas.width = w;
       canvas.height = h;
       canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.5));
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
     };
-    img.onerror = () => resolve(''); // fallback: no thumbnail
+    img.onerror = () => resolve('');
   });
 };
 
-// === Scan History ===
-export const getScanHistory = (): SavedScan[] => {
+// === Scan History (IndexedDB — no size limit) ===
+
+const DB_NAME = 'gosavor_db';
+const DB_VERSION = 1;
+const STORE_NAME = 'scans';
+
+const openDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+};
+
+export const getScanHistory = async (): Promise<SavedScan[]> => {
   try {
-    const stored = localStorage.getItem(SCANS_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const scans = (req.result as SavedScan[]).sort((a, b) => b.timestamp - a.timestamp);
+        resolve(scans);
+      };
+      req.onerror = () => resolve([]);
+    });
   } catch {
     return [];
   }
 };
 
 export const saveScan = async (scan: SavedScan) => {
-  // Compress images to thumbnails before storing
-  const thumbnails = await Promise.all(
-    scan.images.map(img => createThumbnail(img))
-  );
-  const compressedScan = { ...scan, images: thumbnails.filter(Boolean) };
-
-  const history = getScanHistory();
-  const exists = history.findIndex(s => s.id === scan.id);
-  const updated = exists >= 0
-    ? history.map(s => s.id === scan.id ? compressedScan : s)
-    : [compressedScan, ...history];
   try {
-    localStorage.setItem(SCANS_KEY, JSON.stringify(updated.slice(0, 20)));
-  } catch {
-    // Still too big — drop images from older scans
-    const slim = updated.map((s, i) => i === 0 ? s : { ...s, images: [] }).slice(0, 20);
-    try {
-      localStorage.setItem(SCANS_KEY, JSON.stringify(slim));
-    } catch {
-      // Last resort: no images at all
-      localStorage.setItem(SCANS_KEY, JSON.stringify(
-        updated.map(s => ({ ...s, images: [] })).slice(0, 10)
-      ));
-    }
+    // Compress images before storing
+    const compressed = await Promise.all(
+      scan.images.map(img => compressImage(img))
+    );
+    const compressedScan = { ...scan, images: compressed.filter(Boolean) };
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(compressedScan);
+  } catch (e) {
+    console.error('Failed to save scan', e);
   }
 };
 
-export const deleteScan = (id: string): SavedScan[] => {
-  const history = getScanHistory();
-  const updated = history.filter(s => s.id !== id);
-  localStorage.setItem(SCANS_KEY, JSON.stringify(updated));
-  return updated;
+export const deleteScan = async (id: string): Promise<SavedScan[]> => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(id);
+  } catch (e) {
+    console.error('Failed to delete scan', e);
+  }
+  return getScanHistory();
 };

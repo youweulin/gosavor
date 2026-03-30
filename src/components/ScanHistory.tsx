@@ -11,14 +11,14 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
   const [scans, setScans] = useState<SavedScan[]>([]);
 
   useEffect(() => {
-    setScans(getScanHistory());
+    getScanHistory().then(setScans);
   }, []);
 
   if (scans.length === 0) return null;
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setScans(deleteScan(id));
+    deleteScan(id).then(setScans);
   };
 
   return (
