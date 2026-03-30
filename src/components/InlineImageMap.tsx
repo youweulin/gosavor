@@ -135,9 +135,7 @@ const InlineImageMap = ({
 
       {/* Swipeable photo carousel */}
       <div
-        className={`relative rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-300 ${
-          expanded ? 'max-h-none' : 'max-h-[30vh]'
-        }`}
+        className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-300"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -145,7 +143,9 @@ const InlineImageMap = ({
         <img
           src={images[activeImageIndex]}
           alt={`Menu page ${activeImageIndex + 1}`}
-          className={`w-full block ${expanded ? '' : 'object-cover object-top'}`}
+          className={`block mx-auto transition-all duration-300 ${
+            expanded ? 'w-full' : 'max-h-[40vh] w-auto'
+          }`}
         />
 
         {/* Numbered markers */}
