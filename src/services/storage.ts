@@ -58,6 +58,28 @@ export const deleteOrder = (id: string): SavedOrder[] => {
   return updated;
 };
 
+// === Helpers ===
+const createThumbnail = (dataUrl: string, maxDim = 300): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = dataUrl;
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > h) {
+        if (w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
+      } else {
+        if (h > maxDim) { w = Math.round((w * maxDim) / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.5));
+    };
+    img.onerror = () => resolve(''); // fallback: no thumbnail
+  });
+};
+
 // === Scan History ===
 export const getScanHistory = (): SavedScan[] => {
   try {
@@ -68,18 +90,31 @@ export const getScanHistory = (): SavedScan[] => {
   }
 };
 
-export const saveScan = (scan: SavedScan) => {
+export const saveScan = async (scan: SavedScan) => {
+  // Compress images to thumbnails before storing
+  const thumbnails = await Promise.all(
+    scan.images.map(img => createThumbnail(img))
+  );
+  const compressedScan = { ...scan, images: thumbnails.filter(Boolean) };
+
   const history = getScanHistory();
   const exists = history.findIndex(s => s.id === scan.id);
   const updated = exists >= 0
-    ? history.map(s => s.id === scan.id ? scan : s)
-    : [scan, ...history];
+    ? history.map(s => s.id === scan.id ? compressedScan : s)
+    : [compressedScan, ...history];
   try {
-    localStorage.setItem(SCANS_KEY, JSON.stringify(updated.slice(0, 30)));
+    localStorage.setItem(SCANS_KEY, JSON.stringify(updated.slice(0, 20)));
   } catch {
-    // If quota exceeded, store without images
-    const slim = updated.map(s => ({ ...s, images: [] })).slice(0, 30);
-    localStorage.setItem(SCANS_KEY, JSON.stringify(slim));
+    // Still too big — drop images from older scans
+    const slim = updated.map((s, i) => i === 0 ? s : { ...s, images: [] }).slice(0, 20);
+    try {
+      localStorage.setItem(SCANS_KEY, JSON.stringify(slim));
+    } catch {
+      // Last resort: no images at all
+      localStorage.setItem(SCANS_KEY, JSON.stringify(
+        updated.map(s => ({ ...s, images: [] })).slice(0, 10)
+      ));
+    }
   }
 };
 
