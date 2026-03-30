@@ -3,9 +3,9 @@ import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart 
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage } from './services/gemini';
-import { saveOrder } from './services/storage';
+import { saveOrder, saveScan } from './services/storage';
 import { TARGET_LANGUAGES } from './types';
-import type { MenuAnalysisResult, OrderItem, SavedOrder, SplitInfo } from './types';
+import type { MenuAnalysisResult, OrderItem, SavedOrder, SavedScan, SplitInfo } from './types';
 
 import CameraCapture from './components/CameraCapture';
 import MenuResults from './components/MenuResults';
@@ -15,6 +15,7 @@ import Settings from './components/Settings';
 import AuthModal from './components/AuthModal';
 import CurrencyBar from './components/CurrencyBar';
 import InlineImageMap from './components/InlineImageMap';
+import ScanHistory from './components/ScanHistory';
 
 type Page = 'home' | 'history' | 'settings';
 
@@ -33,7 +34,6 @@ function App() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  // Determine which API key to use
   const getApiKey = useCallback((): string | null => {
     if (settings.geminiApiKey) return settings.geminiApiKey;
     if (isRentalActive || isLifetime) {
@@ -60,6 +60,16 @@ function App() {
       const result = await analyzeMenuImage(imageData, targetLangLabel, apiKey, settings.allergens);
       setMenuResult(result);
       setQuantities({});
+
+      // Auto-save scan to local history
+      saveScan({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        restaurantName: result.restaurantName || 'Menu',
+        currency: result.currency,
+        items: result.items,
+        images: images,
+      });
     } catch (err) {
       console.error(err);
       setError('分析失敗，請確認 API Key 是否正確或重試。');
@@ -87,13 +97,12 @@ function App() {
       totalAmount: total,
       splitInfo: split,
     };
-    // Save immediately, then try to update with location
     saveOrder(order);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => {
           order.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          saveOrder(order); // overwrite with location
+          saveOrder(order);
         },
         () => {},
         { timeout: 3000 }
@@ -101,11 +110,26 @@ function App() {
     }
   };
 
-  const handleReset = () => {
+  // Go back to home / camera
+  const handleGoHome = () => {
     setImages([]);
     setMenuResult(null);
     setQuantities({});
+    setHighlightIndex(null);
+    setActiveCategory(null);
     setError('');
+  };
+
+  // Load a saved scan
+  const handleLoadScan = (scan: SavedScan) => {
+    setMenuResult({
+      currency: scan.currency,
+      restaurantName: scan.restaurantName,
+      items: scan.items,
+    });
+    setImages(scan.images);
+    setQuantities({});
+    setActiveCategory(null);
   };
 
   if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;
@@ -125,12 +149,12 @@ function App() {
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
             <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
               <UtensilsCrossed size={18} className="text-white" />
             </div>
             <span className="font-bold text-gray-900">GoSavor</span>
-          </div>
+          </button>
           <div className="flex items-center gap-1">
             {user ? (
               <button
@@ -154,7 +178,7 @@ function App() {
         </div>
       </header>
 
-      {/* Sticky image map - fixed below header when results are showing */}
+      {/* Sticky image map */}
       {menuResult && images.length > 0 && (
         <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
           <div className="max-w-md mx-auto px-2 py-2">
@@ -196,21 +220,25 @@ function App() {
               isAnalyzing={isAnalyzing}
             />
             {images.length === 0 && (
-              <div className="mt-8 space-y-4">
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  {[
-                    { icon: '📸', title: '拍菜單', desc: 'AI 翻譯' },
-                    { icon: '⚠️', title: '過敏警示', desc: '自動標記' },
-                    { icon: '🗣️', title: '語音點餐', desc: '日語發音' },
-                  ].map((feat, i) => (
-                    <div key={i} className="p-3 bg-white rounded-xl border border-gray-100">
-                      <p className="text-2xl mb-1">{feat.icon}</p>
-                      <p className="text-xs font-medium text-gray-700">{feat.title}</p>
-                      <p className="text-xs text-gray-400">{feat.desc}</p>
-                    </div>
-                  ))}
+              <>
+                <div className="mt-8 space-y-4">
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    {[
+                      { icon: '📸', title: '拍菜單', desc: 'AI 翻譯' },
+                      { icon: '⚠️', title: '過敏警示', desc: '自動標記' },
+                      { icon: '🗣️', title: '語音點餐', desc: '日語發音' },
+                    ].map((feat, i) => (
+                      <div key={i} className="p-3 bg-white rounded-xl border border-gray-100">
+                        <p className="text-2xl mb-1">{feat.icon}</p>
+                        <p className="text-xs font-medium text-gray-700">{feat.title}</p>
+                        <p className="text-xs text-gray-400">{feat.desc}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+                {/* Scan History */}
+                <ScanHistory onLoadScan={handleLoadScan} />
+              </>
             )}
           </>
         ) : (
@@ -221,7 +249,7 @@ function App() {
                 <p className="text-xs text-gray-400">{menuResult.items.length} dishes</p>
               </div>
               <button
-                onClick={handleReset}
+                onClick={handleGoHome}
                 className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium"
               >
                 New Scan
@@ -278,7 +306,7 @@ function App() {
         serviceFee={settings.serviceFee}
         onConfirmOrder={handleConfirmOrder}
       />
-<AuthModal
+      <AuthModal
         isVisible={showAuth}
         onClose={() => setShowAuth(false)}
         onLogin={async (e, p) => { await login(e, p); }}

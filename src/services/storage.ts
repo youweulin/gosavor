@@ -1,8 +1,9 @@
 import { DEFAULT_SETTINGS } from '../types';
-import type { AppSettings, SavedOrder } from '../types';
+import type { AppSettings, SavedOrder, SavedScan } from '../types';
 
 const SETTINGS_KEY = 'gosavor_settings';
 const ORDERS_KEY = 'gosavor_orders';
+const SCANS_KEY = 'gosavor_scans';
 
 // === Settings ===
 export const getSettings = (): AppSettings => {
@@ -54,5 +55,37 @@ export const deleteOrder = (id: string): SavedOrder[] => {
   const history = getOrderHistory();
   const updated = history.filter(o => o.id !== id);
   localStorage.setItem(ORDERS_KEY, JSON.stringify(updated));
+  return updated;
+};
+
+// === Scan History ===
+export const getScanHistory = (): SavedScan[] => {
+  try {
+    const stored = localStorage.getItem(SCANS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveScan = (scan: SavedScan) => {
+  const history = getScanHistory();
+  const exists = history.findIndex(s => s.id === scan.id);
+  const updated = exists >= 0
+    ? history.map(s => s.id === scan.id ? scan : s)
+    : [scan, ...history];
+  try {
+    localStorage.setItem(SCANS_KEY, JSON.stringify(updated.slice(0, 30)));
+  } catch {
+    // If quota exceeded, store without images
+    const slim = updated.map(s => ({ ...s, images: [] })).slice(0, 30);
+    localStorage.setItem(SCANS_KEY, JSON.stringify(slim));
+  }
+};
+
+export const deleteScan = (id: string): SavedScan[] => {
+  const history = getScanHistory();
+  const updated = history.filter(s => s.id !== id);
+  localStorage.setItem(SCANS_KEY, JSON.stringify(updated));
   return updated;
 };

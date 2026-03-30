@@ -18,6 +18,16 @@ export interface MenuAnalysisResult {
   items: MenuItem[];
 }
 
+// === Scan History ===
+export interface SavedScan {
+  id: string;
+  timestamp: number;
+  restaurantName: string;
+  currency: string;
+  items: MenuItem[];
+  images: string[]; // base64 thumbnails
+}
+
 // === Order ===
 export interface OrderItem {
   item: MenuItem;
