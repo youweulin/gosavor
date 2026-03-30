@@ -69,7 +69,7 @@ function App() {
         setMenuResult(result);
         setQuantities({});
         saveScan({
-          id: crypto.randomUUID(), timestamp: Date.now(),
+          id: crypto.randomUUID(), timestamp: Date.now(), scanMode: 'menu',
           restaurantName: result.restaurantName || 'Menu',
           currency: result.currency, items: result.items, images,
         });
@@ -77,17 +77,19 @@ function App() {
         const result = await analyzeReceiptImage(imageData, targetLangLabel, apiKey);
         setReceiptResult(result);
         saveScan({
-          id: crypto.randomUUID(), timestamp: Date.now(),
+          id: crypto.randomUUID(), timestamp: Date.now(), scanMode: 'receipt',
           restaurantName: result.merchantName || 'Receipt',
           currency: result.currency, items: [], images,
+          receiptData: result,
         });
       } else {
         const result = await analyzeGeneralImage(imageData, targetLangLabel, apiKey);
         setGeneralResult(result);
         saveScan({
-          id: crypto.randomUUID(), timestamp: Date.now(),
+          id: crypto.randomUUID(), timestamp: Date.now(), scanMode: 'general',
           restaurantName: result.locationGuess || 'Translation',
           currency: '', items: [], images,
+          generalData: result,
         });
       }
     } catch (err) {
@@ -143,16 +145,24 @@ function App() {
     setError('');
   };
 
-  // Load a saved scan
+  // Load a saved scan — restore correct mode and data
   const handleLoadScan = (scan: SavedScan) => {
-    setMenuResult({
-      currency: scan.currency,
-      restaurantName: scan.restaurantName,
-      items: scan.items,
-    });
+    handleGoHome(); // reset everything first
     setImages(scan.images);
-    setQuantities({});
-    setActiveCategory(null);
+    const mode = scan.scanMode || 'menu';
+    setScanMode(mode);
+
+    if (mode === 'menu' && scan.items.length > 0) {
+      setMenuResult({
+        currency: scan.currency,
+        restaurantName: scan.restaurantName,
+        items: scan.items,
+      });
+    } else if (mode === 'receipt' && scan.receiptData) {
+      setReceiptResult(scan.receiptData);
+    } else if (mode === 'general' && scan.generalData) {
+      setGeneralResult(scan.generalData);
+    }
   };
 
   if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;

@@ -60,8 +60,11 @@ export interface SavedScan {
   timestamp: number;
   restaurantName: string;
   currency: string;
+  scanMode: ScanMode;
   items: MenuItem[];
-  images: string[]; // base64 thumbnails
+  images: string[];
+  receiptData?: ReceiptAnalysisResult;
+  generalData?: GeneralAnalysisResult;
 }
 
 // === Order ===

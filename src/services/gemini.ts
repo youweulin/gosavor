@@ -124,8 +124,13 @@ export const analyzeReceiptImage = async (
     mimeType: 'image/jpeg',
   })));
 
-  const prompt = `Receipt scanner. Translate to ${targetLanguage}.
-Extract: merchantName, date, currency (¥ for JPY), totalAmount, items (originalName, translatedName, quantity, price), tax, serviceCharge, isTaxFree, totalQuantity.`;
+  const prompt = `Receipt scanner and translator. ALL translations MUST be in ${targetLanguage}.
+For each item:
+- originalName: text as seen on receipt (original language)
+- translatedName: MUST translate to ${targetLanguage}. Example: "アリナミンEXプラス" → "合利他命EX Plus" (not English).
+- quantity: number of items
+- price: total price for this line
+Also extract: merchantName (keep original), date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge, isTaxFree (check for 免税/Tax Free), totalQuantity.`;
 
   const imageParts = resized.map(img => ({ inlineData: { mimeType: img.mimeType, data: img.base64 } }));
   const ai = getAI(apiKey);
