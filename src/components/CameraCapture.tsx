@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Camera, ImagePlus, X } from 'lucide-react';
+import { Camera, ImagePlus, Upload, X } from 'lucide-react';
 
 interface CameraCaptureProps {
   images: string[];
@@ -9,12 +9,12 @@ interface CameraCaptureProps {
 }
 
 const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: CameraCaptureProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-
     Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onload = (ev) => {
@@ -24,7 +24,6 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: Camer
       };
       reader.readAsDataURL(file);
     });
-    // Reset input so same file can be selected again
     e.target.value = '';
   };
 
@@ -50,7 +49,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: Camer
           ))}
           {/* Add more */}
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => uploadInputRef.current?.click()}
             className="shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
           >
             <ImagePlus size={24} />
@@ -58,7 +57,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: Camer
         </div>
       )}
 
-      {/* Camera / Upload buttons */}
+      {/* Camera + Upload buttons */}
       {images.length === 0 && (
         <div className="flex flex-col items-center gap-4 py-8">
           <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center">
@@ -67,12 +66,20 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: Camer
           <p className="text-gray-500 text-sm text-center">
             拍攝或上傳菜單照片<br />AI 自動翻譯並生成點餐介面
           </p>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-bold text-lg shadow-lg shadow-orange-200 transition-colors"
-          >
-            拍菜單
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-bold text-base shadow-lg shadow-orange-200 transition-colors flex items-center gap-2"
+            >
+              <Camera size={18} /> 拍菜單
+            </button>
+            <button
+              onClick={() => uploadInputRef.current?.click()}
+              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full font-bold text-base border border-gray-200 shadow-sm transition-colors flex items-center gap-2"
+            >
+              <Upload size={18} /> 上傳照片
+            </button>
+          </div>
         </div>
       )}
 
@@ -94,11 +101,20 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: Camer
         </button>
       )}
 
+      {/* Camera input (opens camera) */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      {/* Upload input (opens file picker / gallery) */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
         multiple
         onChange={handleFileSelect}
         className="hidden"
