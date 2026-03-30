@@ -35,13 +35,36 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
     return '';
   };
 
+  const [filter, setFilter] = useState<'all' | 'menu' | 'receipt' | 'general'>('all');
+  const filtered = filter === 'all' ? scans : scans.filter(s => (s.scanMode || 'menu') === filter);
+
   return (
     <div className="mt-6">
-      <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-1">
-        <Clock size={14} /> 最近掃描
-      </h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-medium text-gray-500 flex items-center gap-1">
+          <Clock size={14} /> 最近掃描
+        </h3>
+        <div className="flex gap-1">
+          {([
+            ['all', '全部'],
+            ['menu', '菜單'],
+            ['receipt', '收據'],
+            ['general', '翻譯'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                filter === key ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="space-y-2">
-        {scans.slice(0, 8).map(scan => {
+        {filtered.slice(0, 8).map(scan => {
           const mode = scan.scanMode || 'menu';
           const cfg = modeIcons[mode];
           const Icon = cfg.icon;

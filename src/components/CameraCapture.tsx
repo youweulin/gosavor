@@ -100,9 +100,9 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
           <div className="flex gap-3">
             <button
               onClick={() => cameraInputRef.current?.click()}
-              className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-bold text-base shadow-lg shadow-orange-200 transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full font-bold text-base border border-gray-200 shadow-sm transition-colors flex items-center gap-2"
             >
-              <Camera size={18} /> 拍菜單
+              <Camera size={18} /> 拍照
             </button>
             <button
               onClick={() => uploadInputRef.current?.click()}
