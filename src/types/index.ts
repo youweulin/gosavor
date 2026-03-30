@@ -18,6 +18,42 @@ export interface MenuAnalysisResult {
   items: MenuItem[];
 }
 
+// === Receipt Analysis ===
+export interface ReceiptItem {
+  originalName: string;
+  translatedName: string;
+  quantity: string;
+  price: string;
+}
+
+export interface ReceiptAnalysisResult {
+  merchantName: string;
+  date: string;
+  currency: string;
+  totalAmount: string;
+  items: ReceiptItem[];
+  tax?: string;
+  serviceCharge?: string;
+  isTaxFree?: boolean;
+  totalQuantity?: number;
+}
+
+// === General/Sign Translation ===
+export interface GeneralItem {
+  originalText: string;
+  translatedText: string;
+  explanation: string;
+  category: string;
+}
+
+export interface GeneralAnalysisResult {
+  locationGuess?: string;
+  items: GeneralItem[];
+}
+
+// === Scan Mode ===
+export type ScanMode = 'menu' | 'receipt' | 'general';
+
 // === Scan History ===
 export interface SavedScan {
   id: string;

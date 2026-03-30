@@ -2,10 +2,10 @@ import { useState, useCallback } from 'react';
 import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
-import { analyzeMenuImage } from './services/gemini';
+import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
 import { saveOrder, saveScan } from './services/storage';
 import { TARGET_LANGUAGES } from './types';
-import type { MenuAnalysisResult, OrderItem, SavedOrder, SavedScan, SplitInfo } from './types';
+import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult, OrderItem, SavedOrder, SavedScan, SplitInfo, ScanMode } from './types';
 
 import CameraCapture from './components/CameraCapture';
 import MenuResults from './components/MenuResults';
@@ -16,6 +16,8 @@ import AuthModal from './components/AuthModal';
 import CurrencyBar from './components/CurrencyBar';
 import InlineImageMap from './components/InlineImageMap';
 import ScanHistory from './components/ScanHistory';
+import ReceiptView from './components/ReceiptView';
+import GeneralView from './components/GeneralView';
 
 type Page = 'home' | 'history' | 'settings';
 
@@ -26,7 +28,10 @@ function App() {
   const [page, setPage] = useState<Page>('home');
   const [images, setImages] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [scanMode, setScanMode] = useState<ScanMode>('menu');
   const [menuResult, setMenuResult] = useState<MenuAnalysisResult | null>(null);
+  const [receiptResult, setReceiptResult] = useState<ReceiptAnalysisResult | null>(null);
+  const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
@@ -58,19 +63,33 @@ function App() {
         base64: img.split(',')[1],
         mimeType: 'image/jpeg',
       }));
-      const result = await analyzeMenuImage(imageData, targetLangLabel, apiKey, settings.allergens);
-      setMenuResult(result);
-      setQuantities({});
 
-      // Auto-save scan to local history
-      saveScan({
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        restaurantName: result.restaurantName || 'Menu',
-        currency: result.currency,
-        items: result.items,
-        images: images,
-      });
+      if (scanMode === 'menu') {
+        const result = await analyzeMenuImage(imageData, targetLangLabel, apiKey, settings.allergens);
+        setMenuResult(result);
+        setQuantities({});
+        saveScan({
+          id: crypto.randomUUID(), timestamp: Date.now(),
+          restaurantName: result.restaurantName || 'Menu',
+          currency: result.currency, items: result.items, images,
+        });
+      } else if (scanMode === 'receipt') {
+        const result = await analyzeReceiptImage(imageData, targetLangLabel, apiKey);
+        setReceiptResult(result);
+        saveScan({
+          id: crypto.randomUUID(), timestamp: Date.now(),
+          restaurantName: result.merchantName || 'Receipt',
+          currency: result.currency, items: [], images,
+        });
+      } else {
+        const result = await analyzeGeneralImage(imageData, targetLangLabel, apiKey);
+        setGeneralResult(result);
+        saveScan({
+          id: crypto.randomUUID(), timestamp: Date.now(),
+          restaurantName: result.locationGuess || 'Translation',
+          currency: '', items: [], images,
+        });
+      }
     } catch (err) {
       console.error(err);
       setError('分析失敗，請確認 API Key 是否正確或重試。');
@@ -115,6 +134,8 @@ function App() {
   const handleGoHome = () => {
     setImages([]);
     setMenuResult(null);
+    setReceiptResult(null);
+    setGeneralResult(null);
     setQuantities({});
     setHighlightIndex(null);
     setActiveCategory(null);
@@ -225,47 +246,30 @@ function App() {
           </div>
         )}
 
-        {!menuResult ? (
+        {/* No results yet — show camera */}
+        {!menuResult && !receiptResult && !generalResult ? (
           <>
             <CameraCapture
               images={images}
               onImagesChange={setImages}
               onAnalyze={handleAnalyze}
               isAnalyzing={isAnalyzing}
+              scanMode={scanMode}
+              onScanModeChange={setScanMode}
             />
             {images.length === 0 && (
-              <>
-                <div className="mt-8 space-y-4">
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    {[
-                      { icon: '📸', title: '拍菜單', desc: 'AI 翻譯' },
-                      { icon: '⚠️', title: '過敏警示', desc: '自動標記' },
-                      { icon: '🗣️', title: '語音點餐', desc: '日語發音' },
-                    ].map((feat, i) => (
-                      <div key={i} className="p-3 bg-white rounded-xl border border-gray-100">
-                        <p className="text-2xl mb-1">{feat.icon}</p>
-                        <p className="text-xs font-medium text-gray-700">{feat.title}</p>
-                        <p className="text-xs text-gray-400">{feat.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* Scan History */}
-                <ScanHistory onLoadScan={handleLoadScan} />
-              </>
+              <ScanHistory onLoadScan={handleLoadScan} />
             )}
           </>
-        ) : (
+        ) : menuResult ? (
+          /* Menu results */
           <>
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="font-bold text-gray-900">{menuResult.restaurantName || 'Menu'}</h2>
                 <p className="text-xs text-gray-400">{menuResult.items.length} dishes</p>
               </div>
-              <button
-                onClick={handleGoHome}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium"
-              >
+              <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
                 New Scan
               </button>
             </div>
@@ -276,18 +280,37 @@ function App() {
               onUpdateQuantity={handleUpdateQuantity}
               userAllergens={settings.allergens}
               onLocate={(idx) => {
-                // Switch to the correct image for this item
                 const itemImageIdx = menuResult?.items[idx]?.imageIndex ?? 0;
-                if (itemImageIdx !== activeImageIdx) {
-                  setActiveImageIdx(itemImageIdx);
-                }
+                if (itemImageIdx !== activeImageIdx) setActiveImageIdx(itemImageIdx);
                 setHighlightIndex(idx);
                 setTimeout(() => setHighlightIndex(null), 2000);
               }}
               onCategoryChange={setActiveCategory}
             />
           </>
-        )}
+        ) : receiptResult ? (
+          /* Receipt results */
+          <>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-bold text-gray-900">收據翻譯</h2>
+              <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
+                New Scan
+              </button>
+            </div>
+            <ReceiptView data={receiptResult} />
+          </>
+        ) : generalResult ? (
+          /* General/Sign/Fortune results */
+          <>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-bold text-gray-900">翻譯結果</h2>
+              <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
+                New Scan
+              </button>
+            </div>
+            <GeneralView data={generalResult} />
+          </>
+        ) : null}
       </main>
 
       {/* Floating Checkout */}

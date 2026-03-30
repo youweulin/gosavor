@@ -1,14 +1,23 @@
 import { useRef } from 'react';
-import { Camera, ImagePlus, Upload, X } from 'lucide-react';
+import { Camera, ImagePlus, Upload, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
+import type { ScanMode } from '../types';
 
 interface CameraCaptureProps {
   images: string[];
   onImagesChange: (images: string[]) => void;
   onAnalyze: () => void;
   isAnalyzing: boolean;
+  scanMode: ScanMode;
+  onScanModeChange: (mode: ScanMode) => void;
 }
 
-const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: CameraCaptureProps) => {
+const modeConfig = {
+  menu: { icon: UtensilsCrossed, label: '菜單翻譯', desc: 'AI 翻譯並生成點餐介面' },
+  receipt: { icon: Receipt, label: '收據翻譯', desc: '掃描收據，翻譯明細' },
+  general: { icon: Languages, label: '萬用翻譯', desc: '籤詩、告示、標誌翻譯' },
+};
+
+const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onScanModeChange }: CameraCaptureProps) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,12 +68,34 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: Camer
 
       {/* Camera + Upload buttons */}
       {images.length === 0 && (
-        <div className="flex flex-col items-center gap-4 py-8">
-          <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center">
-            <Camera size={36} className="text-orange-500" />
+        <div className="flex flex-col items-center gap-4 py-6">
+          {/* Mode selector */}
+          <div className="flex gap-2 w-full">
+            {(Object.entries(modeConfig) as [ScanMode, typeof modeConfig.menu][]).map(([mode, cfg]) => {
+              const Icon = cfg.icon;
+              const active = scanMode === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => onScanModeChange(mode)}
+                  className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all ${
+                    active
+                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
+                      : 'bg-white text-gray-500 border border-gray-200 hover:border-orange-200'
+                  }`}
+                >
+                  <Icon size={18} />
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
+            <Camera size={28} className="text-orange-500" />
           </div>
           <p className="text-gray-500 text-sm text-center">
-            拍攝或上傳菜單照片<br />AI 自動翻譯並生成點餐介面
+            {modeConfig[scanMode].desc}
           </p>
           <div className="flex gap-3">
             <button
@@ -96,7 +127,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing }: Camer
               AI 分析中...
             </>
           ) : (
-            <>分析菜單 ({images.length} 張照片)</>
+            <>{modeConfig[scanMode].label} ({images.length} 張照片)</>
           )}
         </button>
       )}

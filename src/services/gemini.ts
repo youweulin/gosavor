@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import type { MenuAnalysisResult } from '../types';
+import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult } from '../types';
 
 const getAI = (apiKey: string) => new GoogleGenAI({ apiKey });
 
@@ -110,4 +110,114 @@ Also return currency (use ¥ for JPY) and restaurantName if visible.`;
 
   if (!response.text) throw new Error('No response from AI');
   return safeParseJSON<MenuAnalysisResult>(response.text);
+};
+
+// === Receipt Analysis ===
+export const analyzeReceiptImage = async (
+  images: { base64: string; mimeType: string }[],
+  targetLanguage: string,
+  apiKey: string,
+  modelName = 'gemini-2.5-flash'
+): Promise<ReceiptAnalysisResult> => {
+  const resized = await Promise.all(images.map(async (img) => ({
+    base64: await resizeImage(img.base64),
+    mimeType: 'image/jpeg',
+  })));
+
+  const prompt = `Receipt scanner. Translate to ${targetLanguage}.
+Extract: merchantName, date, currency (¥ for JPY), totalAmount, items (originalName, translatedName, quantity, price), tax, serviceCharge, isTaxFree, totalQuantity.`;
+
+  const imageParts = resized.map(img => ({ inlineData: { mimeType: img.mimeType, data: img.base64 } }));
+  const ai = getAI(apiKey);
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: { parts: [...imageParts, { text: prompt }] },
+    config: {
+      thinkingConfig: { thinkingBudget: 0 },
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          merchantName: { type: Type.STRING },
+          date: { type: Type.STRING },
+          currency: { type: Type.STRING },
+          totalAmount: { type: Type.STRING },
+          tax: { type: Type.STRING },
+          serviceCharge: { type: Type.STRING },
+          isTaxFree: { type: Type.BOOLEAN },
+          totalQuantity: { type: Type.INTEGER },
+          items: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                originalName: { type: Type.STRING },
+                translatedName: { type: Type.STRING },
+                quantity: { type: Type.STRING },
+                price: { type: Type.STRING },
+              },
+              required: ['originalName', 'translatedName', 'price'],
+            },
+          },
+        },
+        required: ['merchantName', 'totalAmount', 'items', 'currency'],
+      },
+    },
+  });
+  if (!response.text) throw new Error('No response from AI');
+  return safeParseJSON<ReceiptAnalysisResult>(response.text);
+};
+
+// === General / Sign / Fortune Translation ===
+export const analyzeGeneralImage = async (
+  images: { base64: string; mimeType: string }[],
+  targetLanguage: string,
+  apiKey: string,
+  modelName = 'gemini-2.5-flash'
+): Promise<GeneralAnalysisResult> => {
+  const resized = await Promise.all(images.map(async (img) => ({
+    base64: await resizeImage(img.base64),
+    mimeType: 'image/jpeg',
+  })));
+
+  const prompt = `Smart travel translator. Analyze image. ALL output in ${targetLanguage}.
+For each text/sign/object found:
+- originalText: text in original language
+- translatedText: translation in ${targetLanguage}
+- explanation: helpful context (2-3 sentences in ${targetLanguage}). If fortune slip (おみくじ/籤詩), explain the meaning and luck level.
+- category: Sign/Warning/Fortune/History/Info/Notice
+Also return locationGuess in ${targetLanguage} if identifiable.`;
+
+  const imageParts = resized.map(img => ({ inlineData: { mimeType: img.mimeType, data: img.base64 } }));
+  const ai = getAI(apiKey);
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: { parts: [...imageParts, { text: prompt }] },
+    config: {
+      thinkingConfig: { thinkingBudget: 0 },
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          locationGuess: { type: Type.STRING },
+          items: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                originalText: { type: Type.STRING },
+                translatedText: { type: Type.STRING },
+                explanation: { type: Type.STRING },
+                category: { type: Type.STRING },
+              },
+              required: ['originalText', 'translatedText', 'explanation', 'category'],
+            },
+          },
+        },
+        required: ['items'],
+      },
+    },
+  });
+  if (!response.text) throw new Error('No response from AI');
+  return safeParseJSON<GeneralAnalysisResult>(response.text);
 };
