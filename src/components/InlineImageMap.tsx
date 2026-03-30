@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Eye, EyeOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MenuItem } from '../types';
 
 interface InlineImageMapProps {
@@ -7,12 +7,19 @@ interface InlineImageMapProps {
   items: MenuItem[];
   highlightIndex: number | null;
   activeCategory: string | null;
+  activeImageIndex: number;
   onTapItem: (index: number) => void;
+  onImageChange: (imageIndex: number) => void;
 }
 
-const InlineImageMap = ({ images, items, highlightIndex, activeCategory, onTapItem }: InlineImageMapProps) => {
-  const [activeImage, setActiveImage] = useState(0);
+const InlineImageMap = ({
+  images, items, highlightIndex, activeCategory,
+  activeImageIndex, onTapItem, onImageChange
+}: InlineImageMapProps) => {
   const [showMarkers, setShowMarkers] = useState(true);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
+  const touchDelta = useRef(0);
 
   const normalize = (box: number[]): number[] => {
     if (box.some(v => v > 1)) return box.map(v => v / 1000);
@@ -26,40 +33,80 @@ const InlineImageMap = ({ images, items, highlightIndex, activeCategory, onTapIt
     return (n[2] - n[0]) > 0.005 && (n[3] - n[1]) > 0.005;
   };
 
-  // Items on current image
+  // Swipe to switch images
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchDelta.current = 0;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchDelta.current = e.touches[0].clientX - touchStartX.current;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    const threshold = 50;
+    if (touchDelta.current < -threshold && activeImageIndex < images.length - 1) {
+      onImageChange(activeImageIndex + 1);
+    } else if (touchDelta.current > threshold && activeImageIndex > 0) {
+      onImageChange(activeImageIndex - 1);
+    }
+    touchDelta.current = 0;
+  }, [activeImageIndex, images.length, onImageChange]);
+
+  // Items on current image, filtered by category
   const imageItems = items
     .map((item, idx) => ({ item, idx }))
-    .filter(({ item }) => (item.imageIndex ?? 0) === activeImage);
+    .filter(({ item }) => (item.imageIndex ?? 0) === activeImageIndex);
 
-  // Filter by active category if set
   const visibleItems = activeCategory
     ? imageItems.filter(({ item }) => item.category === activeCategory)
     : imageItems;
 
+  // Scroll carousel to active image
+  useEffect(() => {
+    if (carouselRef.current) {
+      const scrollTarget = activeImageIndex * carouselRef.current.offsetWidth;
+      carouselRef.current.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+    }
+  }, [activeImageIndex]);
+
   return (
     <div className="space-y-1">
-      {/* Controls */}
+      {/* Top controls */}
       <div className="flex items-center justify-between px-1">
-        {/* Image tabs */}
-        {images.length > 1 ? (
-          <div className="flex gap-1">
-            {images.map((_, i) => (
+        {/* Page indicator */}
+        <div className="flex items-center gap-2">
+          {images.length > 1 && (
+            <>
               <button
-                key={i}
-                onClick={() => setActiveImage(i)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  activeImage === i
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
+                onClick={() => activeImageIndex > 0 && onImageChange(activeImageIndex - 1)}
+                disabled={activeImageIndex === 0}
+                className="p-0.5 rounded disabled:opacity-20 text-gray-500 hover:text-gray-700"
               >
-                Photo {i + 1}
+                <ChevronLeft size={16} />
               </button>
-            ))}
-          </div>
-        ) : (
-          <div />
-        )}
+              <div className="flex gap-1">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onImageChange(i)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      activeImageIndex === i ? 'bg-orange-500 w-4' : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => activeImageIndex < images.length - 1 && onImageChange(activeImageIndex + 1)}
+                disabled={activeImageIndex === images.length - 1}
+                className="p-0.5 rounded disabled:opacity-20 text-gray-500 hover:text-gray-700"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <span className="text-[10px] text-gray-400">{activeImageIndex + 1}/{images.length}</span>
+            </>
+          )}
+        </div>
 
         {/* Toggle markers */}
         <button
@@ -69,13 +116,22 @@ const InlineImageMap = ({ images, items, highlightIndex, activeCategory, onTapIt
           }`}
         >
           {showMarkers ? <Eye size={12} /> : <EyeOff size={12} />}
-          {showMarkers ? '標記' : '標記'}
+          標記
         </button>
       </div>
 
-      {/* Photo — constrained height on mobile */}
-      <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm max-h-[30vh]">
-        <img src={images[activeImage]} alt="Menu" className="w-full block object-cover object-top" />
+      {/* Swipeable photo carousel */}
+      <div
+        className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm max-h-[30vh]"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <img
+          src={images[activeImageIndex]}
+          alt={`Menu page ${activeImageIndex + 1}`}
+          className="w-full block object-cover object-top"
+        />
 
         {/* Numbered markers */}
         {showMarkers && visibleItems.map(({ item, idx }) => {
@@ -134,6 +190,18 @@ const InlineImageMap = ({ images, items, highlightIndex, activeCategory, onTapIt
             );
           }
         })}
+
+        {/* Swipe hint arrows on edges */}
+        {images.length > 1 && activeImageIndex > 0 && (
+          <div className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/30 rounded-full flex items-center justify-center">
+            <ChevronLeft size={14} className="text-white" />
+          </div>
+        )}
+        {images.length > 1 && activeImageIndex < images.length - 1 && (
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/30 rounded-full flex items-center justify-center">
+            <ChevronRight size={14} className="text-white" />
+          </div>
+        )}
       </div>
 
       <div className="text-[10px] text-gray-300 px-1">

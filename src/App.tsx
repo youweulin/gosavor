@@ -32,6 +32,7 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [error, setError] = useState('');
 
   const getApiKey = useCallback((): string | null => {
@@ -117,6 +118,7 @@ function App() {
     setQuantities({});
     setHighlightIndex(null);
     setActiveCategory(null);
+    setActiveImageIdx(0);
     setError('');
   };
 
@@ -187,11 +189,23 @@ function App() {
               items={menuResult.items}
               highlightIndex={highlightIndex}
               activeCategory={activeCategory}
+              activeImageIndex={activeImageIdx}
               onTapItem={(idx) => {
                 setHighlightIndex(idx);
                 const el = document.getElementById(`menu-item-${idx}`);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 setTimeout(() => setHighlightIndex(null), 2000);
+              }}
+              onImageChange={(imgIdx) => {
+                setActiveImageIdx(imgIdx);
+                // Scroll menu list to first item of that image
+                if (menuResult) {
+                  const firstItem = menuResult.items.findIndex(it => (it.imageIndex ?? 0) === imgIdx);
+                  if (firstItem >= 0) {
+                    const el = document.getElementById(`menu-item-${firstItem}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }
               }}
             />
           </div>
@@ -262,6 +276,11 @@ function App() {
               onUpdateQuantity={handleUpdateQuantity}
               userAllergens={settings.allergens}
               onLocate={(idx) => {
+                // Switch to the correct image for this item
+                const itemImageIdx = menuResult?.items[idx]?.imageIndex ?? 0;
+                if (itemImageIdx !== activeImageIdx) {
+                  setActiveImageIdx(itemImageIdx);
+                }
                 setHighlightIndex(idx);
                 setTimeout(() => setHighlightIndex(null), 2000);
               }}
