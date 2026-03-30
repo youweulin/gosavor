@@ -3,7 +3,6 @@ import type { AppSettings, SavedOrder, SavedScan } from '../types';
 
 const SETTINGS_KEY = 'gosavor_settings';
 const ORDERS_KEY = 'gosavor_orders';
-const SCANS_KEY = 'gosavor_scans';
 
 // === Settings ===
 export const getSettings = (): AppSettings => {
