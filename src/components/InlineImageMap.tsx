@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Eye, EyeOff, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, EyeOff, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import type { MenuItem } from '../types';
 
 interface InlineImageMapProps {
@@ -17,6 +17,7 @@ const InlineImageMap = ({
   activeImageIndex, onTapItem, onImageChange
 }: InlineImageMapProps) => {
   const [showMarkers, setShowMarkers] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchDelta = useRef(0);
@@ -108,21 +109,35 @@ const InlineImageMap = ({
           )}
         </div>
 
-        {/* Toggle markers */}
-        <button
-          onClick={() => setShowMarkers(!showMarkers)}
-          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-            showMarkers ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'
-          }`}
-        >
-          {showMarkers ? <Eye size={12} /> : <EyeOff size={12} />}
-          標記
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Toggle markers */}
+          <button
+            onClick={() => setShowMarkers(!showMarkers)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+              showMarkers ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'
+            }`}
+          >
+            {showMarkers ? <Eye size={12} /> : <EyeOff size={12} />}
+            標記
+          </button>
+          {/* Expand/collapse */}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+              expanded ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+            }`}
+          >
+            {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            {expanded ? '收合' : '展開'}
+          </button>
+        </div>
       </div>
 
       {/* Swipeable photo carousel */}
       <div
-        className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm max-h-[30vh]"
+        className={`relative rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-300 ${
+          expanded ? 'max-h-none' : 'max-h-[30vh]'
+        }`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -130,7 +145,7 @@ const InlineImageMap = ({
         <img
           src={images[activeImageIndex]}
           alt={`Menu page ${activeImageIndex + 1}`}
-          className="w-full block object-cover object-top"
+          className={`w-full block ${expanded ? '' : 'object-cover object-top'}`}
         />
 
         {/* Numbered markers */}

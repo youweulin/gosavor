@@ -182,7 +182,7 @@ function App() {
 
       {/* Sticky image map — max 35vh so menu list always has room */}
       {menuResult && images.length > 0 && (
-        <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm max-h-[35vh] overflow-hidden">
+        <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm overflow-auto max-h-[80vh]">
           <div className="max-w-md mx-auto px-2 py-1">
             <InlineImageMap
               images={images}
