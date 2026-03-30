@@ -28,6 +28,8 @@ const Checkout = ({
   const [mode, setMode] = useState<'review' | 'staff' | 'split'>('review');
   const [splitPersons, setSplitPersons] = useState(2);
   const [paidBy, setPaidBy] = useState('');
+  const [voiceGender, setVoiceGender] = useState<'female' | 'male'>('female');
+  const [greeting, setGreeting] = useState<'tw' | 'kr' | 'en' | 'none'>('tw');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
 
@@ -52,18 +54,46 @@ const Checkout = ({
     return `${val} ${currency}`;
   };
 
+  const greetingTexts: Record<string, { intro: string; thanks: string }> = {
+    tw: { intro: '台湾から来ました。', thanks: '本当にありがとうございます！とても感謝しています！' },
+    kr: { intro: '韓国から来ました。', thanks: '本当にありがとうございます！감사합니다！' },
+    en: { intro: 'I came from abroad.', thanks: 'Thank you so much! とても感謝しています！' },
+    none: { intro: '', thanks: 'ありがとうございます。' },
+  };
+
   const speakOrder = () => {
-    const text = orderedItems.map(o => `${o.item.originalName}、${o.quantity}つ`).join('。');
-    const u = new SpeechSynthesisUtterance(
-      `すみません、注文をお願いします。ご注文内容、${text}。以上です。ありがとうございます。`
-    );
+    const g = greetingTexts[greeting];
+    const itemsText = orderedItems.map(o => `${o.item.originalName}、${o.quantity}つ`).join('。');
+    const fullText = `すみません、${g.intro}注文をお願いします。ご注文内容、${itemsText}。以上です。${g.thanks}`;
+
+    const u = new SpeechSynthesisUtterance(fullText);
     u.lang = 'ja-JP';
 
+    // Pick voice by gender preference
     const voices = window.speechSynthesis.getVoices();
-    const jpVoice = voices.find(v =>
-      v.lang.startsWith('ja') && (v.name.includes('Google') || v.name.includes('Kyoko') || v.name.includes('Siri'))
-    ) || voices.find(v => v.lang.startsWith('ja'));
-    if (jpVoice) u.voice = jpVoice;
+    const jpVoices = voices.filter(v => v.lang.startsWith('ja'));
+
+    // Female: Kyoko, O-Ren, Google 日本語 (female default)
+    // Male: Otoya, Hattori
+    const femaleKeys = ['Kyoko', 'O-Ren', 'Siri', 'Google'];
+    const maleKeys = ['Otoya', 'Hattori', 'Takumi'];
+
+    const preferred = voiceGender === 'female' ? femaleKeys : maleKeys;
+    const fallback = voiceGender === 'female' ? maleKeys : femaleKeys;
+
+    let voice = null;
+    for (const key of preferred) {
+      voice = jpVoices.find(v => v.name.includes(key));
+      if (voice) break;
+    }
+    if (!voice) {
+      for (const key of fallback) {
+        voice = jpVoices.find(v => v.name.includes(key));
+        if (voice) break;
+      }
+    }
+    if (!voice && jpVoices.length > 0) voice = jpVoices[0];
+    if (voice) u.voice = voice;
 
     setIsSpeaking(true);
     u.onend = () => setIsSpeaking(false);
@@ -219,22 +249,68 @@ const Checkout = ({
               <Check size={20} /> 點餐成功！店員秒懂，不需比手畫腳
             </div>
           ) : mode === 'staff' ? (
-            <button
-              onClick={speakOrder}
-              disabled={isSpeaking}
-              className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg"
-            >
-              {isSpeaking ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  正在點餐中...
-                </>
-              ) : (
-                <>
-                  <PlayCircle size={24} /> 播放日語點餐
-                </>
-              )}
-            </button>
+            <div className="space-y-3">
+              {/* Voice & Greeting settings */}
+              <div className="flex gap-2">
+                {/* Voice gender */}
+                <div className="flex-1">
+                  <p className="text-[10px] text-gray-500 mb-1">語音</p>
+                  <div className="flex gap-1">
+                    {([['female', '👩 女聲'], ['male', '👨 男聲']] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => setVoiceGender(val)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          voiceGender === val ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Greeting origin */}
+                <div className="flex-1">
+                  <p className="text-[10px] text-gray-500 mb-1">來自</p>
+                  <div className="flex gap-1">
+                    {([['tw', '🇹🇼'], ['kr', '🇰🇷'], ['en', '🌍'], ['none', '無']] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => setGreeting(val)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          greeting === val ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Play button */}
+              <button
+                onClick={speakOrder}
+                disabled={isSpeaking}
+                className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg"
+              >
+                {isSpeaking ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    正在點餐中...
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle size={24} /> 播放日語點餐
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setMode('review')}
+                className="w-full py-2 text-sm text-gray-500 hover:text-gray-300"
+              >
+                返回修改
+              </button>
+            </div>
           ) : mode === 'split' ? (
             <button onClick={handleConfirm} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
               <Users size={20} /> 確認分帳

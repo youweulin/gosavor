@@ -17,7 +17,7 @@ const InlineImageMap = ({
   activeImageIndex, onTapItem, onImageChange
 }: InlineImageMapProps) => {
   const [showMarkers, setShowMarkers] = useState(true);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchDelta = useRef(0);
