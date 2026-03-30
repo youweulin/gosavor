@@ -73,9 +73,9 @@ const InlineImageMap = ({ images, items, highlightIndex, activeCategory, onTapIt
         </button>
       </div>
 
-      {/* Photo */}
-      <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-        <img src={images[activeImage]} alt="Menu" className="w-full block" />
+      {/* Photo — constrained height on mobile */}
+      <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm max-h-[30vh]">
+        <img src={images[activeImage]} alt="Menu" className="w-full block object-cover object-top" />
 
         {/* Numbered markers */}
         {showMarkers && visibleItems.map(({ item, idx }) => {
