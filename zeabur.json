@@ -1,0 +1,6 @@
+{
+  "$schema": "https://schema.zeabur.app/template.json",
+  "build_type": "static",
+  "build_command": "npm install --legacy-peer-deps && npm run build",
+  "output_dir": "dist"
+}
