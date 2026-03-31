@@ -89,8 +89,6 @@ export interface Recommendation {
 
 // Context keywords for different scan modes
 const FOOD_KEYWORDS = ['美食', 'グルメ', 'food tour', '料理教室', 'cooking', '居酒屋', 'ramen'];
-const SHOPPING_KEYWORDS = ['購物', '優惠券', 'shopping', '免稅'];
-const SIGHTSEEING_KEYWORDS = ['體驗', '觀光', '一日遊', 'tour', '門票'];
 
 // Main recommendation function
 export const getRecommendations = (
