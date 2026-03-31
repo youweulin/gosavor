@@ -211,12 +211,35 @@ function App() {
         </div>
       </header>
 
-      {/* Sticky image — for menu (with markers) or receipt/general (photo only) */}
-      {(menuResult || receiptResult || generalResult) && images.length > 0 && !menuResult ? (
+      {/* Sticky image — for menu (with markers) or receipt (with markers) or general (photo only) */}
+      {receiptResult && images.length > 0 ? (
         <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
           <div className="max-w-md mx-auto px-2 py-1">
-            <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm max-h-[35vh]">
-              <img src={images[0]} alt="Photo" className="block mx-auto max-h-[35vh] w-auto" />
+            <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+              <img src={images[0]} alt="Receipt" className="block mx-auto max-h-[40vh] w-auto" />
+              {receiptResult.items.map((item, idx) => {
+                if (!item.boundingBox || item.boundingBox.length < 4) return null;
+                const box = item.boundingBox.some(v => v > 1) ? item.boundingBox.map(v => v / 1000) : item.boundingBox;
+                if ((box[2] - box[0]) < 0.005 || (box[3] - box[1]) < 0.005) return null;
+                return (
+                  <div key={idx} className="absolute" style={{
+                    top: `${box[0] * 100}%`, left: `${box[1] * 100}%`,
+                    width: `${(box[3] - box[1]) * 100}%`, height: `${(box[2] - box[0]) * 100}%`,
+                  }}>
+                    <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-white/60 text-gray-900 border-2 border-gray-900 text-[9px] font-black flex items-center justify-center">
+                      {idx + 1}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : generalResult && images.length > 0 ? (
+        <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
+          <div className="max-w-md mx-auto px-2 py-1">
+            <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+              <img src={images[0]} alt="Photo" className="block mx-auto max-h-[40vh] w-auto" />
             </div>
           </div>
         </div>
