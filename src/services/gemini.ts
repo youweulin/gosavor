@@ -188,11 +188,28 @@ export const analyzeGeneralImage = async (
   })));
 
   const prompt = `Smart travel translator. Analyze image. ALL output in ${targetLanguage}.
-For each text/sign/object found:
-- originalText: text in original language
-- translatedText: translation in ${targetLanguage}
-- explanation: helpful context (2-3 sentences in ${targetLanguage}). If fortune slip (おみくじ/籤詩), explain the meaning and luck level.
-- category: Sign/Warning/Fortune/History/Info/Notice
+
+IMPORTANT: Detect the type of content first.
+
+If FORTUNE SLIP (おみくじ/籤詩/御神籤):
+- Return as a SINGLE item (not split line by line!)
+- originalText: the full original fortune text
+- translatedText: the overall fortune level in ${targetLanguage} (e.g. "大吉 - 大吉祥" or "小吉 - Minor Blessing")
+- category: "Fortune"
+- explanation: Write a comprehensive interpretation in ${targetLanguage}:
+  1. Overall luck level and meaning
+  2. Key themes (love, career, health, travel, etc.)
+  3. Advice and what to pay attention to
+  4. Cultural context of this fortune
+  Keep it warm, helpful, and detailed (5-8 sentences).
+
+If SIGN/NOTICE/OTHER:
+- For each text/sign/object found:
+  - originalText: text in original language
+  - translatedText: translation in ${targetLanguage}
+  - explanation: helpful context (2-3 sentences in ${targetLanguage})
+  - category: Sign/Warning/History/Info/Notice
+
 Also return locationGuess in ${targetLanguage} if identifiable.`;
 
   const imageParts = resized.map(img => ({ inlineData: { mimeType: img.mimeType, data: img.base64 } }));
