@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { ArrowLeft, Key, Percent, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, TrendingUp } from 'lucide-react';
 import { TARGET_LANGUAGES, COMMON_ALLERGENS, HOME_CURRENCIES } from '../types';
+import { fetchRates, getCurrencyCode } from './CurrencyBar';
 import type { AppSettings } from '../types';
 
 interface SettingsProps {
@@ -15,6 +16,22 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
   const [keyDraft, setKeyDraft] = useState(settings.geminiApiKey);
   const [keySaved, setKeySaved] = useState(false);
   const keyChanged = keyDraft !== settings.geminiApiKey;
+  const [rate, setRate] = useState<number | null>(null);
+  const [rateTime, setRateTime] = useState<string>('');
+
+  useEffect(() => {
+    const homeCode = settings.homeCurrency.toLowerCase();
+    fetchRates('jpy').then(rates => {
+      if (rates[homeCode]) {
+        setRate(rates[homeCode]);
+        const cached = localStorage.getItem('gosavor_exchange_rates');
+        if (cached) {
+          const ts = JSON.parse(cached).timestamp;
+          setRateTime(new Date(ts).toLocaleString());
+        }
+      }
+    });
+  }, [settings.homeCurrency]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -72,42 +89,6 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           </div>
         </div>
 
-        {/* Price Estimation */}
-        <div>
-          <h3 className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
-            <Percent size={14} /> 價格估算設定
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-500">稅率 (%)</label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="number"
-                  value={settings.taxRate}
-                  onChange={e => onUpdate({ taxRate: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
-                />
-                <span className="text-gray-400">%</span>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">服務費 (%)</label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="number"
-                  value={settings.serviceFee}
-                  onChange={e => onUpdate({ serviceFee: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
-                />
-                <span className="text-gray-400">%</span>
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            日本多數餐廳已含稅（税込），通常設 0% 即可。若菜單標示「税抜」則設 10%。
-          </p>
-        </div>
-
         {/* Language */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -118,12 +99,13 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
               <button
                 key={lang.code}
                 onClick={() => onUpdate({ targetLanguage: lang.code })}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   settings.targetLanguage === lang.code
                     ? 'bg-orange-500 text-white'
                     : 'bg-gray-900 text-gray-400 border border-gray-700 hover:border-gray-600'
                 }`}
               >
+                <span className="text-base">{lang.flag}</span>
                 {lang.label}
               </button>
             ))}
@@ -147,6 +129,24 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
               <option key={curr.code} value={curr.code}>{curr.symbol} {curr.label}</option>
             ))}
           </select>
+          {rate && (
+            <div className="mt-2 p-3 bg-gray-800/50 rounded-lg">
+              <div className="flex items-center gap-2 text-sm">
+                <TrendingUp size={14} className="text-orange-400" />
+                <span className="text-gray-300">
+                  1 JPY ≈ {rate.toFixed(4)} {settings.homeCurrency}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm mt-1">
+                <span className="text-gray-300">
+                  ¥1,000 ≈ {Math.round(1000 * rate).toLocaleString()} {settings.homeCurrency}
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-500 mt-1">
+                來源：Currency API · 更新於 {rateTime}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Allergens */}

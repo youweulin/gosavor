@@ -127,13 +127,8 @@ export interface UserData {
 }
 
 // === Constants ===
-export const TARGET_LANGUAGES = [
-  { code: 'zh-TW', label: '繁體中文' },
-  { code: 'en', label: 'English' },
-  { code: 'ko', label: '한국어' },
-  { code: 'th', label: 'ภาษาไทย' },
-  { code: 'vi', label: 'Tiếng Việt' },
-];
+// Re-exported from i18n - kept for backward compatibility
+export { SUPPORTED_LANGUAGES as TARGET_LANGUAGES } from '../i18n';
 
 export const HOME_CURRENCIES = [
   { code: 'TWD', label: '新台幣 TWD', symbol: 'NT$' },
