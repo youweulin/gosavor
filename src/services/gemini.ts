@@ -128,10 +128,10 @@ export const analyzeReceiptImage = async (
 For each item:
 - originalName: text as seen on receipt (original language)
 - translatedName: MUST translate to ${targetLanguage}. Example: "アリナミンEXプラス" → "合利他命EX Plus" (not English).
-- quantity: number of items
+- quantity: number of items (e.g. "4")
 - price: total price for this line
 - boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 coords, marking where this item appears on the receipt
-Also extract: merchantName (keep original), date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge, isTaxFree (check for 免税/Tax Free), totalQuantity.`;
+Also extract: merchantName (keep original, INCLUDE branch/store name e.g. "ココカラファイン 銀座4丁目店"), date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge, isTaxFree (check for 免税/Tax Free), totalQuantity.`;
 
   const imageParts = resized.map(img => ({ inlineData: { mimeType: img.mimeType, data: img.base64 } }));
   const ai = getAI(apiKey);

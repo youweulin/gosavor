@@ -364,7 +364,7 @@ function AppInner() {
                 {t('result.newScan')}
               </button>
             </div>
-            <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} />
+            <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} homeCurrency={settings.homeCurrency} />
           </>
         ) : generalResult ? (
           /* General/Sign/Fortune results */

@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Store, Calendar, MapPin, ShoppingBag, CheckCircle, Bookmark, Globe, Rows3, Columns2, List } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Store, Calendar, MapPin, ShoppingBag, CheckCircle, Bookmark, Globe, Rows3, Columns2, List, ArrowLeftRight } from 'lucide-react';
 import type { ReceiptAnalysisResult, ReceiptItem, Expense } from '../types';
 import { saveExpense } from '../services/storage';
 import { useT } from '../i18n/context';
+import { fetchRates, getCurrencyCode } from './CurrencyBar';
 
 interface ReceiptViewProps {
   data: ReceiptAnalysisResult;
@@ -11,6 +12,7 @@ interface ReceiptViewProps {
   onLayoutChange: (layout: 'stack' | 'side' | 'list') => void;
   highlightIdx: number | null;
   onHighlight: (idx: number) => void;
+  homeCurrency: string;
 }
 
 const CATEGORY_KEYS = ['cat.shopping', 'cat.food', 'cat.transport', 'cat.hotel', 'cat.other'] as const;
@@ -27,11 +29,31 @@ const hasBox = (item: ReceiptItem) => {
   return (n[2] - n[0]) > 0.005 && (n[3] - n[1]) > 0.005;
 };
 
-const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onHighlight }: ReceiptViewProps) => {
+const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onHighlight, homeCurrency }: ReceiptViewProps) => {
   const t = useT();
   const [saved, setSaved] = useState(false);
   const [category, setCategory] = useState('cat.shopping');
   const [payer, setPayer] = useState('');
+  const [showConversion, setShowConversion] = useState(false);
+  const [rate, setRate] = useState<number | null>(null);
+
+  useEffect(() => {
+    const foreignCode = getCurrencyCode(data.currency).toLowerCase();
+    const homeCode = homeCurrency.toLowerCase();
+    if (foreignCode === homeCode) return;
+    fetchRates(foreignCode).then(rates => {
+      if (rates[homeCode]) setRate(rates[homeCode]);
+    });
+  }, [data.currency, homeCurrency]);
+
+  const convert = (price: string | number): string => {
+    if (!rate) return '';
+    const num = typeof price === 'number' ? price : parseFloat(String(price).replace(/[^0-9.]/g, ''));
+    if (isNaN(num)) return '';
+    const converted = num * rate;
+    const smallUnit = ['USD', 'EUR', 'GBP', 'SGD', 'AUD', 'MYR', 'HKD'].includes(homeCurrency);
+    return smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();
+  };
 
   const formatPrice = (price: string | number, curr: string) => {
     const clean = String(price).replace(/[^0-9.]/g, '').trim();
@@ -144,10 +166,20 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start gap-1">
                     <span className="font-bold text-gray-900 text-sm">{item.translatedName}</span>
-                    <span className="font-bold text-gray-900 shrink-0 text-sm">{formatPrice(item.price, data.currency)}</span>
+                    <div className="text-right shrink-0">
+                      <span className="font-bold text-gray-900 text-sm">{formatPrice(item.price, data.currency)}</span>
+                      {showConversion && rate && (
+                        <div className="text-[10px] text-blue-500">≈ {convert(item.price)} {homeCurrency}</div>
+                      )}
+                    </div>
                   </div>
                   <div className="text-xs text-gray-400">{item.originalName}</div>
-                  <div className="text-xs font-medium text-gray-600">{formatPrice(unitPrice, data.currency)} × {qty}</div>
+                  <div className="text-xs font-medium text-gray-600">
+                    {formatPrice(unitPrice, data.currency)} × {qty}
+                    {showConversion && rate && (
+                      <span className="text-blue-500 ml-1">(≈ {convert(unitPrice)}/{homeCurrency})</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -177,7 +209,12 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
         </div>
         <div className="flex justify-between items-end pt-2 border-t-2 border-gray-800">
           <span className="font-bold text-gray-900">{t('receipt.total')}</span>
-          <span className="text-xl font-black text-gray-900">{formatPrice(data.totalAmount, data.currency)}</span>
+          <div className="text-right">
+            <span className="text-xl font-black text-gray-900">{formatPrice(data.totalAmount, data.currency)}</span>
+            {showConversion && rate && (
+              <div className="text-sm font-bold text-blue-600">≈ {convert(data.totalAmount)} {homeCurrency}</div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -209,20 +246,31 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
 
   return (
     <div>
-      {/* Layout toggle */}
-      {imageSrc && (
-        <div className="flex justify-end mb-2 gap-1">
-          <button onClick={() => onLayoutChange('stack')}
-            className={`p-1.5 rounded-lg ${layout === 'stack' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}
-            title="上下對照"><Rows3 size={16} /></button>
-          <button onClick={() => onLayoutChange('side')}
-            className={`p-1.5 rounded-lg ${layout === 'side' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}
-            title="左右對照"><Columns2 size={16} /></button>
-          <button onClick={() => onLayoutChange('list')}
-            className={`p-1.5 rounded-lg ${layout === 'list' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}
-            title="純翻譯"><List size={16} /></button>
-        </div>
-      )}
+      {/* Controls */}
+      <div className="flex justify-between mb-2">
+        {/* Conversion toggle */}
+        {rate && (
+          <button
+            onClick={() => setShowConversion(!showConversion)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
+              showConversion ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+            }`}
+          >
+            <ArrowLeftRight size={12} /> {homeCurrency}
+          </button>
+        )}
+        {/* Layout toggle */}
+        {imageSrc && (
+          <div className="flex gap-1 ml-auto">
+            <button onClick={() => onLayoutChange('stack')}
+              className={`p-1.5 rounded-lg ${layout === 'stack' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}><Rows3 size={16} /></button>
+            <button onClick={() => onLayoutChange('side')}
+              className={`p-1.5 rounded-lg ${layout === 'side' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}><Columns2 size={16} /></button>
+            <button onClick={() => onLayoutChange('list')}
+              className={`p-1.5 rounded-lg ${layout === 'list' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}><List size={16} /></button>
+          </div>
+        )}
+      </div>
 
       {layout === 'side' && imageSrc ? (
         /* Side by side: photo left, receipt right */
