@@ -21,6 +21,8 @@ import ReceiptView from './components/ReceiptView';
 import GeneralView from './components/GeneralView';
 import ExpenseBook from './components/ExpenseBook';
 import Diary from './components/Diary';
+import RecommendCards from './components/RecommendCards';
+import { getRecommendations } from './services/affiliate';
 
 type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary';
 
@@ -326,7 +328,13 @@ function AppInner() {
               scanMode={scanMode}
               onScanModeChange={setScanMode}
             />
-            {images.length === 0 && (
+            {/* Show recommendations while analyzing */}
+            {isAnalyzing && (
+              <div className="mt-4">
+                <RecommendCards recommendations={getRecommendations(scanMode)} context="loading" />
+              </div>
+            )}
+            {images.length === 0 && !isAnalyzing && (
               <ScanHistory onLoadScan={handleLoadScan} />
             )}
           </>
@@ -356,6 +364,10 @@ function AppInner() {
               }}
               onCategoryChange={setActiveCategory}
             />
+            {/* Affiliate recommendations */}
+            <div className="mt-4">
+              <RecommendCards recommendations={getRecommendations('menu', menuResult.restaurantName)} />
+            </div>
           </>
         ) : receiptResult ? (
           /* Receipt results */
@@ -367,6 +379,9 @@ function AppInner() {
               </button>
             </div>
             <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} homeCurrency={settings.homeCurrency} />
+            <div className="mt-4">
+              <RecommendCards recommendations={getRecommendations('receipt', receiptResult.merchantName)} />
+            </div>
           </>
         ) : generalResult ? (
           /* General/Sign/Fortune results */
@@ -378,6 +393,9 @@ function AppInner() {
               </button>
             </div>
             <GeneralView data={generalResult} />
+            <div className="mt-4">
+              <RecommendCards recommendations={getRecommendations('general', undefined, generalResult.locationGuess)} />
+            </div>
           </>
         ) : null}
       </main>
