@@ -46,15 +46,7 @@ const FortuneCard = ({ item, onSpeak }: { item: GeneralAnalysisResult['items'][0
 
       {/* Original text */}
       <div className="px-5 py-4 border-b border-amber-100">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap font-serif">{item.originalText}</p>
-          <button
-            onClick={() => onSpeak(item.originalText)}
-            className="shrink-0 p-2 rounded-full hover:bg-amber-100 text-amber-500"
-          >
-            <Volume2 size={16} />
-          </button>
-        </div>
+        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap font-serif">{item.originalText}</p>
       </div>
 
       {/* AI Interpretation */}
