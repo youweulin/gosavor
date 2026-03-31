@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart } from 'lucide-react';
+import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart, BookOpen } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
@@ -18,8 +18,9 @@ import InlineImageMap from './components/InlineImageMap';
 import ScanHistory from './components/ScanHistory';
 import ReceiptView from './components/ReceiptView';
 import GeneralView from './components/GeneralView';
+import ExpenseBook from './components/ExpenseBook';
 
-type Page = 'home' | 'history' | 'settings';
+type Page = 'home' | 'history' | 'settings' | 'expenses';
 
 function App() {
   const { settings, updateSettings, resetSettings, hasApiKey } = useSettings();
@@ -167,6 +168,7 @@ function App() {
   };
 
   if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;
+  if (page === 'expenses') return <ExpenseBook onBack={() => setPage('home')} />;
   if (page === 'settings') {
     return (
       <Settings
@@ -202,10 +204,13 @@ function App() {
                 <User size={18} />
               </button>
             )}
-            <button onClick={() => setPage('history')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
+            <button onClick={() => setPage('expenses')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="記帳簿">
+              <BookOpen size={18} />
+            </button>
+            <button onClick={() => setPage('history')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="點餐紀錄">
               <History size={18} />
             </button>
-            <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
+            <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="設定">
               <SettingsIcon size={18} />
             </button>
           </div>
