@@ -78,7 +78,7 @@ Also return currency (use ¥ for JPY) and restaurantName if visible.`;
     model: modelName,
     contents: { parts: [...imageParts, { text: prompt }] },
     config: {
-      thinkingConfig: { thinkingBudget: 300 },
+      thinkingConfig: { thinkingBudget: 0 },
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
