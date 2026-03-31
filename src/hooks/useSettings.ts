@@ -17,14 +17,20 @@ const detectLanguage = (): string => {
   return 'en';
 };
 
+// Map language code → default currency
+const LANG_TO_CURRENCY: Record<string, string> = {
+  'zh-TW': 'TWD', 'zh-CN': 'CNY', 'en': 'USD',
+  'ko': 'KRW', 'th': 'THB', 'vi': 'VND', 'id': 'IDR',
+  'fr': 'EUR', 'es': 'EUR', 'de': 'EUR',
+};
+
 // Detect home currency from browser language
 const detectCurrency = (): string => {
   const lang = navigator.language || '';
   const map: Record<string, string> = {
-    'zh-TW': 'TWD', 'zh-HK': 'HKD', 'zh-CN': 'CNY', 'zh': 'TWD',
-    'ko': 'KRW', 'th': 'THB', 'vi': 'VND', 'id': 'IDR',
-    'fr': 'EUR', 'es': 'EUR', 'de': 'EUR', 'en-US': 'USD',
-    'en-AU': 'AUD', 'en-GB': 'GBP', 'en-SG': 'SGD', 'ms': 'MYR',
+    ...LANG_TO_CURRENCY,
+    'zh-HK': 'HKD', 'zh': 'TWD',
+    'en-US': 'USD', 'en-AU': 'AUD', 'en-GB': 'GBP', 'en-SG': 'SGD', 'ms': 'MYR',
   };
   return map[lang] || map[lang.split('-')[0]] || 'TWD';
 };
@@ -48,6 +54,13 @@ export const useSettings = () => {
   const updateSettings = useCallback((partial: Partial<AppSettings>) => {
     setSettings(prev => {
       const next = { ...prev, ...partial };
+      // Auto-switch currency when language changes
+      if (partial.targetLanguage && !partial.homeCurrency) {
+        const autoCurrency = LANG_TO_CURRENCY[partial.targetLanguage];
+        if (autoCurrency) {
+          next.homeCurrency = autoCurrency;
+        }
+      }
       saveSettings(next);
       return next;
     });

@@ -146,7 +146,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
                 </span>
               </div>
               <p className="text-[10px] text-gray-500 mt-1">
-                來源：Currency API · 更新於 {rateTime}
+                {t('settings.rateSource')} · {t('settings.rateUpdated')} {rateTime}
               </p>
             </div>
           )}
