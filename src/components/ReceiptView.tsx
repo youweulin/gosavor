@@ -85,32 +85,35 @@ const ReceiptView = ({ data }: ReceiptViewProps) => {
 
         {/* Items */}
         <div className="space-y-3 font-mono text-sm">
-          <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase tracking-wider">
-            <span className="w-5 text-center">數量</span>
-            <span className="flex-1">品項</span>
-            <span>價格</span>
-          </div>
+          {data.items.map((item, idx) => {
+            const qty = parseInt(item.quantity?.replace(/[^0-9]/g, '') || '1') || 1;
+            const totalPrice = parseFloat(item.price?.replace(/[^0-9.]/g, '') || '0');
+            const unitPrice = qty > 1 ? Math.round(totalPrice / qty) : 0;
 
-          {data.items.map((item, idx) => (
-            <div key={idx} className="flex items-start justify-between gap-2 group">
-              <span className="w-5 h-5 shrink-0 rounded-full bg-gray-100 border border-gray-200 text-[10px] font-bold flex items-center justify-center text-gray-500">
-                {item.quantity?.replace(/[^0-9]/g, '') || '1'}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="font-bold text-gray-800 text-sm">{item.translatedName}</span>
-                  <button
-                    onClick={() => handleTranslate(item.originalName)}
-                    className="text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Globe size={10} />
-                  </button>
+            return (
+              <div key={idx} className="flex items-start gap-2 group pb-2 border-b border-gray-100 last:border-0">
+                <span className="w-5 h-5 shrink-0 rounded-full bg-gray-100 border border-gray-200 text-[10px] font-bold flex items-center justify-center text-gray-500 mt-0.5">
+                  {qty}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold text-gray-800 text-sm">{item.translatedName}</span>
+                    <button
+                      onClick={() => handleTranslate(item.originalName)}
+                      className="text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Globe size={10} />
+                    </button>
+                  </div>
+                  <span className="text-gray-400 text-xs truncate block">{item.originalName}</span>
+                  {qty > 1 && unitPrice > 0 && (
+                    <span className="text-gray-400 text-[10px]">@{formatPrice(String(unitPrice), data.currency)} x {qty}</span>
+                  )}
                 </div>
-                <span className="text-gray-400 text-xs truncate block">{item.originalName}</span>
+                <span className="font-bold text-gray-800 shrink-0">{formatPrice(item.price, data.currency)}</span>
               </div>
-              <span className="font-bold text-gray-800 shrink-0">{formatPrice(item.price, data.currency)}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Totals */}
