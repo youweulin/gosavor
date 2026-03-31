@@ -267,14 +267,14 @@ const Checkout = ({
               <div className="w-full py-3 bg-green-600/20 border border-green-600 rounded-xl flex items-center justify-center gap-2 font-bold text-green-400">
                 <Check size={20} /> {t('checkout.success')}
               </div>
+              <button onClick={onClose} className="w-full py-3 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg">
+                <Check size={20} /> 完成
+              </button>
               <button
                 onClick={() => setMode('split')}
-                className="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-xl font-bold flex items-center justify-center gap-2 text-sm"
+                className="w-full py-2 text-sm text-gray-500 hover:text-gray-300 flex items-center justify-center gap-1"
               >
-                <Users size={18} /> {t('checkout.split')}
-              </button>
-              <button onClick={onClose} className="w-full py-2 text-sm text-gray-500 hover:text-gray-300">
-                {t('checkout.back')}
+                <Users size={14} /> {t('checkout.split')}
               </button>
             </div>
           ) : mode === 'split' ? (
