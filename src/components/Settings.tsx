@@ -140,7 +140,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
                 const c = settings.homeCurrency;
                 // Use consistent precision: show rate × 1000 result, then derive single rate from it
                 const bulkFormatted = smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();
-                const singleFormatted = smallUnit ? rate.toFixed(6) : rate.toFixed(4);
+                const singleFormatted = smallUnit ? rate.toFixed(4) : rate.toFixed(2);
                 return (
                   <div className="grid grid-cols-[auto_auto_1fr] gap-x-2">
                     <span className="text-right">¥1,000</span>
