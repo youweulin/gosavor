@@ -64,7 +64,7 @@ const FortuneCard = ({ item, onSpeak }: { item: GeneralAnalysisResult['items'][0
             <Sparkles size={16} className="text-amber-600" />
             <h4 className="text-sm font-bold text-amber-800">{t('general.aiExplain')}</h4>
           </div>
-          <p className="text-sm text-gray-700 leading-relaxed">{item.explanation}</p>
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{item.explanation}</p>
         </div>
       )}
     </div>
@@ -111,7 +111,7 @@ const GeneralCard = ({ item, onSpeak }: { item: GeneralAnalysisResult['items'][0
             <Sparkles size={16} className="shrink-0 text-slate-500 mt-0.5" />
             <div>
               <h4 className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-1">{t('general.aiExplain')}</h4>
-              <p className="text-sm text-gray-700 leading-relaxed">{item.explanation}</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{item.explanation}</p>
             </div>
           </div>
         </div>

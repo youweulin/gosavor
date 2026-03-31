@@ -133,6 +133,17 @@ const zh_TW: Translations = {
   // General
   'general.aiExplain': 'AI 解讀',
 
+  // Diary
+  'diary.title': '旅遊日記',
+  'diary.entries': '則紀錄',
+  'diary.empty': '還沒有日記',
+  'diary.emptyHint': '拍照翻譯後就會自動出現在這裡',
+  'diary.addNote': '寫日記',
+  'diary.edit': '編輯筆記',
+  'diary.save': '儲存',
+  'diary.placeholder': '寫下這一刻的感受...',
+  'nav.diary': '日記',
+
   // Allergens
   'allergen.shrimp': '蝦 (えび)',
   'allergen.crab': '蟹 (かに)',
@@ -173,6 +184,10 @@ const en: Translations = {
   'settings.taxHint': 'Most Japanese restaurants include tax (税込). Set 0% unless menu says 税抜.',
   'settings.language': 'Language', 'settings.currency': 'Home Currency', 'settings.currencyHint': 'For exchange rate conversion.',
   'general.aiExplain': 'AI Interpretation',
+  'diary.title': 'Travel Diary', 'diary.entries': 'entries', 'diary.empty': 'No diary yet',
+  'diary.emptyHint': 'Scan photos to start your diary', 'diary.addNote': 'Write note',
+  'diary.edit': 'Edit note', 'diary.save': 'Save', 'diary.placeholder': 'How was this moment...',
+  'nav.diary': 'Diary',
   'settings.rateSource': 'Source: Currency API', 'settings.rateUpdated': 'Updated',
   'settings.allergens': 'Allergens', 'settings.allergensHint': 'AI will flag menu items containing these.', 'settings.reset': 'Reset',
   'history.title': 'Order History', 'history.empty': 'No orders yet', 'history.emptyHint': 'Scan a menu and place an order',

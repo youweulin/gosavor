@@ -66,6 +66,8 @@ export interface SavedScan {
   images: string[];
   receiptData?: ReceiptAnalysisResult;
   generalData?: GeneralAnalysisResult;
+  note?: string; // user diary note
+  mood?: string; // emoji mood
 }
 
 // === Order ===

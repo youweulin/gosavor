@@ -193,14 +193,29 @@ IMPORTANT: Detect the type of content first.
 
 If FORTUNE SLIP (おみくじ/籤詩/御神籤):
 - Return as a SINGLE item (do NOT split into multiple items!)
-- translatedText: ONLY the overall fortune level (e.g. "大吉", "中吉", "小吉", "末吉", "凶"). If not visible, guess from content. This is the MAIN TITLE.
-- originalText: the COMPLETE original text of the fortune slip (all sections combined)
+- translatedText: ONLY the overall fortune level (e.g. "大吉", "中吉", "小吉", "末吉", "凶"). This is the MAIN TITLE.
+- originalText: the COMPLETE original text, with line breaks between sections
 - category: "Fortune"
-- explanation: Write a comprehensive, warm interpretation in ${targetLanguage}:
-  1. What this fortune level means
-  2. Translate and explain EACH section (願望/Wish, 病気/Health, 待人/Relationships, 失物/Lost Items, 旅行/Travel, 學問/Study, 商売/Business, 争事/Disputes, etc.)
-  3. Overall advice and encouragement
-  Make it feel like a kind shrine priest explaining your fortune (8-12 sentences).
+- explanation: Write in ${targetLanguage}, use this EXACT format:
+
+  📜 [Translate the poetic story/verse at the top of the fortune into ${targetLanguage}. Keep it literary and mystical, like ancient poetry. 2-3 sentences.]
+
+  ---
+
+  ✦ 願望（Wish）：[interpretation]
+  ✦ 待人（Relationships）：[interpretation]
+  ✦ 失物（Lost Items）：[interpretation]
+  ✦ 旅行（Travel）：[interpretation]
+  ✦ 學問（Study）：[interpretation]
+  ✦ 商売（Business）：[interpretation]
+  ✦ 争事（Disputes）：[interpretation]
+  ✦ 戀愛（Love）：[interpretation]
+  ✦ 病気（Health）：[interpretation]
+  (Only include sections visible on the slip)
+
+  ---
+
+  💫 [Overall advice - warm, encouraging, 1-2 sentences]
 
 If SIGN/NOTICE/OTHER:
 - For each text/sign/object found:

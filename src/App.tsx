@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart, BookOpen } from 'lucide-react';
+import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart, BookOpen, NotebookPen } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
@@ -20,8 +20,9 @@ import ScanHistory from './components/ScanHistory';
 import ReceiptView from './components/ReceiptView';
 import GeneralView from './components/GeneralView';
 import ExpenseBook from './components/ExpenseBook';
+import Diary from './components/Diary';
 
-type Page = 'home' | 'history' | 'settings' | 'expenses';
+type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary';
 
 function AppInner() {
   const t = useT();
@@ -172,6 +173,7 @@ function AppInner() {
 
   if (page === 'history') return <I18nProvider lang={settings.targetLanguage}><OrderHistory onBack={() => setPage('home')} /></I18nProvider>;
   if (page === 'expenses') return <I18nProvider lang={settings.targetLanguage}><ExpenseBook onBack={() => setPage('home')} /></I18nProvider>;
+  if (page === 'diary') return <I18nProvider lang={settings.targetLanguage}><Diary onBack={() => setPage('home')} /></I18nProvider>;
   if (page === 'settings') {
     return (
       <I18nProvider lang={settings.targetLanguage}>
@@ -210,6 +212,9 @@ function AppInner() {
                 <User size={18} />
               </button>
             )}
+            <button onClick={() => setPage('diary')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.diary')}>
+              <NotebookPen size={18} />
+            </button>
             <button onClick={() => setPage('expenses')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.expenses')}>
               <BookOpen size={18} />
             </button>

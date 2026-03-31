@@ -136,6 +136,16 @@ export const saveScan = async (scan: SavedScan) => {
   }
 };
 
+export const updateScan = async (scan: SavedScan) => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_SCANS, 'readwrite');
+    tx.objectStore(STORE_SCANS).put(scan);
+  } catch (e) {
+    console.error('Failed to update scan', e);
+  }
+};
+
 export const deleteScan = async (id: string): Promise<SavedScan[]> => {
   try {
     const db = await openDB();
