@@ -46,7 +46,7 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-800">
         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">

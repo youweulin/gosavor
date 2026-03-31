@@ -16,6 +16,11 @@ export interface MenuAnalysisResult {
   currency: string;
   restaurantName?: string;
   items: MenuItem[];
+  ocrDebug?: {
+    source: string;
+    blocks: any[];
+    rawResponse?: string;
+  };
 }
 
 // === Receipt Analysis ===
@@ -68,6 +73,7 @@ export interface SavedScan {
   generalData?: GeneralAnalysisResult;
   note?: string; // user diary note
   mood?: string; // emoji mood
+  tags?: string[]; // category tags
 }
 
 // === Order ===

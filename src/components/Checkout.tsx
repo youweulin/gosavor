@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { X, PlayCircle, Users, Minus, Plus, Check } from 'lucide-react';
+import { X, PlayCircle, Users, Minus, Plus, Check, Mic, MicOff, MessageCircle } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import type { MenuItem, OrderItem, SplitInfo } from '../types';
 import { useT } from '../i18n/context';
 import { fetchRates, getCurrencyCode } from './CurrencyBar';
+import { speakText, startListening, stopListening, translateJapanese } from '../services/NativeSpeech';
 
 interface CheckoutProps {
   isVisible: boolean;
@@ -14,6 +16,8 @@ interface CheckoutProps {
   taxRate: number;
   serviceFee: number;
   onConfirmOrder: (items: OrderItem[], total: number, split?: SplitInfo) => void;
+  apiKey?: string;
+  targetLanguage?: string;
   homeCurrency: string;
 }
 
@@ -28,6 +32,8 @@ const Checkout = ({
   serviceFee,
   onConfirmOrder,
   homeCurrency,
+  apiKey,
+  targetLanguage = '繁體中文',
 }: CheckoutProps) => {
   const [mode, setMode] = useState<'review' | 'staff' | 'split'>('review');
   const [splitPersons, setSplitPersons] = useState(2);
@@ -52,6 +58,24 @@ const Checkout = ({
   };
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [staffSaid, setStaffSaid] = useState('');
+  const [staffTranslated, setStaffTranslated] = useState('');
+  const [chatLog, setChatLog] = useState<{ role: 'you' | 'staff'; ja: string; translated: string }[]>([]);
+  const isNative = Capacitor.isNativePlatform();
+  const [isSpeakingToStaff, setIsSpeakingToStaff] = useState(false);
+
+  const handleClose = () => {
+    setMode('review');
+    setOrderConfirmed(false);
+    setIsSpeaking(false);
+    setIsListening(false);
+    setStaffSaid('');
+    setStaffTranslated('');
+    setChatLog([]);
+    setIsSpeakingToStaff(false);
+    onClose();
+  };
 
   if (!isVisible) return null;
 
@@ -84,27 +108,127 @@ const Checkout = ({
     return `すみません、注文をお願いします。${itemsText}、以上でお願いします。`;
   })();
 
-  const speakOrder = () => {
-    const u = new SpeechSynthesisUtterance(orderText);
-    u.lang = 'ja-JP';
-    u.rate = 0.9; // slightly slower for clarity
-
-    // Pick best female Japanese voice
-    const voices = window.speechSynthesis.getVoices();
-    const jpVoices = voices.filter(v => v.lang.startsWith('ja'));
-    const femalePrefer = ['Kyoko', 'O-Ren', 'Google 日本語', 'Siri', 'Microsoft Nanami', 'Nanami'];
-    let voice = null;
-    for (const key of femalePrefer) {
-      voice = jpVoices.find(v => v.name.includes(key));
-      if (voice) break;
-    }
-    if (!voice && jpVoices.length > 0) voice = jpVoices[0];
-    if (voice) u.voice = voice;
-
+  // Speak using native voice (iOS) or web fallback
+  const speakOrder = async () => {
     setIsSpeaking(true);
-    u.onend = () => setIsSpeaking(false);
-    u.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(u);
+    try {
+      await speakText(orderText, 'ja-JP', 0.45);
+      // Add to chat log
+      setChatLog(prev => [...prev, { role: 'you', ja: orderText, translated: '（你的點餐內容）' }]);
+    } catch { /* ignore */ }
+    setTimeout(() => setIsSpeaking(false), 2000);
+  };
+
+  // Speak custom text (for replies)
+  const speakCustom = async (text: string) => {
+    setIsSpeaking(true);
+    try {
+      await speakText(text, 'ja-JP', 0.45);
+    } catch { /* ignore */ }
+    setTimeout(() => setIsSpeaking(false), 1500);
+  };
+
+  // Translate: Apple first (instant offline) → Gemini fallback
+  const translateText = async (jaText: string): Promise<string> => {
+    if (!jaText.trim()) return '';
+    // Map target language to Apple locale code
+    const langMap: Record<string, string> = {
+      '繁體中文': 'zh-Hant', '简体中文': 'zh-Hans', 'English': 'en',
+      '한국어': 'ko', 'ภาษาไทย': 'th', 'Tiếng Việt': 'vi',
+      'Français': 'fr', 'Español': 'es', 'Deutsch': 'de',
+    };
+    const targetCode = langMap[targetLanguage] || 'zh-Hant';
+    return translateJapanese(jaText, targetCode, apiKey);
+  };
+
+  // Listen to staff speaking Japanese
+  const lastHeardRef = { current: '' };
+
+  const toggleListening = async () => {
+    if (isListening) {
+      await stopListening();
+      setIsListening(false);
+      // Translate the last heard text
+      const finalText = lastHeardRef.current;
+      if (finalText.trim()) {
+        const translated = await translateText(finalText);
+        setStaffTranslated(translated);
+        setChatLog(prev => [...prev, { role: 'staff' as const, ja: finalText, translated }]);
+      }
+      return;
+    }
+    setStaffSaid('');
+    setStaffTranslated('');
+    lastHeardRef.current = '';
+    setIsListening(true);
+    try {
+      await startListening('ja-JP', (text, _isFinal) => {
+        if (text.trim()) {
+          setStaffSaid(text);
+          lastHeardRef.current = text;
+        }
+      });
+    } catch {
+      setIsListening(false);
+    }
+  };
+
+  // "I want to say" — listen user's language, translate to Japanese, speak
+  const userLangMap: Record<string, string> = {
+    '繁體中文': 'zh-TW', '简体中文': 'zh-CN', 'English': 'en-US',
+    '한국어': 'ko-KR', 'ภาษาไทย': 'th-TH', 'Tiếng Việt': 'vi-VN',
+    'Français': 'fr-FR', 'Español': 'es-ES', 'Deutsch': 'de-DE',
+  };
+  const userLangCode = userLangMap[targetLanguage] || 'zh-TW';
+
+  const handleSpeakToStaff = async () => {
+    if (isSpeakingToStaff) {
+      await stopListening();
+      setIsSpeakingToStaff(false);
+      return;
+    }
+    setIsSpeakingToStaff(true);
+    try {
+      await startListening(userLangCode, async (text, isFinal) => {
+        if (isFinal && text.trim()) {
+          setIsSpeakingToStaff(false);
+          // Translate user's language → Japanese
+          const appleToLang: Record<string, string> = {
+            'zh-TW': 'zh-Hant', 'zh-CN': 'zh-Hans', 'en-US': 'en',
+            'ko-KR': 'ko', 'th-TH': 'th', 'vi-VN': 'vi',
+            'fr-FR': 'fr', 'es-ES': 'es', 'de-DE': 'de',
+          };
+          const fromCode = appleToLang[userLangCode] || 'zh-Hant';
+          let translated = '';
+          if (Capacitor.isNativePlatform()) {
+            try {
+              const { default: NS } = await import('../services/NativeSpeech');
+              const res = await NS.translate({ text, from: fromCode, to: 'ja' });
+              if (res.translated && res.engine === 'apple') translated = res.translated;
+            } catch { /* fallback below */ }
+          }
+          if (!translated && apiKey) {
+            try {
+              const { GoogleGenAI } = await import('@google/genai');
+              const ai = new GoogleGenAI({ apiKey });
+              const res = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: `Translate to natural Japanese. Return ONLY Japanese:\n${text}`,
+                config: { thinkingConfig: { thinkingBudget: 0 } },
+              });
+              translated = res.text?.trim() || '';
+            } catch { /* ignore */ }
+          }
+          if (translated) {
+            // Speak the Japanese translation
+            await speakText(translated, 'ja-JP', 0.45);
+            setChatLog(prev => [...prev, { role: 'you', ja: translated, translated: text }]);
+          }
+        }
+      });
+    } catch {
+      setIsSpeakingToStaff(false);
+    }
   };
 
   const handleConfirm = () => {
@@ -126,7 +250,7 @@ const Checkout = ({
               {restaurantName || 'Restaurant'} &middot; {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-800">
+          <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-800">
             <X size={20} />
           </button>
         </div>
@@ -267,7 +391,7 @@ const Checkout = ({
               <div className="w-full py-3 bg-green-600/20 border border-green-600 rounded-xl flex items-center justify-center gap-2 font-bold text-green-400">
                 <Check size={20} /> {t('checkout.success')}
               </div>
-              <button onClick={onClose} className="w-full py-3 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg">
+              <button onClick={handleClose} className="w-full py-3 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg">
                 <Check size={20} /> 完成
               </button>
               <button
@@ -280,21 +404,24 @@ const Checkout = ({
           ) : mode === 'split' ? (
             /* Split bill — only after order confirmed */
             <div className="space-y-2">
-              <button onClick={onClose} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
+              <button onClick={handleClose} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
                 <Check size={20} /> {t('checkout.confirmSplit')}
               </button>
               <button onClick={() => setMode(orderConfirmed ? 'staff' : 'review')} className="w-full py-2 text-sm text-gray-500">{t('checkout.back')}</button>
             </div>
           ) : mode === 'staff' ? (
-            /* Staff mode — speak to staff, then confirm order */
+            /* Staff mode — speak, listen, chat with staff */
             <div className="space-y-3">
-              <div className="p-4 bg-gray-900 rounded-xl text-center">
-                <p className="text-lg font-bold text-white leading-relaxed">{orderText}</p>
+              {/* Order text */}
+              <div className="p-3 bg-gray-900 rounded-xl text-center">
+                <p className="text-sm font-bold text-white leading-relaxed">{orderText}</p>
               </div>
+
+              {/* Play order button */}
               <button
                 onClick={speakOrder}
                 disabled={isSpeaking}
-                className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg"
+                className="w-full py-3 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg"
               >
                 {isSpeaking ? (
                   <>
@@ -302,9 +429,103 @@ const Checkout = ({
                     {t('checkout.speaking')}
                   </>
                 ) : (
-                  <><PlayCircle size={24} /> {t('checkout.speak')}</>
+                  <><PlayCircle size={20} /> {t('checkout.speak')}</>
                 )}
               </button>
+
+              {/* Chat log */}
+              {chatLog.length > 0 && (
+                <div className="max-h-32 overflow-y-auto space-y-1.5 px-1">
+                  {chatLog.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'you' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] px-3 py-1.5 rounded-xl text-xs ${
+                        msg.role === 'you'
+                          ? 'bg-orange-500/20 text-orange-300'
+                          : 'bg-blue-500/20 text-blue-300'
+                      }`}>
+                        <p className="font-medium">{msg.ja}</p>
+                        {msg.translated && <p className="text-[10px] opacity-70 mt-0.5">{msg.translated}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Listen to staff */}
+              {isNative && (
+                <div className="space-y-2">
+                  <button
+                    onClick={toggleListening}
+                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                      isListening
+                        ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                        : 'bg-blue-500 hover:bg-blue-600'
+                    }`}
+                  >
+                    {isListening ? (
+                      <><MicOff size={20} /> 停止聆聽</>
+                    ) : (
+                      <><Mic size={20} /> 🎤 聽店員說話</>
+                    )}
+                  </button>
+                  {staffSaid && (
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                      <p className="text-xs text-blue-400 mb-1">🇯🇵 店員說：</p>
+                      <p className="text-sm font-bold text-white">{staffSaid}</p>
+                      {staffTranslated && (
+                        <p className="text-sm text-orange-300 mt-1">→ {staffTranslated}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* I want to say — speak your language, auto translate to Japanese */}
+              {isNative && (
+                <button
+                  onClick={handleSpeakToStaff}
+                  className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                    isSpeakingToStaff
+                      ? 'bg-green-500 hover:bg-green-600 animate-pulse'
+                      : 'bg-gray-700 hover:bg-gray-600'
+                  }`}
+                >
+                  {isSpeakingToStaff ? (
+                    <><MicOff size={20} /> 停止</>
+                  ) : (
+                    <><MessageCircle size={20} /> 🗣 我要說（{targetLanguage}→日語）</>
+                  )}
+                </button>
+              )}
+
+              {/* Quick common phrases */}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: '好的', ja: 'はい、お願いします' },
+                  { label: '不要了', ja: 'いいえ、大丈夫です' },
+                  { label: '請再等一下', ja: 'すみません、もう少し待ってください' },
+                  { label: '可以刷卡？', ja: 'カードで払えますか？' },
+                  { label: '廁所在哪？', ja: 'トイレはどこですか？' },
+                  { label: '請給我水', ja: 'お水をください' },
+                  { label: '我要加點', ja: 'すみません、追加注文をお願いします' },
+                  { label: '請結帳', ja: 'お会計をお願いします' },
+                  { label: '非常好吃', ja: 'とても美味しかったです' },
+                  { label: '謝謝', ja: 'ありがとうございました' },
+                ].map((reply, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      speakCustom(reply.ja);
+                      setChatLog(prev => [...prev, { role: 'you', ja: reply.ja, translated: reply.label }]);
+                    }}
+                    className="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs text-gray-300 font-medium transition-colors"
+                  >
+                    {reply.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Actions */}
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => setMode('review')} className="py-2 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm text-gray-400 font-medium">
                   {t('checkout.back')}
@@ -320,7 +541,7 @@ const Checkout = ({
               <button onClick={() => setMode('staff')} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg">
                 <Check size={20} /> {t('checkout.confirm')}
               </button>
-              <button onClick={onClose} className="w-full py-2 text-sm text-gray-500 hover:text-gray-300">
+              <button onClick={handleClose} className="w-full py-2 text-sm text-gray-500 hover:text-gray-300">
                 {t('checkout.back')}
               </button>
             </div>

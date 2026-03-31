@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import CapApp_SPM
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,7 +8,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Wait for bridge to be ready, then register plugin
+        NotificationCenter.default.addObserver(forName: NSNotification.Name.capacitorOpenURL, object: nil, queue: nil) { _ in }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if let vc = self.window?.rootViewController as? CAPBridgeViewController {
+                vc.bridge?.registerPluginInstance(VisionOCRPlugin())
+                vc.bridge?.registerPluginInstance(NativeSpeechPlugin())
+                print("[GoSavor] ✅ VisionOCRPlugin registered via AppDelegate!")
+            } else {
+                print("[GoSavor] ❌ Could not find CAPBridgeViewController")
+            }
+        }
         return true
     }
 

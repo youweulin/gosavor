@@ -142,6 +142,14 @@ const zh_TW: Translations = {
   'diary.edit': '編輯筆記',
   'diary.save': '儲存',
   'diary.placeholder': '寫下這一刻的感受...',
+  'diary.tags': '內容分類',
+  'diary.allDates': '所有日期',
+  'diary.tag.food': '美食 🍜',
+  'diary.tag.sight': '景點 ⛩️',
+  'diary.tag.buy': '購物 🛍️',
+  'diary.tag.relax': '悠閒 ✨',
+  'diary.tag.hotel': '住宿 🏨',
+  'diary.tag.walk': '交通 🚶',
   'nav.diary': '日記',
 
   // Allergens

@@ -1,5 +1,39 @@
 import { GoogleGenAI, Type } from '@google/genai';
+import { Capacitor } from '@capacitor/core';
+import VisionOCR from './VisionOCR';
 import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult } from '../types';
+
+// Shared: Run Apple Vision OCR on images, returns text blocks with bounding boxes
+const runNativeOCR = async (images: { base64: string; mimeType: string }[]): Promise<{
+  blocks: { id: number; imageIndex: number; text: string; box: number[] }[];
+} | null> => {
+  if (!Capacitor.isNativePlatform()) return null;
+  try {
+    let blockId = 0;
+    const blocks: { id: number; imageIndex: number; text: string; box: number[] }[] = [];
+    for (let imgIdx = 0; imgIdx < images.length; imgIdx++) {
+      const ocrRes = await VisionOCR.analyzeImage({ base64str: images[imgIdx].base64 });
+      ocrRes.results.forEach(res => {
+        blocks.push({
+          id: blockId++,
+          imageIndex: imgIdx,
+          text: res.text,
+          box: [
+            res.boundingBox.y * 1000,
+            res.boundingBox.x * 1000,
+            (res.boundingBox.y + res.boundingBox.height) * 1000,
+            (res.boundingBox.x + res.boundingBox.width) * 1000,
+          ],
+        });
+      });
+    }
+    console.log(`[GoSavor OCR] Native: ${blocks.length} blocks`);
+    return blocks.length > 0 ? { blocks } : null;
+  } catch (e) {
+    console.warn('[GoSavor OCR] Native failed:', e);
+    return null;
+  }
+};
 
 const getAI = (apiKey: string) => new GoogleGenAI({ apiKey });
 
@@ -53,27 +87,215 @@ export const analyzeMenuImage = async (
     }))
   );
 
+  const ai = getAI(apiKey);
   const allergenPart = allergens.length > 0
     ? `\nUser allergens: [${allergens.join(',')}]. For each item, return matching allergen IDs in "allergens" array.`
     : '';
 
+  // === STRATEGY: Native Apple Vision OCR ===
+  let ocrSource = 'Cloud';
+  console.log('[GoSavor] Platform:', Capacitor.getPlatform(), 'isNative:', Capacitor.isNativePlatform());
+  if (Capacitor.isNativePlatform()) {
+    try {
+      ocrSource = 'Native';
+      let blockIdCounter = 0;
+      const ocrBlocks: any[] = [];
+      for (let imgIdx = 0; imgIdx < images.length; imgIdx++) {
+        // Use the original high-res base64 for native OCR
+        const ocrRes = await VisionOCR.analyzeImage({ base64str: images[imgIdx].base64 });
+        ocrRes.results.forEach(res => {
+          const ymin = res.boundingBox.y * 1000;
+          const xmin = res.boundingBox.x * 1000;
+          const ymax = (res.boundingBox.y + res.boundingBox.height) * 1000;
+          const xmax = (res.boundingBox.x + res.boundingBox.width) * 1000;
+          ocrBlocks.push({
+            id: blockIdCounter++,
+            imageIndex: imgIdx,
+            text: res.text,
+            box: [ymin, xmin, ymax, xmax]
+          });
+        });
+      }
+
+      if (ocrBlocks.length > 0) {
+        // We have OCR blocks! Send text exclusively to Gemini
+        const textToAnalyze = ocrBlocks.map(b => ({ id: b.id, imgIdx: b.imageIndex, text: b.text }));
+        
+        console.log('[GoSavor OCR] Total blocks:', ocrBlocks.length);
+        console.log('[GoSavor OCR] Sample blocks:', JSON.stringify(ocrBlocks.slice(0, 8), null, 2));
+
+        const prompt = `You are a menu parser. Below is raw OCR data extracted from ${images.length} menu image(s) using Apple Vision.
+Each block has: id (unique integer), imgIdx (image index), text (raw recognized text).
+
+OCR Blocks:
+${JSON.stringify(textToAnalyze)}
+
+Your task: identify each MENU ITEM (a dish + its price), translate to ${targetLanguage}, and return structured data.
+
+STEP 1 — Classify each block:
+- DISH NAME: a food item name (usually Japanese kanji/kana or short text)
+- PRICE: contains digits and/or ¥ or ￥ symbol (e.g. "¥90", "130", "￥430")
+- IGNORE: headers, page numbers, store names, decorative text, bullet points, numbered prefixes (①②③ etc.)
+
+STEP 2 — Pair each DISH NAME block with its nearest PRICE block on the same horizontal line.
+
+STEP 3 — For each paired menu item output:
+- originalName: the dish name text as-is
+- translatedName: natural translation to ${targetLanguage}
+- description: 1-2 sentences describing the dish in ${targetLanguage}. Include key ingredients, cooking method, and taste. Use your food knowledge even if not visible in OCR text. MUST NOT be empty.
+- price: digits only (e.g. "90")
+- category: a category name in ${targetLanguage} (e.g. 炸物→Fried Foods, 定食→Set Meals). Infer from context.
+- sourceIds: [dish_name_block_id, price_block_id] — these are the id values from the OCR blocks above
+- imageIndex: imgIdx of the source blocks${allergenPart}
+
+STEP 4 — Also return: currency (use ¥ for JPY), restaurantName (if visible in blocks, else empty string).
+IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append anything. (We'll handle flags internally).`;
+
+        // Send tiny thumbnails (200px) so AI can see the menu for better descriptions
+        const thumbs = await Promise.all(
+          images.map(async (img) => ({
+            inlineData: { mimeType: 'image/jpeg', data: await resizeImage(img.base64, 200) }
+          }))
+        );
+
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: { parts: [...thumbs, { text: prompt }] },  // Tiny image + OCR text = best of both worlds
+          config: {
+            thinkingConfig: { thinkingBudget: 0 },
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                currency: { type: Type.STRING },
+                restaurantName: { type: Type.STRING },
+                items: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      originalName: { type: Type.STRING },
+                      translatedName: { type: Type.STRING },
+                      description: { type: Type.STRING },
+                      price: { type: Type.STRING },
+                      category: { type: Type.STRING },
+                      allergens: { type: Type.ARRAY, items: { type: Type.STRING } },
+                      sourceIds: { type: Type.ARRAY, items: { type: Type.INTEGER } },
+                      imageIndex: { type: Type.INTEGER },
+                    },
+                    required: ['originalName', 'translatedName', 'price', 'category', 'sourceIds'],
+                  },
+                },
+              },
+              required: ['currency', 'items'],
+            },
+          },
+        });
+
+        if (!response.text) throw new Error('No response from AI');
+        const parsed = safeParseJSON<any>(response.text);
+        
+        // Append source tag to restaurant name
+        parsed.restaurantName = `[${ocrSource}] ${parsed.restaurantName || ''}`.trim();
+        
+        // Post-process: Calculate bounding boxes from sourceIds
+        parsed.items = parsed.items.map((item: any) => {
+          let ymin = 1000, xmin = 1000, ymax = 0, xmax = 0;
+          const matchedBlocks: any[] = [];
+
+          if (item.sourceIds && item.sourceIds.length > 0) {
+            item.sourceIds.forEach((sid: number) => {
+              const block = ocrBlocks.find(b => b.id === sid);
+              if (block) matchedBlocks.push(block);
+            });
+          }
+
+          if (matchedBlocks.length > 0) {
+            // Full vertical union across all blocks (correct row height)
+            matchedBlocks.forEach(block => {
+              if (block.box[0] < ymin) ymin = block.box[0];
+              if (block.box[2] > ymax) ymax = block.box[2];
+            });
+
+            // For X: find the block most likely to be the actual dish name.
+            // Filter: 1) Skip price blocks. 2) Prefer blocks that overlap with originalName. 
+            // 3) Skip VERY short blocks (likely label stickers like 인기No.1).
+            const isPriceBlock = (text: string) => /^[¥￥]?\s*\d[\d,]*\s*円?$/.test(text.trim());
+            const charOverlap = (a: string, b: string) =>
+              [...b].filter(c => a.includes(c)).length / Math.max(b.length, 1);
+
+            // Filter out price blocks and tiny prefix snippets
+            const nameBlocks = matchedBlocks.filter(b => !isPriceBlock(b.text));
+            
+            // Heuristic: Prefer blocks longer than 2 characters for positioning if possible
+            const substantialBlocks = nameBlocks.filter(b => b.text.length > 2);
+            const candidates = substantialBlocks.length > 0 ? substantialBlocks : nameBlocks;
+
+            const positionBlock = candidates.length > 0
+              ? candidates.reduce((best, block) =>
+                  charOverlap(block.text, item.originalName) >= charOverlap(best.text, item.originalName)
+                    ? block : best
+                , candidates[0])
+              : matchedBlocks[0];
+
+            xmin = positionBlock.box[1];
+            xmax = positionBlock.box[3];
+          }
+
+          // Fallback box for UI to recognize (it's big enough to pass hasBox test)
+          if (matchedBlocks.length === 0) {
+            const nameBlock = ocrBlocks.find(
+              b => b.imageIndex === (item.imageIndex ?? 0) &&
+              (b.text.includes(item.originalName) || item.originalName.includes(b.text))
+            );
+            if (nameBlock) {
+              [ymin, xmin, ymax, xmax] = nameBlock.box;
+            } else {
+              // Better distributed fallback if nothing matched (e.g. top of the page)
+              ymin = 50; xmin = 50; ymax = 100; xmax = 250;
+            }
+          }
+
+          console.log(`[GoSavor OCR→Box] "${item.originalName}" (${ocrSource}) → sourceIds:${JSON.stringify(item.sourceIds)} → box:[${[ymin,xmin,ymax,xmax].map(v=>v.toFixed(0)).join(',')}] matched:${matchedBlocks.length}`);
+
+          return {
+            ...item,
+            boundingBox: [ymin, xmin, ymax, xmax],
+            sourceIds: undefined // Clean up
+          };
+        });
+
+        return {
+          ...parsed,
+          ocrDebug: {
+            source: ocrSource,
+            blocks: ocrBlocks,
+            rawResponse: response.text
+          }
+        } as MenuAnalysisResult;
+      }
+    } catch (e) {
+      console.warn("Native OCR failed, falling back to Gemini Vision:", e);
+    }
+  }
+
+  // === STRATEGY: Fallback to Gemini Vision (Web / PWA) ===
   const imageCount = resized.length;
   const prompt = `Menu translator. Analyze ${imageCount} menu image(s). Output ${targetLanguage}.
-For each item:
+For each item: ... (Same bounding box logic as before) ...
 - originalName: item name in original language
 - translatedName: natural translation in ${targetLanguage}
-- description: if menu has description text, translate it to ${targetLanguage}. If no description on menu, write 1 sentence explaining what the dish is (ingredients, taste) in ${targetLanguage}. MUST NOT be empty.
+- description: 1 sentence explaining the dish in ${targetLanguage}. MUST NOT be empty.
 - price: number only (e.g. "630")
 - category: in ${targetLanguage}
 - boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 scale. IMPORTANT: the box must cover the item's name and price on the image. Each item must have a UNIQUE position — do NOT cluster boxes together. Spread them to match where each item actually appears on the menu photo.
-- imageIndex: which image (0-based) this item appears in. First image=0, second=1, etc.${allergenPart}
-Also return currency (use ¥ for JPY) and restaurantName if visible.`;
+- imageIndex: which image (0-based) this item appears in.${allergenPart}
+Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]").`;
 
   const imageParts = resized.map((img) => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
   }));
 
-  const ai = getAI(apiKey);
   const response = await ai.models.generateContent({
     model: modelName,
     contents: { parts: [...imageParts, { text: prompt }] },
@@ -97,7 +319,7 @@ Also return currency (use ¥ for JPY) and restaurantName if visible.`;
                 category: { type: Type.STRING },
                 allergens: { type: Type.ARRAY, items: { type: Type.STRING } },
                 boundingBox: { type: Type.ARRAY, items: { type: Type.NUMBER } },
-                imageIndex: { type: Type.NUMBER, description: '0-based index of which image this item is from' },
+                imageIndex: { type: Type.INTEGER },
               },
               required: ['originalName', 'translatedName', 'price', 'category'],
             },
@@ -109,7 +331,15 @@ Also return currency (use ¥ for JPY) and restaurantName if visible.`;
   });
 
   if (!response.text) throw new Error('No response from AI');
-  return safeParseJSON<MenuAnalysisResult>(response.text);
+  const result = safeParseJSON<MenuAnalysisResult>(response.text);
+  return {
+    ...result,
+    ocrDebug: {
+      source: 'Cloud (Fallback)',
+      blocks: [],
+      rawResponse: response.text
+    }
+  };
 };
 
 // === Receipt Analysis ===
@@ -119,6 +349,89 @@ export const analyzeReceiptImage = async (
   apiKey: string,
   modelName = 'gemini-2.5-flash'
 ): Promise<ReceiptAnalysisResult> => {
+  const ai = getAI(apiKey);
+
+  // Try Native OCR first
+  const native = await runNativeOCR(images);
+  if (native) {
+    const textBlocks = native.blocks.map(b => ({ id: b.id, text: b.text }));
+    const thumb = await resizeImage(images[0].base64, 200);
+
+    const prompt = `Receipt scanner. Below is OCR data from a receipt. Translate ALL to ${targetLanguage}.
+
+OCR Blocks:
+${JSON.stringify(textBlocks)}
+
+Parse this receipt:
+- merchantName: store name (keep original, INCLUDE branch e.g. "ココカラファイン 銀座4丁目店")
+- date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge
+- isTaxFree: check for 免税/Tax Free
+- items: each purchased item with originalName, translatedName (in ${targetLanguage}), quantity, price
+- sourceIds: [block_id(s)] for each item — the OCR block IDs that correspond to this item
+IMPORTANT: translatedName MUST be in ${targetLanguage}, not English.`;
+
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: { parts: [{ inlineData: { mimeType: 'image/jpeg', data: thumb } }, { text: prompt }] },
+      config: {
+        thinkingConfig: { thinkingBudget: 0 },
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            merchantName: { type: Type.STRING },
+            date: { type: Type.STRING },
+            currency: { type: Type.STRING },
+            totalAmount: { type: Type.STRING },
+            tax: { type: Type.STRING },
+            serviceCharge: { type: Type.STRING },
+            isTaxFree: { type: Type.BOOLEAN },
+            totalQuantity: { type: Type.INTEGER },
+            items: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  originalName: { type: Type.STRING },
+                  translatedName: { type: Type.STRING },
+                  quantity: { type: Type.STRING },
+                  price: { type: Type.STRING },
+                  sourceIds: { type: Type.ARRAY, items: { type: Type.INTEGER } },
+                },
+                required: ['originalName', 'translatedName', 'price'],
+              },
+            },
+          },
+          required: ['merchantName', 'totalAmount', 'items', 'currency'],
+        },
+      },
+    });
+
+    if (!response.text) throw new Error('No response from AI');
+    const parsed = safeParseJSON<any>(response.text);
+
+    // Map sourceIds to bounding boxes
+    parsed.items = parsed.items.map((item: any) => {
+      if (item.sourceIds?.length > 0) {
+        let ymin = 1000, xmin = 1000, ymax = 0, xmax = 0;
+        item.sourceIds.forEach((sid: number) => {
+          const block = native.blocks.find(b => b.id === sid);
+          if (block) {
+            ymin = Math.min(ymin, block.box[0]);
+            xmin = Math.min(xmin, block.box[1]);
+            ymax = Math.max(ymax, block.box[2]);
+            xmax = Math.max(xmax, block.box[3]);
+          }
+        });
+        return { ...item, boundingBox: [ymin, xmin, ymax, xmax], sourceIds: undefined };
+      }
+      return { ...item, sourceIds: undefined };
+    });
+
+    return parsed as ReceiptAnalysisResult;
+  }
+
+  // Fallback: Cloud (Gemini Vision)
   const resized = await Promise.all(images.map(async (img) => ({
     base64: await resizeImage(img.base64),
     mimeType: 'image/jpeg',
@@ -130,11 +443,10 @@ For each item:
 - translatedName: MUST translate to ${targetLanguage}. Example: "アリナミンEXプラス" → "合利他命EX Plus" (not English).
 - quantity: number of items (e.g. "4")
 - price: total price for this line
-- boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 coords, marking where this item appears on the receipt
-Also extract: merchantName (keep original, INCLUDE branch/store name e.g. "ココカラファイン 銀座4丁目店"), date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge, isTaxFree (check for 免税/Tax Free), totalQuantity.`;
+- boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 coords
+Also extract: merchantName (keep original, INCLUDE branch name), date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge, isTaxFree, totalQuantity.`;
 
   const imageParts = resized.map(img => ({ inlineData: { mimeType: img.mimeType, data: img.base64 } }));
-  const ai = getAI(apiKey);
   const response = await ai.models.generateContent({
     model: modelName,
     contents: { parts: [...imageParts, { text: prompt }] },
@@ -182,12 +494,16 @@ export const analyzeGeneralImage = async (
   apiKey: string,
   modelName = 'gemini-2.5-flash'
 ): Promise<GeneralAnalysisResult> => {
-  const resized = await Promise.all(images.map(async (img) => ({
-    base64: await resizeImage(img.base64),
-    mimeType: 'image/jpeg',
-  })));
+  const ai = getAI(apiKey);
 
-  const prompt = `Smart travel translator. Analyze image. ALL output in ${targetLanguage}.
+  // Try Native OCR first — send OCR text + small image for context
+  const native = await runNativeOCR(images);
+  const thumb = await resizeImage(images[0].base64, 300); // slightly larger for signs/fortune
+  const ocrContext = native
+    ? `\n\nApple Vision OCR detected text:\n${native.blocks.map(b => b.text).join('\n')}\n`
+    : '';
+
+  const prompt = `Smart travel translator. Analyze image. ALL output in ${targetLanguage}.${ocrContext}
 
 IMPORTANT: Detect the type of content first.
 
@@ -226,11 +542,10 @@ If SIGN/NOTICE/OTHER:
 
 Also return locationGuess in ${targetLanguage} if identifiable.`;
 
-  const imageParts = resized.map(img => ({ inlineData: { mimeType: img.mimeType, data: img.base64 } }));
-  const ai = getAI(apiKey);
+  const thumbPart = { inlineData: { mimeType: 'image/jpeg', data: thumb } };
   const response = await ai.models.generateContent({
     model: modelName,
-    contents: { parts: [...imageParts, { text: prompt }] },
+    contents: { parts: [thumbPart, { text: prompt }] },
     config: {
       thinkingConfig: { thinkingBudget: 0 },
       responseMimeType: 'application/json',

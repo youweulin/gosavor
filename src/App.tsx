@@ -1,5 +1,15 @@
 import { useState, useCallback } from 'react';
-import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart, BookOpen, NotebookPen, Share2 } from 'lucide-react';
+import { 
+  Share2, 
+  X,
+  Settings as SettingsIcon, 
+  History, 
+  User, 
+  UtensilsCrossed, 
+  ShoppingCart, 
+  BookOpen, 
+  NotebookPen 
+} from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
@@ -46,6 +56,7 @@ function AppInner() {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [receiptLayout, setReceiptLayout] = useState<'stack' | 'side' | 'list'>('stack');
   const [receiptHighlight, setReceiptHighlight] = useState<number | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
   const [error, setError] = useState('');
 
   const getApiKey = useCallback((): string | null => {
@@ -361,15 +372,23 @@ function AppInner() {
           /* Menu results */
           <>
             <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h2 className="font-bold text-gray-900">{menuResult.restaurantName || 'Menu'}</h2>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-bold text-gray-900 truncate">{menuResult.restaurantName || 'Menu'}</h2>
+                  <button 
+                    onClick={() => setShowDebug(true)}
+                    className="shrink-0 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded font-mono hover:bg-slate-200"
+                  >
+                    DEBUG
+                  </button>
+                </div>
                 <p className="text-xs text-gray-400">{menuResult.items.length} {t('result.dishes')}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-2">
                 <button onClick={handleShareMenu} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600" title="分享菜單">
                   <Share2 size={16} />
                 </button>
-                <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
+                <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium whitespace-nowrap">
                   {t('result.newScan')}
                 </button>
               </div>
@@ -480,6 +499,37 @@ function AppInner() {
         onLogin={async (e, p) => { await login(e, p); }}
         onRegister={async (e, p) => { await register(e, p); }}
       />
+
+      {/* Debug Modal */}
+      {showDebug && menuResult?.ocrDebug && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md max-h-[80vh] rounded-2xl flex flex-col shadow-2xl">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-bold">OCR Debug Info</h3>
+              <button onClick={() => setShowDebug(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 space-y-4 font-mono text-xs">
+              <div className="p-2 bg-blue-50 text-blue-700 rounded border border-blue-100">
+                <strong>Engine:</strong> {menuResult.ocrDebug.source}
+              </div>
+              <div>
+                <strong>OCR Blocks ({menuResult.ocrDebug.blocks.length}):</strong>
+                <pre className="mt-1 p-2 bg-gray-900 text-green-400 rounded overflow-x-auto whitespace-pre-wrap">
+                  {JSON.stringify(menuResult.ocrDebug.blocks.slice(0, 50), null, 2)}
+                </pre>
+              </div>
+              <div>
+                <strong>Gemini Raw Response:</strong>
+                <pre className="mt-1 p-2 bg-gray-900 text-yellow-400 rounded overflow-x-auto whitespace-pre-wrap">
+                  {menuResult.ocrDebug.rawResponse}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
