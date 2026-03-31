@@ -20,7 +20,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
   const modeConfig = {
     menu: { icon: UtensilsCrossed, label: t('mode.menu'), desc: t('mode.menu.desc'), color: 'bg-orange-500', colorLight: 'bg-orange-100 text-orange-600', shadow: 'shadow-orange-200', iconColor: 'text-orange-500' },
     receipt: { icon: Receipt, label: t('mode.receipt'), desc: t('mode.receipt.desc'), color: 'bg-blue-500', colorLight: 'bg-blue-100 text-blue-600', shadow: 'shadow-blue-200', iconColor: 'text-blue-500' },
-    general: { icon: Languages, label: t('mode.general'), desc: t('mode.general.desc'), color: 'bg-emerald-600', colorLight: 'bg-emerald-50 text-emerald-700', shadow: 'shadow-emerald-200', iconColor: 'text-emerald-600' },
+    general: { icon: Languages, label: t('mode.general'), desc: t('mode.general.desc'), color: 'bg-slate-700', colorLight: 'bg-slate-100 text-slate-600', shadow: 'shadow-slate-300', iconColor: 'text-slate-600' },
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

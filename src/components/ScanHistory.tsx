@@ -11,7 +11,7 @@ interface ScanHistoryProps {
 const modeIcons = {
   menu: { icon: UtensilsCrossed, color: 'text-orange-500', bg: 'bg-orange-50', labelKey: 'history.menuType' as const },
   receipt: { icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', labelKey: 'history.receiptType' as const },
-  general: { icon: Languages, color: 'text-purple-500', bg: 'bg-purple-50', labelKey: 'history.translationType' as const },
+  general: { icon: Languages, color: 'text-slate-600', bg: 'bg-slate-100', labelKey: 'history.translationType' as const },
 };
 
 const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
