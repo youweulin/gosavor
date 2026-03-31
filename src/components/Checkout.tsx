@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { X, PlayCircle, Users, Minus, Plus, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, PlayCircle, Users, Minus, Plus, Check, ArrowLeftRight } from 'lucide-react';
 import type { MenuItem, OrderItem, SplitInfo } from '../types';
 import { useT } from '../i18n/context';
+import { fetchRates, getCurrencyCode } from './CurrencyBar';
 
 interface CheckoutProps {
   isVisible: boolean;
@@ -13,6 +14,7 @@ interface CheckoutProps {
   taxRate: number;
   serviceFee: number;
   onConfirmOrder: (items: OrderItem[], total: number, split?: SplitInfo) => void;
+  homeCurrency: string;
 }
 
 const Checkout = ({
@@ -25,11 +27,29 @@ const Checkout = ({
   taxRate,
   serviceFee,
   onConfirmOrder,
+  homeCurrency,
 }: CheckoutProps) => {
   const [mode, setMode] = useState<'review' | 'staff' | 'split'>('review');
   const [splitPersons, setSplitPersons] = useState(2);
   const [paidBy, setPaidBy] = useState('');
   const t = useT();
+  const [showConvert, setShowConvert] = useState(false);
+  const [rate, setRate] = useState<number | null>(null);
+
+  useEffect(() => {
+    const code = getCurrencyCode(currency).toLowerCase();
+    const home = homeCurrency.toLowerCase();
+    if (code !== home) {
+      fetchRates(code).then(rates => { if (rates[home]) setRate(rates[home]); });
+    }
+  }, [currency, homeCurrency]);
+
+  const convert = (amount: number) => {
+    if (!rate) return '';
+    const c = amount * rate;
+    const small = ['USD', 'EUR', 'GBP', 'SGD', 'AUD', 'MYR', 'HKD'].includes(homeCurrency);
+    return small ? c.toFixed(2) : Math.round(c).toLocaleString();
+  };
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
 
@@ -54,14 +74,14 @@ const Checkout = ({
     return `${val} ${currency}`;
   };
 
-  // Build the Japanese order text — format: 品名 + 數量
+  // Build the Japanese order text — 品名を數量お願いします
   const orderText = (() => {
     const counter = (n: number) => {
-      const counters: Record<number, string> = { 1: 'ひとつ', 2: 'ふたつ', 3: 'みっつ', 4: 'よっつ', 5: 'いつつ', 6: 'むっつ', 7: 'ななつ', 8: 'やっつ', 9: 'ここのつ', 10: 'とお' };
+      const counters: Record<number, string> = { 1: '一つ', 2: '二つ', 3: '三つ', 4: '四つ', 5: '五つ', 6: '六つ', 7: '七つ', 8: '八つ', 9: '九つ', 10: '十' };
       return counters[n] || `${n}つ`;
     };
-    const itemsText = orderedItems.map(o => `${o.item.originalName} ${counter(o.quantity)}`).join('、');
-    return `すみません、注文をお願いします。${itemsText}。以上です。ありがとうございます。`;
+    const itemsText = orderedItems.map(o => `${o.item.originalName}を${counter(o.quantity)}`).join('、');
+    return `すみません、注文をお願いします。${itemsText}、以上でお願いします。`;
   })();
 
   const speakOrder = () => {
@@ -175,25 +195,22 @@ const Checkout = ({
             <div className="space-y-1">
               {orderedItems.map(({ item, quantity, index }) => (
                 <div key={index} className="flex items-center justify-between py-3 border-b border-gray-800/50">
-                  <div className="flex items-center gap-3">
-                    <span className={`font-bold ${mode === 'staff' ? 'text-lg text-orange-400' : 'text-sm text-gray-400'}`}>{quantity}x</span>
-                    <div>
-                      {mode === 'staff' ? (
-                        <>
-                          <p className="font-bold text-xl">{item.originalName}</p>
-                          <p className="text-sm text-gray-400">{item.translatedName}</p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="font-medium text-base">{item.translatedName}</p>
-                          <p className="text-xs text-gray-500">{item.originalName}</p>
-                        </>
-                      )}
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    {mode === 'staff' ? (
+                      <>
+                        <p className="font-bold text-xl">{item.originalName} <span className="text-orange-400">× {quantity}</span></p>
+                        <p className="text-sm text-gray-400">{item.translatedName}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium text-base">{item.translatedName} <span className="text-gray-400">× {quantity}</span></p>
+                        <p className="text-xs text-gray-500">{item.originalName}</p>
+                      </>
+                    )}
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0 ml-3">
                     <p className="font-bold">{formatPrice(parseFloat(item.price) * quantity)}</p>
-                    <p className="text-xs text-gray-500">= {formatPrice(parseFloat(item.price) * quantity)}</p>
+                    {quantity > 1 && <p className="text-xs text-gray-500">@{formatPrice(parseFloat(item.price))}</p>}
                   </div>
                 </div>
               ))}
@@ -222,8 +239,23 @@ const Checkout = ({
               </div>
             )}
             <div className="flex justify-between text-lg font-bold pt-1 border-t border-gray-700">
-              <span>{t('checkout.total')}</span>
-              <span className="text-orange-400">{formatPrice(total)}</span>
+              <div className="flex items-center gap-2">
+                <span>{t('checkout.total')}</span>
+                {rate && (
+                  <button
+                    onClick={() => setShowConvert(!showConvert)}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${showConvert ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-700 text-gray-400'}`}
+                  >
+                    {homeCurrency}
+                  </button>
+                )}
+              </div>
+              <div className="text-right">
+                <span className="text-orange-400">{formatPrice(total)}</span>
+                {showConvert && rate && (
+                  <p className="text-sm font-bold text-orange-300">≈ {convert(total)} {homeCurrency}</p>
+                )}
+              </div>
             </div>
           </div>
 

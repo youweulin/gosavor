@@ -430,6 +430,7 @@ function AppInner() {
         taxRate={settings.taxRate}
         serviceFee={settings.serviceFee}
         onConfirmOrder={handleConfirmOrder}
+        homeCurrency={settings.homeCurrency}
       />
       <AuthModal
         isVisible={showAuth}
