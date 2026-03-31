@@ -39,7 +39,7 @@ const AuthModal = ({ isVisible, onClose, onLogin, onRegister }: AuthModalProps) 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
         <div className="px-5 py-4 flex justify-between items-center border-b">
-          <h3 className="font-bold text-gray-900">{mode === 'login' ? 'Login' : 'Register'}</h3>
+          <h3 className="font-bold text-gray-900">{mode === 'login' ? '登入' : '註冊'}</h3>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100">
             <X size={18} />
           </button>
@@ -65,7 +65,7 @@ const AuthModal = ({ isVisible, onClose, onLogin, onRegister }: AuthModalProps) 
 
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-1">
-              <Lock size={14} /> Password
+              <Lock size={14} /> 密碼
             </label>
             <input
               type="password"
@@ -85,9 +85,9 @@ const AuthModal = ({ isVisible, onClose, onLogin, onRegister }: AuthModalProps) 
             {loading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : mode === 'login' ? (
-              <><LogIn size={18} /> Login</>
+              <><LogIn size={18} /> 登入</>
             ) : (
-              <><UserPlus size={18} /> Register</>
+              <><UserPlus size={18} /> 註冊</>
             )}
           </button>
 
@@ -96,7 +96,7 @@ const AuthModal = ({ isVisible, onClose, onLogin, onRegister }: AuthModalProps) 
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
             className="w-full text-center text-sm text-orange-500 hover:underline"
           >
-            {mode === 'login' ? "Don't have an account? Register" : 'Already have an account? Login'}
+            {mode === 'login' ? '還沒有帳號？註冊' : '已有帳號？登入'}
           </button>
         </form>
       </div>

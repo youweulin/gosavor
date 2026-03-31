@@ -329,10 +329,10 @@ function App() {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="font-bold text-gray-900">{menuResult.restaurantName || 'Menu'}</h2>
-                <p className="text-xs text-gray-400">{menuResult.items.length} dishes</p>
+                <p className="text-xs text-gray-400">{menuResult.items.length} 道菜</p>
               </div>
               <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
-                New Scan
+                重新掃描
               </button>
             </div>
             <MenuResults
@@ -354,9 +354,9 @@ function App() {
           /* Receipt results */
           <>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">收據翻譯</h2>
+              <h2 className="font-bold text-gray-900">收據分析</h2>
               <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
-                New Scan
+                重新掃描
               </button>
             </div>
             <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} />
@@ -365,9 +365,9 @@ function App() {
           /* General/Sign/Fortune results */
           <>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">翻譯結果</h2>
+              <h2 className="font-bold text-gray-900">翻譯解析</h2>
               <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
-                New Scan
+                重新掃描
               </button>
             </div>
             <GeneralView data={generalResult} />
@@ -384,7 +384,7 @@ function App() {
               className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-orange-200 flex items-center justify-center gap-3 transition-all"
             >
               <ShoppingCart size={22} />
-              <span>Checkout ({totalOrderQty} items)</span>
+              <span>結帳 ({totalOrderQty} 項)</span>
               <CurrencyBar
                 foreignCurrency={menuResult.currency}
                 homeCurrency={settings.homeCurrency}

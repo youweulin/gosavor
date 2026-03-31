@@ -23,7 +23,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="font-bold text-lg">App Settings</h1>
+        <h1 className="font-bold text-lg">應用設定</h1>
       </div>
 
       <div className="p-4 space-y-6">
@@ -67,7 +67,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
               rel="noopener noreferrer"
               className="text-xs text-orange-400 hover:underline"
             >
-              Get a free API Key here
+              免費取得 API Key
             </a>
           </div>
         </div>
@@ -75,7 +75,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
         {/* Price Estimation */}
         <div>
           <h3 className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
-            <Percent size={14} /> Price Estimation Settings
+            <Percent size={14} /> 價格估算設定
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -104,14 +104,14 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            These rates will be applied in the final price estimation (e.g. +10% service charge).
+            結帳時會自動加上稅金和服務費計算預估總價。
           </p>
         </div>
 
         {/* Language */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <Globe size={14} /> Target Language
+            <Globe size={14} /> 翻譯語言
           </label>
           <div className="grid grid-cols-2 gap-2">
             {TARGET_LANGUAGES.map(lang => (
@@ -133,10 +133,10 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
         {/* Allergens */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <AlertTriangle size={14} /> Allergen Settings
+            <AlertTriangle size={14} /> 過敏原設定
           </label>
           <p className="text-xs text-gray-500 mb-3">
-            Select your allergens. AI will flag menu items containing these ingredients.
+            選擇你的過敏原，AI 會自動標記含有這些成分的菜品。
           </p>
           <div className="flex flex-wrap gap-2">
             {COMMON_ALLERGENS.map(allergen => {

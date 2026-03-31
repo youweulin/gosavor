@@ -46,7 +46,7 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="font-bold text-lg">Order History</h1>
+        <h1 className="font-bold text-lg">點餐紀錄</h1>
       </div>
 
       {/* Orders */}
@@ -87,7 +87,7 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
                   </div>
                 ))}
                 {order.items.length > 3 && (
-                  <p className="text-xs text-gray-500">+ {order.items.length - 3} more items...</p>
+                  <p className="text-xs text-gray-500">+ {order.items.length - 3} 項...</p>
                 )}
               </div>
 

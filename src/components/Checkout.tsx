@@ -119,7 +119,7 @@ const Checkout = ({
         {/* Header */}
         <div className="px-5 py-4 flex justify-between items-center border-b border-gray-800">
           <div>
-            <h3 className="font-bold text-lg">Checkout</h3>
+            <h3 className="font-bold text-lg">結帳確認</h3>
             <p className="text-xs text-gray-400">
               {restaurantName || 'Restaurant'} &middot; {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -150,11 +150,11 @@ const Checkout = ({
             <div className="space-y-6 py-4">
               {/* Who paid */}
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider">Who paid first?</label>
+                <label className="text-xs text-gray-400 uppercase tracking-wider">誰先付款？</label>
                 <input
                   value={paidBy}
                   onChange={e => setPaidBy(e.target.value)}
-                  placeholder="Name"
+                  placeholder="姓名"
                   className="mt-2 w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none"
                 />
               </div>
@@ -170,7 +170,7 @@ const Checkout = ({
                   </button>
                   <div className="text-center">
                     <p className="text-3xl font-bold">{splitPersons}</p>
-                    <p className="text-xs text-gray-400">PERSONS</p>
+                    <p className="text-xs text-gray-400">人數</p>
                   </div>
                   <button
                     onClick={() => setSplitPersons(splitPersons + 1)}
@@ -180,7 +180,7 @@ const Checkout = ({
                   </button>
                 </div>
                 <div className="mt-4 p-4 bg-gray-900 rounded-xl text-center">
-                  <p className="text-xs text-gray-400">Per Person</p>
+                  <p className="text-xs text-gray-400">每人金額</p>
                   <p className="text-2xl font-bold text-orange-400">
                     {formatPrice(Math.ceil(total / splitPersons))}
                   </p>
@@ -238,7 +238,7 @@ const Checkout = ({
               </div>
             )}
             <div className="flex justify-between text-lg font-bold pt-1 border-t border-gray-700">
-              <span>Total</span>
+              <span>合計</span>
               <span className="text-orange-400">{formatPrice(total)}</span>
             </div>
           </div>

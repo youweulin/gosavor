@@ -224,8 +224,8 @@ const InlineImageMap = ({
 
       <div className="text-[10px] text-gray-300 px-1">
         {showMarkers
-          ? `${visibleItems.length}/${imageItems.length} items${activeCategory ? ` (${activeCategory})` : ''}`
-          : 'markers hidden'}
+          ? `${visibleItems.length}/${imageItems.length} 項${activeCategory ? ` (${activeCategory})` : ''}`
+          : '標記已隱藏'}
       </div>
     </div>
   );
