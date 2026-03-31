@@ -135,15 +135,17 @@ const InlineImageMap = ({
 
       {/* Swipeable photo carousel */}
       <div
-        className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-300"
+        className="flex justify-center rounded-xl overflow-hidden border border-gray-200 shadow-sm"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* inline-block so relative container matches image size exactly */}
+        <div className="relative inline-block">
         <img
           src={images[activeImageIndex]}
           alt={`Menu page ${activeImageIndex + 1}`}
-          className={`block mx-auto transition-all duration-300 ${
+          className={`block transition-all duration-300 ${
             expanded ? 'w-full' : 'max-h-[40vh] w-auto'
           }`}
         />
@@ -217,6 +219,7 @@ const InlineImageMap = ({
             <ChevronRight size={14} className="text-white" />
           </div>
         )}
+        </div>{/* close inline-block */}
       </div>
 
       <div className="text-[10px] text-gray-300 px-1">

@@ -14,7 +14,7 @@ interface CameraCaptureProps {
 const modeConfig = {
   menu: { icon: UtensilsCrossed, label: '菜單翻譯', desc: 'AI 翻譯並生成點餐介面', color: 'bg-orange-500', colorLight: 'bg-orange-100 text-orange-600', shadow: 'shadow-orange-200', iconColor: 'text-orange-500' },
   receipt: { icon: Receipt, label: '收據翻譯', desc: '掃描收據，翻譯明細', color: 'bg-blue-500', colorLight: 'bg-blue-100 text-blue-600', shadow: 'shadow-blue-200', iconColor: 'text-blue-500' },
-  general: { icon: Languages, label: '萬用翻譯', desc: '籤詩、告示、標誌翻譯', color: 'bg-green-500', colorLight: 'bg-green-100 text-green-600', shadow: 'shadow-green-200', iconColor: 'text-green-500' },
+  general: { icon: Languages, label: '萬用翻譯', desc: '籤詩、告示、標誌翻譯', color: 'bg-emerald-600', colorLight: 'bg-emerald-50 text-emerald-700', shadow: 'shadow-emerald-200', iconColor: 'text-emerald-600' },
 };
 
 const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onScanModeChange }: CameraCaptureProps) => {
