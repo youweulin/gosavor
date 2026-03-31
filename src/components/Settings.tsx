@@ -134,14 +134,22 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           </select>
           {rate && (
             <div className="mt-2 p-3 bg-gray-800/50 rounded-lg font-mono text-sm text-gray-300">
-              <div className="grid grid-cols-[auto_auto_1fr] gap-x-2">
-                <span className="text-right">1 JPY</span>
-                <span>≈</span>
-                <span>{rate.toFixed(4)} {settings.homeCurrency}</span>
-                <span className="text-right">¥1,000</span>
-                <span>≈</span>
-                <span>{Math.round(1000 * rate).toLocaleString()} {settings.homeCurrency}</span>
-              </div>
+              {(() => {
+                const converted = 1000 * rate;
+                // Show 2 decimals for small-unit currencies (USD, EUR, GBP, SGD, AUD, MYR)
+                const smallUnit = ['USD', 'EUR', 'GBP', 'SGD', 'AUD', 'MYR', 'HKD'].includes(settings.homeCurrency);
+                const formatted = smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();
+                return (
+                  <div className="grid grid-cols-[auto_auto_1fr] gap-x-2">
+                    <span className="text-right">1 JPY</span>
+                    <span>≈</span>
+                    <span>{rate.toFixed(4)} {settings.homeCurrency}</span>
+                    <span className="text-right">¥1,000</span>
+                    <span>≈</span>
+                    <span>{formatted} {settings.homeCurrency}</span>
+                  </div>
+                );
+              })()}
               <p className="text-[10px] text-gray-500 mt-2 font-sans">
                 {t('settings.rateSource')} · {t('settings.rateUpdated')} {rateTime}
               </p>
