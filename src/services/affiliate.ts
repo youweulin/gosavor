@@ -1,23 +1,33 @@
 import Fuse from 'fuse.js';
 import klookProducts from '../data/klook_products.json';
+import kkdayProducts from '../data/kkday_products.json';
 
 const KLOOK_AID = '30600';
 const KKDAY_CID = '14336';
 
-// KKDay search link with affiliate tracking (30-day cookie)
-const kkdaySearch = (query: string) =>
-  `https://www.kkday.com/zh-tw/product/productlist/${encodeURIComponent(query)}?cid=${KKDAY_CID}`;
-
-// Product type
+// Product types
 interface KlookProduct {
   id: string;
   name: string;
   region: string;
 }
 
-// Fuse.js index for fuzzy search
+interface KKdayProduct {
+  id: string;
+  name: string;
+  region: string;
+  category: string;
+}
+
+// Fuse.js indexes
 const fuse = new Fuse(klookProducts as KlookProduct[], {
   keys: ['name'],
+  threshold: 0.4,
+  includeScore: true,
+});
+
+const fuseKKday = new Fuse(kkdayProducts as KKdayProduct[], {
+  keys: ['name', 'category'],
   threshold: 0.4,
   includeScore: true,
 });
@@ -63,9 +73,27 @@ const detectFromText = (text: string): { region: string | null; cityLabel: strin
   return { region: null, cityLabel: '日本' };
 };
 
-// Build direct product link
-const productLink = (productId: string) =>
+// Build direct product links
+const klookLink = (productId: string) =>
   `https://www.klook.com/zh-TW/activity/${productId}/?aid=${KLOOK_AID}`;
+
+const kkdayLink = (productId: string) =>
+  `https://www.kkday.com/zh-tw/product/${productId}?cid=${KKDAY_CID}`;
+
+// Search KKDay products by category + region
+const searchKKday = (category: string, region?: string | null, limit = 1): KKdayProduct[] => {
+  let pool = kkdayProducts as KKdayProduct[];
+  if (region) {
+    pool = pool.filter(p => p.region === region || p.region === 'ALL');
+  }
+  if (category) {
+    const catFiltered = pool.filter(p => p.category === category);
+    if (catFiltered.length > 0) pool = catFiltered;
+  }
+  // Randomize for variety
+  const shuffled = pool.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, limit);
+};
 
 // Search products by keyword + region
 const searchProducts = (query: string, region?: string | null, limit = 3): KlookProduct[] => {
@@ -116,20 +144,22 @@ export const getRecommendations = (
         recs.push({
           title: p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name,
           subtitle: `${cityLabel} · Klook 預訂`,
-          url: productLink(p.id),
+          url: klookLink(p.id),
           platform: 'klook',
           emoji: '🍽️',
         });
       });
     }
 
-    // KKDay food experience
-    recs.push({
-      title: `${cityLabel} 美食體驗・料理教室`,
-      subtitle: `KKday 精選行程`,
-      url: kkdaySearch(`${cityLabel} 美食`),
-      platform: 'kkday',
-      emoji: '🍶',
+    // KKDay food experience — direct product link
+    searchKKday('美食', region, 1).forEach(p => {
+      recs.push({
+        title: p.name,
+        subtitle: 'KKday 預訂',
+        url: kkdayLink(p.id),
+        platform: 'kkday',
+        emoji: '🍶',
+      });
     });
 
     // Add region random picks if not enough
@@ -138,7 +168,7 @@ export const getRecommendations = (
         recs.push({
           title: p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name,
           subtitle: `${cityLabel} · Klook 預訂`,
-          url: productLink(p.id),
+          url: klookLink(p.id),
           platform: 'klook',
           emoji: '✨',
         });
@@ -153,19 +183,21 @@ export const getRecommendations = (
       recs.push({
         title: p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name,
         subtitle: `${cityLabel} · Klook 預訂`,
-        url: productLink(p.id),
+        url: klookLink(p.id),
         platform: 'klook',
         emoji: '🛍️',
       });
     });
 
-    // KKDay shopping
-    recs.push({
-      title: `${cityLabel} 購物・優惠券`,
-      subtitle: `KKday 精選`,
-      url: kkdaySearch(`${cityLabel} 購物`),
-      platform: 'kkday',
-      emoji: '🎫',
+    // KKDay shopping/transport — direct product link
+    searchKKday('交通', region, 1).forEach(p => {
+      recs.push({
+        title: p.name,
+        subtitle: 'KKday 預訂',
+        url: kkdayLink(p.id),
+        platform: 'kkday',
+        emoji: '🎫',
+      });
     });
   }
 
@@ -176,18 +208,20 @@ export const getRecommendations = (
       recs.push({
         title: p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name,
         subtitle: `${cityLabel} · Klook 預訂`,
-        url: productLink(p.id),
+        url: klookLink(p.id),
         platform: 'klook',
         emoji: '⛩️',
       });
     });
-    // KKDay sightseeing
-    recs.push({
-      title: `${cityLabel} 景點門票・一日遊`,
-      subtitle: `KKday 精選行程`,
-      url: kkdaySearch(`${cityLabel} 景點`),
-      platform: 'kkday',
-      emoji: '🎌',
+    // KKDay sightseeing — direct product link
+    searchKKday('體驗', region, 1).forEach(p => {
+      recs.push({
+        title: p.name,
+        subtitle: 'KKday 預訂',
+        url: kkdayLink(p.id),
+        platform: 'kkday',
+        emoji: '🎌',
+      });
     });
   }
 
@@ -198,7 +232,7 @@ export const getRecommendations = (
       recs.push({
         title: esimProducts[0].name.length > 30 ? esimProducts[0].name.substring(0, 30) + '...' : esimProducts[0].name,
         subtitle: '免換卡・即買即用',
-        url: productLink(esimProducts[0].id),
+        url: klookLink(esimProducts[0].id),
         platform: 'klook',
         emoji: '📶',
       });
@@ -208,5 +242,4 @@ export const getRecommendations = (
   return recs.slice(0, 3);
 };
 
-// Export for potential use elsewhere
-export { detectFromText, searchProducts, productLink };
+export { detectFromText, searchProducts, klookLink, kkdayLink };
