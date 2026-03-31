@@ -135,7 +135,6 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           {rate && (
             <div className="mt-2 p-3 bg-gray-800/50 rounded-lg">
               <div className="flex items-center gap-2 text-sm">
-                <ArrowLeftRight size={14} className="text-orange-400" />
                 <span className="text-gray-300">
                   1 JPY ≈ {rate.toFixed(4)} {settings.homeCurrency}
                 </span>
