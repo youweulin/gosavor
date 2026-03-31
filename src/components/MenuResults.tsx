@@ -103,7 +103,7 @@ const MenuResults = ({ items, currency, quantities, onUpdateQuantity, userAllerg
                       {isAllergen && (
                         <div className="flex items-center gap-2 mb-2 text-red-600 text-xs font-medium">
                           <AlertTriangle size={14} />
-                          <span>含過敏原：{getMatchingAllergens(item).join(', ')}</span>
+                          <span>⚠️ {getMatchingAllergens(item).map(a => t(`allergen.${a}`)).join(', ')}</span>
                         </div>
                       )}
 

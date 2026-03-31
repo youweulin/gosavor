@@ -145,20 +145,10 @@ export const HOME_CURRENCIES = [
   { code: 'AUD', label: '澳幣 AUD', symbol: 'A$' },
 ];
 
-export const COMMON_ALLERGENS = [
-  { id: 'shrimp', label: '蝦', labelJa: 'えび' },
-  { id: 'crab', label: '蟹', labelJa: 'かに' },
-  { id: 'peanut', label: '花生', labelJa: 'ピーナッツ' },
-  { id: 'egg', label: '蛋', labelJa: '卵' },
-  { id: 'milk', label: '牛奶', labelJa: '乳' },
-  { id: 'wheat', label: '小麥', labelJa: '小麦' },
-  { id: 'soba', label: '蕎麥', labelJa: 'そば' },
-  { id: 'fish', label: '魚', labelJa: '魚' },
-  { id: 'soy', label: '大豆', labelJa: '大豆' },
-  { id: 'sesame', label: '芝麻', labelJa: 'ごま' },
-  { id: 'shellfish', label: '貝類', labelJa: '貝類' },
-  { id: 'beef', label: '牛肉', labelJa: '牛肉' },
-  { id: 'pork', label: '豬肉', labelJa: '豚肉' },
+// Allergen IDs — display labels come from i18n keys: allergen.{id}
+export const COMMON_ALLERGEN_IDS = [
+  'shrimp', 'crab', 'peanut', 'egg', 'milk', 'wheat',
+  'soba', 'fish', 'soy', 'sesame', 'shellfish', 'beef', 'pork',
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {

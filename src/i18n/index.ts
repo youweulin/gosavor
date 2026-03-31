@@ -128,6 +128,21 @@ const zh_TW: Translations = {
   'cat.hotel': '住宿',
   'cat.other': '其他',
 
+  // Allergens
+  'allergen.shrimp': '蝦 (えび)',
+  'allergen.crab': '蟹 (かに)',
+  'allergen.peanut': '花生 (ピーナッツ)',
+  'allergen.egg': '蛋 (卵)',
+  'allergen.milk': '牛奶 (乳)',
+  'allergen.wheat': '小麥 (小麦)',
+  'allergen.soba': '蕎麥 (そば)',
+  'allergen.fish': '魚 (魚)',
+  'allergen.soy': '大豆 (大豆)',
+  'allergen.sesame': '芝麻 (ごま)',
+  'allergen.shellfish': '貝類 (貝類)',
+  'allergen.beef': '牛肉 (牛肉)',
+  'allergen.pork': '豬肉 (豚肉)',
+
   // Errors
   'error.noKey': '請先設定 Gemini API Key，或登入使用租用版。',
   'error.failed': '分析失敗，請確認 API Key 是否正確或重試。',
@@ -160,6 +175,10 @@ const en: Translations = {
   'receipt.total': 'Total', 'receipt.addExpense': 'Add to Expenses', 'receipt.added': 'Added to Expenses', 'receipt.payer': 'Payer (optional)',
   'expenses.title': 'Expense Book', 'expenses.total': 'Total Spent', 'expenses.empty': 'No expenses yet', 'expenses.emptyHint': 'Scan a receipt to add',
   'cat.shopping': 'Shopping', 'cat.food': 'Food', 'cat.transport': 'Transport', 'cat.hotel': 'Hotel', 'cat.other': 'Other',
+  'allergen.shrimp': 'Shrimp (えび)', 'allergen.crab': 'Crab (かに)', 'allergen.peanut': 'Peanut (ピーナッツ)',
+  'allergen.egg': 'Egg (卵)', 'allergen.milk': 'Milk (乳)', 'allergen.wheat': 'Wheat (小麦)',
+  'allergen.soba': 'Buckwheat (そば)', 'allergen.fish': 'Fish (魚)', 'allergen.soy': 'Soy (大豆)',
+  'allergen.sesame': 'Sesame (ごま)', 'allergen.shellfish': 'Shellfish (貝類)', 'allergen.beef': 'Beef (牛肉)', 'allergen.pork': 'Pork (豚肉)',
   'error.noKey': 'Please set your Gemini API Key in Settings.', 'error.failed': 'Analysis failed. Check your API Key.', 'error.goSettings': 'Go to Settings',
 };
 

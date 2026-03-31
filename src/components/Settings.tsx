@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, TrendingUp } from 'lucide-react';
-import { TARGET_LANGUAGES, COMMON_ALLERGENS, HOME_CURRENCIES } from '../types';
+import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, ArrowLeftRight } from 'lucide-react';
+import { TARGET_LANGUAGES, COMMON_ALLERGEN_IDS, HOME_CURRENCIES } from '../types';
 import { fetchRates, getCurrencyCode } from './CurrencyBar';
 import type { AppSettings } from '../types';
 import { useT } from '../i18n/context';
@@ -135,7 +135,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           {rate && (
             <div className="mt-2 p-3 bg-gray-800/50 rounded-lg">
               <div className="flex items-center gap-2 text-sm">
-                <TrendingUp size={14} className="text-orange-400" />
+                <ArrowLeftRight size={14} className="text-orange-400" />
                 <span className="text-gray-300">
                   1 JPY ≈ {rate.toFixed(4)} {settings.homeCurrency}
                 </span>
@@ -161,15 +161,15 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
             {t('settings.allergensHint')}
           </p>
           <div className="flex flex-wrap gap-2">
-            {COMMON_ALLERGENS.map(allergen => {
-              const isActive = settings.allergens.includes(allergen.id);
+            {COMMON_ALLERGEN_IDS.map(id => {
+              const isActive = settings.allergens.includes(id);
               return (
                 <button
-                  key={allergen.id}
+                  key={id}
                   onClick={() => {
                     const next = isActive
-                      ? settings.allergens.filter(a => a !== allergen.id)
-                      : [...settings.allergens, allergen.id];
+                      ? settings.allergens.filter(a => a !== id)
+                      : [...settings.allergens, id];
                     onUpdate({ allergens: next });
                   }}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
@@ -178,7 +178,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
                       : 'bg-gray-900 text-gray-400 border border-gray-700 hover:border-gray-600'
                   }`}
                 >
-                  {allergen.label} ({allergen.labelJa})
+                  {t(`allergen.${id}`)}
                 </button>
               );
             })}
