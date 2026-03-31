@@ -211,8 +211,16 @@ function App() {
         </div>
       </header>
 
-      {/* Sticky image map — max 35vh so menu list always has room */}
-      {menuResult && images.length > 0 && (
+      {/* Sticky image — for menu (with markers) or receipt/general (photo only) */}
+      {(menuResult || receiptResult || generalResult) && images.length > 0 && !menuResult ? (
+        <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
+          <div className="max-w-md mx-auto px-2 py-1">
+            <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm max-h-[35vh]">
+              <img src={images[0]} alt="Photo" className="block mx-auto max-h-[35vh] w-auto" />
+            </div>
+          </div>
+        </div>
+      ) : menuResult && images.length > 0 ? (
         <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
           <div className="max-w-md mx-auto px-2 py-1">
             <InlineImageMap
@@ -241,7 +249,7 @@ function App() {
             />
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Main */}
       <main className="max-w-md mx-auto px-4 py-4 pb-24">

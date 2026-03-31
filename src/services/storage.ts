@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS } from '../types';
-import type { AppSettings, SavedOrder, SavedScan } from '../types';
+import type { AppSettings, SavedOrder, SavedScan, Expense } from '../types';
 
 const SETTINGS_KEY = 'gosavor_settings';
 const ORDERS_KEY = 'gosavor_orders';
@@ -82,16 +82,20 @@ const compressImage = (dataUrl: string, maxDim = 500): Promise<string> => {
 // === Scan History (IndexedDB — no size limit) ===
 
 const DB_NAME = 'gosavor_db';
-const DB_VERSION = 1;
-const STORE_NAME = 'scans';
+const DB_VERSION = 2;
+const STORE_SCANS = 'scans';
+const STORE_EXPENSES = 'expenses';
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(STORE_SCANS)) {
+        db.createObjectStore(STORE_SCANS, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(STORE_EXPENSES)) {
+        db.createObjectStore(STORE_EXPENSES, { keyPath: 'id' });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -103,8 +107,8 @@ export const getScanHistory = async (): Promise<SavedScan[]> => {
   try {
     const db = await openDB();
     return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_SCANS, 'readonly');
+      const store = tx.objectStore(STORE_SCANS);
       const req = store.getAll();
       req.onsuccess = () => {
         const scans = (req.result as SavedScan[]).sort((a, b) => b.timestamp - a.timestamp);
@@ -125,8 +129,8 @@ export const saveScan = async (scan: SavedScan) => {
     );
     const compressedScan = { ...scan, images: compressed.filter(Boolean) };
     const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(compressedScan);
+    const tx = db.transaction(STORE_SCANS, 'readwrite');
+    tx.objectStore(STORE_SCANS).put(compressedScan);
   } catch (e) {
     console.error('Failed to save scan', e);
   }
@@ -135,10 +139,46 @@ export const saveScan = async (scan: SavedScan) => {
 export const deleteScan = async (id: string): Promise<SavedScan[]> => {
   try {
     const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).delete(id);
+    const tx = db.transaction(STORE_SCANS, 'readwrite');
+    tx.objectStore(STORE_SCANS).delete(id);
   } catch (e) {
     console.error('Failed to delete scan', e);
   }
   return getScanHistory();
+};
+
+// === Expense / Accounting ===
+export const getExpenses = async (): Promise<Expense[]> => {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_EXPENSES, 'readonly');
+      const req = tx.objectStore(STORE_EXPENSES).getAll();
+      req.onsuccess = () => resolve((req.result as Expense[]).sort((a, b) => b.timestamp - a.timestamp));
+      req.onerror = () => resolve([]);
+    });
+  } catch {
+    return [];
+  }
+};
+
+export const saveExpense = async (expense: Expense) => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_EXPENSES, 'readwrite');
+    tx.objectStore(STORE_EXPENSES).put(expense);
+  } catch (e) {
+    console.error('Failed to save expense', e);
+  }
+};
+
+export const deleteExpense = async (id: string): Promise<Expense[]> => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_EXPENSES, 'readwrite');
+    tx.objectStore(STORE_EXPENSES).delete(id);
+  } catch (e) {
+    console.error('Failed to delete expense', e);
+  }
+  return getExpenses();
 };

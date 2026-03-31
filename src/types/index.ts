@@ -91,6 +91,19 @@ export interface SavedOrder {
   splitInfo?: SplitInfo;
 }
 
+// === Expense / Accounting ===
+export interface Expense {
+  id: string;
+  timestamp: number;
+  merchantName: string;
+  amount: number;
+  currency: string;
+  category: string; // 購物/餐飲/交通/其他
+  payer: string;
+  items?: ReceiptItem[];
+  isTaxFree?: boolean;
+}
+
 // === Settings ===
 export interface AppSettings {
   geminiApiKey: string;
