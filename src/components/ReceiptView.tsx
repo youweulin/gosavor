@@ -148,14 +148,8 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
                 </div>
                 <span className="font-bold text-gray-900 shrink-0">{formatPrice(item.price, data.currency)}</span>
               </div>
-              <div className="ml-8 mt-1 flex items-center gap-1.5 text-[11px]">
-                <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">
-                  單價 {formatPrice(unitPrice, data.currency)}
-                </span>
-                <span className="text-gray-300">×</span>
-                <span className="px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded font-medium">
-                  {qty} 個
-                </span>
+              <div className="ml-8 mt-0.5 text-[11px] text-gray-500">
+                {formatPrice(unitPrice, data.currency)} × {qty}
               </div>
             </div>
           );
@@ -229,14 +223,14 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
       )}
 
       {layout === 'side' && imageSrc ? (
-        /* Side by side: photo with markers left, receipt right */
+        /* Side by side: small photo left, receipt right */
         <div className="flex gap-2 max-w-4xl">
-          <div className="w-1/2 shrink-0">
-            <div className="sticky top-[100px]">
+          <div className="w-[35%] shrink-0">
+            <div className="sticky top-[60px]">
               {photoWithMarkers}
             </div>
           </div>
-          <div className="w-1/2">
+          <div className="flex-1 min-w-0">
             {receiptContent}
           </div>
         </div>
