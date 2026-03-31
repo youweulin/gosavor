@@ -67,9 +67,20 @@ const Checkout = ({
   const speakOrder = () => {
     const u = new SpeechSynthesisUtterance(orderText);
     u.lang = 'ja-JP';
+    u.rate = 0.9; // slightly slower for clarity
+
+    // Pick best female Japanese voice
     const voices = window.speechSynthesis.getVoices();
-    const jpVoice = voices.find(v => v.lang.startsWith('ja')) || null;
-    if (jpVoice) u.voice = jpVoice;
+    const jpVoices = voices.filter(v => v.lang.startsWith('ja'));
+    const femalePrefer = ['Kyoko', 'O-Ren', 'Google 日本語', 'Siri', 'Microsoft Nanami', 'Nanami'];
+    let voice = null;
+    for (const key of femalePrefer) {
+      voice = jpVoices.find(v => v.name.includes(key));
+      if (voice) break;
+    }
+    if (!voice && jpVoices.length > 0) voice = jpVoices[0];
+    if (voice) u.voice = voice;
+
     setIsSpeaking(true);
     u.onend = () => setIsSpeaking(false);
     u.onerror = () => setIsSpeaking(false);
