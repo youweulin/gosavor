@@ -213,10 +213,11 @@ function App() {
 
       {/* Sticky image — for menu (with markers) or receipt (with markers) or general (photo only) */}
       {receiptResult && images.length > 0 ? (
-        <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
-          <div className="max-w-md mx-auto px-2 py-1">
-            <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-              <img src={images[0]} alt="Receipt" className="block mx-auto max-h-[40vh] w-auto" />
+        <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm overflow-y-auto max-h-[45vh]">
+          <div className="max-w-md mx-auto px-2 py-1 flex justify-center">
+            {/* inline-block so container matches image size exactly */}
+            <div className="relative inline-block rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+              <img src={images[0]} alt="Receipt" className="block max-h-[45vh] w-auto" />
               {receiptResult.items.map((item, idx) => {
                 if (!item.boundingBox || item.boundingBox.length < 4) return null;
                 const box = item.boundingBox.some(v => v > 1) ? item.boundingBox.map(v => v / 1000) : item.boundingBox;
