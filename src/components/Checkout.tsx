@@ -306,9 +306,14 @@ const Checkout = ({
               <button onClick={() => setMode('staff')} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg">
                 <Check size={20} /> {t('checkout.confirm')}
               </button>
-              <button onClick={() => setMode('split')} className="w-full py-2 text-sm text-gray-500 flex items-center justify-center gap-1">
-                <Users size={14} /> {t('checkout.split')}
-              </button>
+              <div className="flex gap-2">
+                <button onClick={onClose} className="flex-1 py-2 text-sm text-gray-500 hover:text-gray-300 flex items-center justify-center gap-1">
+                  {t('checkout.back')}
+                </button>
+                <button onClick={() => setMode('split')} className="flex-1 py-2 text-sm text-gray-500 hover:text-gray-300 flex items-center justify-center gap-1">
+                  <Users size={14} /> {t('checkout.split')}
+                </button>
+              </div>
             </div>
           )}
         </div>
