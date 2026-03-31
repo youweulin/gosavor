@@ -170,16 +170,18 @@ function AppInner() {
     }
   };
 
-  if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;
-  if (page === 'expenses') return <ExpenseBook onBack={() => setPage('home')} />;
+  if (page === 'history') return <I18nProvider lang={settings.targetLanguage}><OrderHistory onBack={() => setPage('home')} /></I18nProvider>;
+  if (page === 'expenses') return <I18nProvider lang={settings.targetLanguage}><ExpenseBook onBack={() => setPage('home')} /></I18nProvider>;
   if (page === 'settings') {
     return (
-      <Settings
-        settings={settings}
-        onUpdate={updateSettings}
-        onReset={resetSettings}
-        onBack={() => setPage('home')}
-      />
+      <I18nProvider lang={settings.targetLanguage}>
+        <Settings
+          settings={settings}
+          onUpdate={updateSettings}
+          onReset={resetSettings}
+          onBack={() => setPage('home')}
+        />
+      </I18nProvider>
     );
   }
 

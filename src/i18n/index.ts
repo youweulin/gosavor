@@ -295,11 +295,10 @@ const allTranslations: Record<string, Translations> = {
   'zh-TW': zh_TW, 'zh-CN': zh_CN, en, fr, es, de, ko, th, vi, 'id': id_ID,
 };
 
-// Get translation with fallback to zh-TW then key itself
+// Get translation with fallback chain: lang → en → zh-TW → key
 export const getT = (lang: string) => {
   const translations = allTranslations[lang] || {};
-  const fallback = zh_TW;
   return (key: string): string => {
-    return translations[key] || fallback[key] || key;
+    return translations[key] || en[key] || zh_TW[key] || key;
   };
 };
