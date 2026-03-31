@@ -169,7 +169,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
                     <div className="text-right shrink-0">
                       <span className="font-bold text-gray-900 text-sm">{formatPrice(item.price, data.currency)}</span>
                       {showConversion && rate && (
-                        <div className="text-[10px] text-blue-500">≈ {convert(item.price)} {homeCurrency}</div>
+                        <div className="text-xs font-bold text-orange-600">≈ {convert(item.price)} {homeCurrency}</div>
                       )}
                     </div>
                   </div>
@@ -177,7 +177,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
                   <div className="text-xs font-medium text-gray-600">
                     {formatPrice(unitPrice, data.currency)} × {qty}
                     {showConversion && rate && (
-                      <span className="text-blue-500 ml-1">(≈ {convert(unitPrice)}/{homeCurrency})</span>
+                      <span className="text-orange-600 font-bold ml-1">≈ {convert(unitPrice)} {homeCurrency}</span>
                     )}
                   </div>
                 </div>
@@ -212,7 +212,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
           <div className="text-right">
             <span className="text-xl font-black text-gray-900">{formatPrice(data.totalAmount, data.currency)}</span>
             {showConversion && rate && (
-              <div className="text-sm font-bold text-blue-600">≈ {convert(data.totalAmount)} {homeCurrency}</div>
+              <div className="text-base font-black text-orange-600">≈ {convert(data.totalAmount)} {homeCurrency}</div>
             )}
           </div>
         </div>
@@ -253,7 +253,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
           <button
             onClick={() => setShowConversion(!showConversion)}
             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
-              showConversion ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+              showConversion ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'
             }`}
           >
             <ArrowLeftRight size={12} /> {homeCurrency}
