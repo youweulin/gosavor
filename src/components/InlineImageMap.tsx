@@ -148,8 +148,8 @@ const InlineImageMap = ({
           className={`block ${expanded ? 'w-full' : 'max-h-[40vh] w-auto'}`}
         />
 
-        {/* Numbered markers */}
-        {showMarkers && visibleItems.map(({ item, idx }) => {
+        {/* Numbered markers — only in expanded mode for accuracy */}
+        {showMarkers && expanded && visibleItems.map(({ item, idx }) => {
           const active = highlightIndex === idx;
 
           if (hasBox(item)) {

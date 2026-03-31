@@ -2,6 +2,11 @@ import Fuse from 'fuse.js';
 import klookProducts from '../data/klook_products.json';
 
 const KLOOK_AID = '30600';
+const KKDAY_CID = '14336';
+
+// KKDay search link with affiliate tracking (30-day cookie)
+const kkdaySearch = (query: string) =>
+  `https://www.kkday.com/zh-tw/product/productlist/${encodeURIComponent(query)}?cid=${KKDAY_CID}`;
 
 // Product type
 interface KlookProduct {
@@ -118,8 +123,17 @@ export const getRecommendations = (
       });
     }
 
+    // KKDay food experience
+    recs.push({
+      title: `${cityLabel} 美食體驗・料理教室`,
+      subtitle: `KKday 精選行程`,
+      url: kkdaySearch(`${cityLabel} 美食`),
+      platform: 'kkday',
+      emoji: '🍶',
+    });
+
     // Add region random picks if not enough
-    if (recs.length < 2 && region) {
+    if (recs.length < 3 && region) {
       getRegionProducts(region, 2 - recs.length).forEach(p => {
         recs.push({
           title: p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name,
@@ -145,22 +159,19 @@ export const getRecommendations = (
       });
     });
 
-    if (recs.length < 2 && region) {
-      getRegionProducts(region, 2 - recs.length).forEach(p => {
-        recs.push({
-          title: p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name,
-          subtitle: `${cityLabel} · Klook`,
-          url: productLink(p.id),
-          platform: 'klook',
-          emoji: '🎫',
-        });
-      });
-    }
+    // KKDay shopping
+    recs.push({
+      title: `${cityLabel} 購物・優惠券`,
+      subtitle: `KKday 精選`,
+      url: kkdaySearch(`${cityLabel} 購物`),
+      platform: 'kkday',
+      emoji: '🎫',
+    });
   }
 
   if (scanMode === 'general') {
     const query = `${cityLabel} 景點 體驗`;
-    const products = searchProducts(query, region, 2);
+    const products = searchProducts(query, region, 1);
     products.forEach(p => {
       recs.push({
         title: p.name.length > 30 ? p.name.substring(0, 30) + '...' : p.name,
@@ -169,6 +180,14 @@ export const getRecommendations = (
         platform: 'klook',
         emoji: '⛩️',
       });
+    });
+    // KKDay sightseeing
+    recs.push({
+      title: `${cityLabel} 景點門票・一日遊`,
+      subtitle: `KKday 精選行程`,
+      url: kkdaySearch(`${cityLabel} 景點`),
+      platform: 'kkday',
+      emoji: '🎌',
     });
   }
 
