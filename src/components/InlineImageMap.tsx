@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Eye, EyeOff, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { Eye, EyeOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MenuItem } from '../types';
 
 interface InlineImageMapProps {
@@ -17,7 +17,6 @@ const InlineImageMap = ({
   activeImageIndex, onTapItem, onImageChange
 }: InlineImageMapProps) => {
   const [showMarkers, setShowMarkers] = useState(true);
-  const [expanded, setExpanded] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchDelta = useRef(0);
@@ -120,16 +119,6 @@ const InlineImageMap = ({
             {showMarkers ? <Eye size={12} /> : <EyeOff size={12} />}
             標記
           </button>
-          {/* Expand/collapse */}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-              expanded ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-            }`}
-          >
-            {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-            {expanded ? '收合' : '展開'}
-          </button>
         </div>
       </div>
 
@@ -145,7 +134,7 @@ const InlineImageMap = ({
         <img
           src={images[activeImageIndex]}
           alt={`Menu page ${activeImageIndex + 1}`}
-          className={`block ${expanded ? 'max-w-full' : 'max-h-[40vh] w-auto'}`}
+          className="block max-w-full"
         />
 
         {/* Numbered markers */}
