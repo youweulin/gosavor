@@ -65,7 +65,7 @@ For each item:
 - description: if menu has description text, translate it to ${targetLanguage}. If no description on menu, write 1 sentence explaining what the dish is (ingredients, taste) in ${targetLanguage}. MUST NOT be empty.
 - price: number only (e.g. "630")
 - category: in ${targetLanguage}
-- boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 coords
+- boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 scale. IMPORTANT: the box must cover the item's name and price on the image. Each item must have a UNIQUE position — do NOT cluster boxes together. Spread them to match where each item actually appears on the menu photo.
 - imageIndex: which image (0-based) this item appears in. First image=0, second=1, etc.${allergenPart}
 Also return currency (use ¥ for JPY) and restaurantName if visible.`;
 
