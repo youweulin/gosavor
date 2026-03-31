@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Store, Calendar, MapPin, ShoppingBag, CheckCircle, Bookmark, Globe, Rows3, Columns2 } from 'lucide-react';
+import { Store, Calendar, MapPin, ShoppingBag, CheckCircle, Bookmark, Globe, Rows3, Columns2, List } from 'lucide-react';
 import type { ReceiptAnalysisResult, ReceiptItem, Expense } from '../types';
 import { saveExpense } from '../services/storage';
 
 interface ReceiptViewProps {
   data: ReceiptAnalysisResult;
   imageSrc?: string;
-  layout: 'stack' | 'side';
-  onLayoutChange: (layout: 'stack' | 'side') => void;
+  layout: 'stack' | 'side' | 'list';
+  onLayoutChange: (layout: 'stack' | 'side' | 'list') => void;
 }
 
 const CATEGORIES = ['購物', '餐飲', '交通', '住宿', '其他'];
@@ -215,11 +215,14 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
           <button onClick={() => onLayoutChange('side')}
             className={`p-1.5 rounded-lg ${layout === 'side' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}
             title="左右對照"><Columns2 size={16} /></button>
+          <button onClick={() => onLayoutChange('list')}
+            className={`p-1.5 rounded-lg ${layout === 'list' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}
+            title="純翻譯"><List size={16} /></button>
         </div>
       )}
 
       {layout === 'side' && imageSrc ? (
-        /* Side by side: small photo left, receipt right */
+        /* Side by side: photo left, receipt right */
         <div className="flex gap-2 max-w-4xl">
           <div className="w-[40%] shrink-0">
             <div className="sticky top-[60px]">
@@ -231,7 +234,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
           </div>
         </div>
       ) : (
-        /* Stack mode — photo already in sticky header */
+        /* Stack or List mode — both show receipt content, stack has sticky photo in header */
         receiptContent
       )}
     </div>

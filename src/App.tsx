@@ -38,7 +38,7 @@ function App() {
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
-  const [receiptLayout, setReceiptLayout] = useState<'stack' | 'side'>('stack');
+  const [receiptLayout, setReceiptLayout] = useState<'stack' | 'side' | 'list'>('stack');
   const [error, setError] = useState('');
 
   const getApiKey = useCallback((): string | null => {
@@ -214,6 +214,7 @@ function App() {
 
       {/* Sticky image — for menu (with markers) or receipt (with markers) or general (photo only) */}
       {receiptResult && images.length > 0 && receiptLayout === 'stack' ? (
+        /* Only show sticky photo in stack mode */
         <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm overflow-y-auto max-h-[45vh]">
           <div className="max-w-md mx-auto px-2 py-1 flex justify-center">
             {/* inline-block so container matches image size exactly */}
