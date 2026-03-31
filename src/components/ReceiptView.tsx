@@ -148,7 +148,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
                 </div>
                 <span className="font-bold text-gray-900 shrink-0">{formatPrice(item.price, data.currency)}</span>
               </div>
-              <div className="ml-8 mt-0.5 text-[11px] text-gray-500">
+              <div className="ml-8 mt-0.5 text-sm font-medium text-gray-600">
                 {formatPrice(unitPrice, data.currency)} × {qty}
               </div>
             </div>
