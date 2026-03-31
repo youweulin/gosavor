@@ -89,7 +89,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
 
   // Receipt translation content
   const receiptContent = (
-    <div className="bg-white p-4 shadow-lg rounded-sm border-t-[6px] border-gray-800 relative overflow-hidden">
+    <div className="bg-white p-3 shadow-lg rounded-sm border-t-[6px] border-gray-800 relative overflow-hidden">
       {/* Jagged bottom */}
       <div className="absolute -bottom-1 left-0 w-full h-3 bg-white" style={{
         maskImage: 'linear-gradient(45deg, transparent 50%, black 50%), linear-gradient(-45deg, transparent 50%, black 50%)',
@@ -105,9 +105,9 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
       )}
 
       {/* Header */}
-      <div className="text-center border-b-2 border-dashed border-gray-300 pb-3 mb-3">
-        <Store size={18} className="mx-auto text-gray-400 mb-1" />
-        <h2 className="text-lg font-bold text-gray-900">{data.merchantName}</h2>
+      <div className="text-center border-b-2 border-dashed border-gray-300 pb-2 mb-2">
+        <Store size={16} className="mx-auto text-gray-400 mb-0.5" />
+        <h2 className="text-base font-bold text-gray-900">{data.merchantName}</h2>
         <button
           onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.merchantName)}`, '_blank')}
           className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:underline mt-0.5"
@@ -120,7 +120,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
       </div>
 
       {/* Items */}
-      <div className="space-y-2 text-sm">
+      <div className="text-sm divide-y divide-gray-100">
         {data.items.map((item, idx) => {
           const qty = parseInt(item.quantity?.replace(/[^0-9]/g, '') || '1') || 1;
           const lineTotal = parseFloat(item.price?.replace(/[^0-9.]/g, '') || '0');
@@ -132,24 +132,19 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
               key={idx}
               id={`receipt-item-${idx}`}
               onClick={() => setHighlightIdx(active ? null : idx)}
-              className={`pb-2 border-b border-gray-100 last:border-0 cursor-pointer rounded-lg px-2 py-1 transition-colors ${
-                active ? 'bg-orange-50 border-orange-200' : ''
-              }`}
+              className={`py-1.5 cursor-pointer transition-colors ${active ? 'bg-orange-50' : ''}`}
             >
-              <div className="flex items-start gap-2">
-                <span className={`shrink-0 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center mt-0.5 transition-all ${
-                  active ? 'bg-orange-500 text-white' : 'bg-orange-500 text-white'
-                }`}>
+              <div className="flex items-center gap-1.5">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {idx + 1}
                 </span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-900 text-sm">{item.translatedName}</p>
-                  <p className="text-[10px] text-gray-400 truncate">{item.originalName}</p>
-                </div>
+                <span className="font-bold text-gray-900 text-sm flex-1 min-w-0 truncate">{item.translatedName}</span>
                 <span className="font-bold text-gray-900 shrink-0">{formatPrice(item.price, data.currency)}</span>
               </div>
-              <div className="ml-8 mt-0.5 text-sm font-medium text-gray-600">
-                {formatPrice(unitPrice, data.currency)} × {qty}
+              <div className="ml-6.5 pl-[26px] flex items-center gap-1 text-xs text-gray-500">
+                <span>{item.originalName}</span>
+                <span className="text-gray-300">·</span>
+                <span className="font-medium">{formatPrice(unitPrice, data.currency)} × {qty}</span>
               </div>
             </div>
           );
@@ -225,7 +220,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
       {layout === 'side' && imageSrc ? (
         /* Side by side: small photo left, receipt right */
         <div className="flex gap-2 max-w-4xl">
-          <div className="w-[35%] shrink-0">
+          <div className="w-[40%] shrink-0">
             <div className="sticky top-[60px]">
               {photoWithMarkers}
             </div>
