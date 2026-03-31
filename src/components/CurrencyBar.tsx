@@ -8,7 +8,7 @@ interface CurrencyBarProps {
 }
 
 const RATES_CACHE_KEY = 'gosavor_exchange_rates';
-const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours — balance freshness vs API quota
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour — CDN static file, no quota limit
 
 interface CachedRates {
   rates: Record<string, number>;
