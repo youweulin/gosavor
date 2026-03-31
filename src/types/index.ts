@@ -168,7 +168,7 @@ export const COMMON_ALLERGENS = [
 
 export const DEFAULT_SETTINGS: AppSettings = {
   geminiApiKey: '',
-  taxRate: 10,
+  taxRate: 0,
   serviceFee: 0,
   targetLanguage: 'zh-TW',
   allergens: [],

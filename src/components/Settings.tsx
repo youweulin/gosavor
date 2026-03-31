@@ -104,7 +104,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            結帳時會自動加上稅金和服務費計算預估總價。
+            日本多數餐廳已含稅（税込），通常設 0% 即可。若菜單標示「税抜」則設 10%。
           </p>
         </div>
 
@@ -138,21 +138,15 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           <p className="text-xs text-gray-500 mb-2">
             用於匯率換算，顯示餐點約等於多少本國貨幣。
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <select
+            value={settings.homeCurrency}
+            onChange={e => onUpdate({ homeCurrency: e.target.value })}
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:border-orange-500 focus:outline-none appearance-none"
+          >
             {HOME_CURRENCIES.map(curr => (
-              <button
-                key={curr.code}
-                onClick={() => onUpdate({ homeCurrency: curr.code })}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                  settings.homeCurrency === curr.code
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-900 text-gray-400 border border-gray-700 hover:border-gray-600'
-                }`}
-              >
-                {curr.label}
-              </button>
+              <option key={curr.code} value={curr.code}>{curr.symbol} {curr.label}</option>
             ))}
-          </div>
+          </select>
         </div>
 
         {/* Allergens */}
