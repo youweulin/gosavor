@@ -184,6 +184,7 @@ function AppInner() {
   }
 
   return (
+    <I18nProvider lang={settings.targetLanguage}>
     <div className="min-h-screen bg-gray-50">
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
@@ -433,17 +434,12 @@ function AppInner() {
         onRegister={async (e, p) => { await register(e, p); }}
       />
     </div>
+    </I18nProvider>
   );
 }
 
-// Wrapper with I18nProvider
 function App() {
-  const { settings } = useSettings();
-  return (
-    <I18nProvider lang={settings.targetLanguage}>
-      <AppInner />
-    </I18nProvider>
-  );
+  return <AppInner />;
 }
 
 export default App;
