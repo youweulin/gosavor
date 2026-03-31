@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart, BookOpen, NotebookPen } from 'lucide-react';
+import { Settings as SettingsIcon, History, User, UtensilsCrossed, ShoppingCart, BookOpen, NotebookPen, Share2 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
@@ -141,6 +141,25 @@ function AppInner() {
   };
 
   // Go back to home / camera
+  const handleShareMenu = async () => {
+    if (!menuResult) return;
+    const name = menuResult.restaurantName || 'Menu';
+    const items = menuResult.items.map((item, i) => {
+      const price = menuResult.currency === '¥' ? `¥${item.price}` : `${item.price}${menuResult.currency}`;
+      return `${i + 1}. ${item.translatedName} ${price}\n   ${item.originalName}${item.description ? `\n   ${item.description}` : ''}`;
+    }).join('\n');
+    const text = `🍽️ ${name} — GoSavor\n\n${items}\n\n想吃什麼？回覆編號就好！`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: name, text });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      alert('已複製到剪貼簿！');
+    }
+  };
+
   const handleGoHome = () => {
     setImages([]);
     setMenuResult(null);
@@ -346,9 +365,14 @@ function AppInner() {
                 <h2 className="font-bold text-gray-900">{menuResult.restaurantName || 'Menu'}</h2>
                 <p className="text-xs text-gray-400">{menuResult.items.length} {t('result.dishes')}</p>
               </div>
-              <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
-                {t('result.newScan')}
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={handleShareMenu} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600" title="分享菜單">
+                  <Share2 size={16} />
+                </button>
+                <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
+                  {t('result.newScan')}
+                </button>
+              </div>
             </div>
             <MenuResults
               items={menuResult.items}
