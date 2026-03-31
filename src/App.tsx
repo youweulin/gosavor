@@ -422,7 +422,7 @@ function AppInner() {
       {/* Modals */}
       <Checkout
         isVisible={showCheckout}
-        onClose={() => setShowCheckout(false)}
+        onClose={() => { setShowCheckout(false); setQuantities({}); }}
         items={menuResult?.items || []}
         quantities={quantities}
         currency={menuResult?.currency || '¥'}
