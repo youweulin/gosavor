@@ -192,16 +192,15 @@ export const analyzeGeneralImage = async (
 IMPORTANT: Detect the type of content first.
 
 If FORTUNE SLIP (おみくじ/籤詩/御神籤):
-- Return as a SINGLE item (not split line by line!)
-- originalText: the full original fortune text
-- translatedText: the overall fortune level in ${targetLanguage} (e.g. "大吉 - 大吉祥" or "小吉 - Minor Blessing")
+- Return as a SINGLE item (do NOT split into multiple items!)
+- translatedText: ONLY the overall fortune level (e.g. "大吉", "中吉", "小吉", "末吉", "凶"). If not visible, guess from content. This is the MAIN TITLE.
+- originalText: the COMPLETE original text of the fortune slip (all sections combined)
 - category: "Fortune"
-- explanation: Write a comprehensive interpretation in ${targetLanguage}:
-  1. Overall luck level and meaning
-  2. Key themes (love, career, health, travel, etc.)
-  3. Advice and what to pay attention to
-  4. Cultural context of this fortune
-  Keep it warm, helpful, and detailed (5-8 sentences).
+- explanation: Write a comprehensive, warm interpretation in ${targetLanguage}:
+  1. What this fortune level means
+  2. Translate and explain EACH section (願望/Wish, 病気/Health, 待人/Relationships, 失物/Lost Items, 旅行/Travel, 學問/Study, 商売/Business, 争事/Disputes, etc.)
+  3. Overall advice and encouragement
+  Make it feel like a kind shrine priest explaining your fortune (8-12 sentences).
 
 If SIGN/NOTICE/OTHER:
 - For each text/sign/object found:

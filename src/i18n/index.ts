@@ -130,6 +130,9 @@ const zh_TW: Translations = {
   'cat.hotel': '住宿',
   'cat.other': '其他',
 
+  // General
+  'general.aiExplain': 'AI 解讀',
+
   // Allergens
   'allergen.shrimp': '蝦 (えび)',
   'allergen.crab': '蟹 (かに)',
@@ -169,6 +172,7 @@ const en: Translations = {
   'settings.getKey': 'Get a free API Key', 'settings.price': 'Price Estimation', 'settings.taxRate': 'Tax Rate (%)', 'settings.serviceFee': 'Service Fee (%)',
   'settings.taxHint': 'Most Japanese restaurants include tax (税込). Set 0% unless menu says 税抜.',
   'settings.language': 'Language', 'settings.currency': 'Home Currency', 'settings.currencyHint': 'For exchange rate conversion.',
+  'general.aiExplain': 'AI Interpretation',
   'settings.rateSource': 'Source: Currency API', 'settings.rateUpdated': 'Updated',
   'settings.allergens': 'Allergens', 'settings.allergensHint': 'AI will flag menu items containing these.', 'settings.reset': 'Reset',
   'history.title': 'Order History', 'history.empty': 'No orders yet', 'history.emptyHint': 'Scan a menu and place an order',
