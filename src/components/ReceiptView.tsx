@@ -8,6 +8,8 @@ interface ReceiptViewProps {
   imageSrc?: string;
   layout: 'stack' | 'side' | 'list';
   onLayoutChange: (layout: 'stack' | 'side' | 'list') => void;
+  highlightIdx: number | null;
+  onHighlight: (idx: number) => void;
 }
 
 const CATEGORIES = ['購物', '餐飲', '交通', '住宿', '其他'];
@@ -24,11 +26,10 @@ const hasBox = (item: ReceiptItem) => {
   return (n[2] - n[0]) > 0.005 && (n[3] - n[1]) > 0.005;
 };
 
-const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProps) => {
+const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onHighlight }: ReceiptViewProps) => {
   const [saved, setSaved] = useState(false);
   const [category, setCategory] = useState('購物');
   const [payer, setPayer] = useState('');
-  const [highlightIdx, setHighlightIdx] = useState<number | null>(null);
 
   const formatPrice = (price: string | number, curr: string) => {
     const clean = String(price).replace(/[^0-9.]/g, '').trim();
@@ -65,7 +66,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
           return (
             <div
               key={idx}
-              onClick={() => setHighlightIdx(active ? null : idx)}
+              onClick={() => onHighlight(idx)}
               className={`absolute cursor-pointer ${active ? 'z-10' : ''}`}
               style={{
                 top: `${ymin * 100}%`, left: `${xmin * 100}%`,
@@ -131,7 +132,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
             <div
               key={idx}
               id={`receipt-item-${idx}`}
-              onClick={() => setHighlightIdx(active ? null : idx)}
+              onClick={() => onHighlight(idx)}
               className={`py-1.5 cursor-pointer transition-colors ${active ? 'bg-orange-50' : ''}`}
             >
               <div className="flex items-start gap-1.5">

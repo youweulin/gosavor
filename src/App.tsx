@@ -40,6 +40,7 @@ function App() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [receiptLayout, setReceiptLayout] = useState<'stack' | 'side' | 'list'>('stack');
+  const [receiptHighlight, setReceiptHighlight] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   const getApiKey = useCallback((): string | null => {
@@ -229,12 +230,24 @@ function App() {
                 if (!item.boundingBox || item.boundingBox.length < 4) return null;
                 const box = item.boundingBox.some(v => v > 1) ? item.boundingBox.map(v => v / 1000) : item.boundingBox;
                 if ((box[2] - box[0]) < 0.005 || (box[3] - box[1]) < 0.005) return null;
+                const active = receiptHighlight === idx;
                 return (
-                  <div key={idx} className="absolute" style={{
-                    top: `${box[0] * 100}%`, left: `${box[1] * 100}%`,
-                    width: `${(box[3] - box[1]) * 100}%`, height: `${(box[2] - box[0]) * 100}%`,
-                  }}>
-                    <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-white/60 text-gray-900 border-2 border-gray-900 text-[9px] font-black flex items-center justify-center">
+                  <div key={idx} className={`absolute cursor-pointer ${active ? 'z-10' : ''}`}
+                    onClick={() => {
+                      setReceiptHighlight(idx);
+                      const el = document.getElementById(`receipt-item-${idx}`);
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      setTimeout(() => setReceiptHighlight(null), 2000);
+                    }}
+                    style={{
+                      top: `${box[0] * 100}%`, left: `${box[1] * 100}%`,
+                      width: `${(box[3] - box[1]) * 100}%`, height: `${(box[2] - box[0]) * 100}%`,
+                    }}>
+                    <span className={`absolute -top-2 -left-2 rounded-full font-black flex items-center justify-center transition-all duration-300 ${
+                      active
+                        ? 'w-8 h-8 text-sm bg-orange-500 text-white shadow-[0_0_0_2px_white,0_0_10px_rgba(249,115,22,0.7)] animate-bounce'
+                        : 'w-5 h-5 text-[9px] bg-white/60 text-gray-900 border-2 border-gray-900'
+                    }`}>
                       {idx + 1}
                     </span>
                   </div>
@@ -346,7 +359,7 @@ function App() {
                 New Scan
               </button>
             </div>
-            <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} />
+            <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} />
           </>
         ) : generalResult ? (
           /* General/Sign/Fortune results */
