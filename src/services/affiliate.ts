@@ -1,9 +1,7 @@
 import Fuse from 'fuse.js';
 import klookProducts from '../data/klook_products.json';
-import kkdayProducts from '../data/kkday_products.json';
 
 const KLOOK_AID = '30600';
-const KKDAY_CID = '14336';
 
 // Product types
 interface KlookProduct {
@@ -12,21 +10,13 @@ interface KlookProduct {
   region: string;
 }
 
-interface KKdayProduct {
-  id: string;
-  name: string;
-  region: string;
-  category: string;
-}
-
-// Fuse.js indexes
+// Fuse.js index
 const fuse = new Fuse(klookProducts as KlookProduct[], {
   keys: ['name'],
   threshold: 0.4,
   includeScore: true,
 });
 
-// KKDay uses category + region filtering instead of fuzzy search
 
 // City → Region mapping
 const CITY_TO_REGION: Record<string, string> = {
@@ -73,23 +63,6 @@ const detectFromText = (text: string): { region: string | null; cityLabel: strin
 const klookLink = (productId: string) =>
   `https://www.klook.com/zh-TW/activity/${productId}/?aid=${KLOOK_AID}`;
 
-const kkdayLink = (productId: string) =>
-  `https://www.kkday.com/zh-tw/product/${productId}?cid=${KKDAY_CID}`;
-
-// Search KKDay products by category + region
-const searchKKday = (category: string, region?: string | null, limit = 1): KKdayProduct[] => {
-  let pool = kkdayProducts as KKdayProduct[];
-  if (region) {
-    pool = pool.filter(p => p.region === region || p.region === 'ALL');
-  }
-  if (category) {
-    const catFiltered = pool.filter(p => p.category === category);
-    if (catFiltered.length > 0) pool = catFiltered;
-  }
-  // Randomize for variety
-  const shuffled = pool.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, limit);
-};
 
 // Search products by keyword + region
 const searchProducts = (query: string, region?: string | null, limit = 3): KlookProduct[] => {
@@ -147,17 +120,6 @@ export const getRecommendations = (
       });
     }
 
-    // KKDay food experience — direct product link
-    searchKKday('美食', region, 1).forEach(p => {
-      recs.push({
-        title: p.name,
-        subtitle: 'KKday 預訂',
-        url: kkdayLink(p.id),
-        platform: 'kkday',
-        emoji: '🍶',
-      });
-    });
-
     // Add region random picks if not enough
     if (recs.length < 3 && region) {
       getRegionProducts(region, 2 - recs.length).forEach(p => {
@@ -185,16 +147,6 @@ export const getRecommendations = (
       });
     });
 
-    // KKDay shopping/transport — direct product link
-    searchKKday('交通', region, 1).forEach(p => {
-      recs.push({
-        title: p.name,
-        subtitle: 'KKday 預訂',
-        url: kkdayLink(p.id),
-        platform: 'kkday',
-        emoji: '🎫',
-      });
-    });
   }
 
   if (scanMode === 'general') {
@@ -207,16 +159,6 @@ export const getRecommendations = (
         url: klookLink(p.id),
         platform: 'klook',
         emoji: '⛩️',
-      });
-    });
-    // KKDay sightseeing — direct product link
-    searchKKday('體驗', region, 1).forEach(p => {
-      recs.push({
-        title: p.name,
-        subtitle: 'KKday 預訂',
-        url: kkdayLink(p.id),
-        platform: 'kkday',
-        emoji: '🎌',
       });
     });
   }
@@ -238,4 +180,4 @@ export const getRecommendations = (
   return recs.slice(0, 3);
 };
 
-export { detectFromText, searchProducts, klookLink, kkdayLink };
+export { detectFromText, searchProducts, klookLink };
