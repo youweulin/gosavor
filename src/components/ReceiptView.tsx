@@ -134,17 +134,18 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProp
               onClick={() => setHighlightIdx(active ? null : idx)}
               className={`py-1.5 cursor-pointer transition-colors ${active ? 'bg-orange-50' : ''}`}
             >
-              <div className="flex items-center gap-1.5">
-                <span className="shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
+              <div className="flex items-start gap-1.5">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">
                   {idx + 1}
                 </span>
-                <span className="font-bold text-gray-900 text-sm flex-1 min-w-0 truncate">{item.translatedName}</span>
-                <span className="font-bold text-gray-900 shrink-0">{formatPrice(item.price, data.currency)}</span>
-              </div>
-              <div className="ml-6.5 pl-[26px] flex items-center gap-1 text-xs text-gray-500">
-                <span>{item.originalName}</span>
-                <span className="text-gray-300">·</span>
-                <span className="font-medium">{formatPrice(unitPrice, data.currency)} × {qty}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-1">
+                    <span className="font-bold text-gray-900 text-sm">{item.translatedName}</span>
+                    <span className="font-bold text-gray-900 shrink-0 text-sm">{formatPrice(item.price, data.currency)}</span>
+                  </div>
+                  <div className="text-xs text-gray-400">{item.originalName}</div>
+                  <div className="text-xs font-medium text-gray-600">{formatPrice(unitPrice, data.currency)} × {qty}</div>
+                </div>
               </div>
             </div>
           );
