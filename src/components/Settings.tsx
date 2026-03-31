@@ -133,18 +133,16 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
             ))}
           </select>
           {rate && (
-            <div className="mt-2 p-3 bg-gray-800/50 rounded-lg">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-300">
-                  1 JPY ≈ {rate.toFixed(4)} {settings.homeCurrency}
-                </span>
+            <div className="mt-2 p-3 bg-gray-800/50 rounded-lg font-mono text-sm text-gray-300">
+              <div className="grid grid-cols-[auto_auto_1fr] gap-x-2">
+                <span className="text-right">1 JPY</span>
+                <span>≈</span>
+                <span>{rate.toFixed(4)} {settings.homeCurrency}</span>
+                <span className="text-right">¥1,000</span>
+                <span>≈</span>
+                <span>{Math.round(1000 * rate).toLocaleString()} {settings.homeCurrency}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm mt-1">
-                <span className="text-gray-300">
-                  ¥1,000 ≈ {Math.round(1000 * rate).toLocaleString()} {settings.homeCurrency}
-                </span>
-              </div>
-              <p className="text-[10px] text-gray-500 mt-1">
+              <p className="text-[10px] text-gray-500 mt-2 font-sans">
                 {t('settings.rateSource')} · {t('settings.rateUpdated')} {rateTime}
               </p>
             </div>
