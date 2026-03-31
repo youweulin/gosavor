@@ -315,7 +315,7 @@ function App() {
                 New Scan
               </button>
             </div>
-            <ReceiptView data={receiptResult} />
+            <ReceiptView data={receiptResult} imageSrc={images[0]} />
           </>
         ) : generalResult ? (
           /* General/Sign/Fortune results */
