@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, Key, Percent, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check } from 'lucide-react';
-import { TARGET_LANGUAGES, COMMON_ALLERGENS } from '../types';
+import { ArrowLeft, Key, Percent, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins } from 'lucide-react';
+import { TARGET_LANGUAGES, COMMON_ALLERGENS, HOME_CURRENCIES } from '../types';
 import type { AppSettings } from '../types';
 
 interface SettingsProps {
@@ -79,7 +79,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">Tax Rate (%)</label>
+              <label className="text-xs text-gray-500">稅率 (%)</label>
               <div className="flex items-center gap-2 mt-1">
                 <input
                   type="number"
@@ -91,7 +91,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Service Fee (%)</label>
+              <label className="text-xs text-gray-500">服務費 (%)</label>
               <div className="flex items-center gap-2 mt-1">
                 <input
                   type="number"
@@ -125,6 +125,31 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
                 }`}
               >
                 {lang.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Home Currency */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+            <Coins size={14} /> 本國貨幣
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            用於匯率換算，顯示餐點約等於多少本國貨幣。
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {HOME_CURRENCIES.map(curr => (
+              <button
+                key={curr.code}
+                onClick={() => onUpdate({ homeCurrency: curr.code })}
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  settings.homeCurrency === curr.code
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-900 text-gray-400 border border-gray-700 hover:border-gray-600'
+                }`}
+              >
+                {curr.label}
               </button>
             ))}
           </div>
@@ -169,7 +194,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
             onClick={onReset}
             className="w-full py-3 bg-gray-900 border border-gray-700 hover:bg-gray-800 rounded-xl font-medium flex items-center justify-center gap-2 text-gray-400"
           >
-            <RotateCcw size={16} /> Reset
+            <RotateCcw size={16} /> 重設
           </button>
         </div>
       </div>

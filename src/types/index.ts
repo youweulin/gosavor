@@ -135,6 +135,21 @@ export const TARGET_LANGUAGES = [
   { code: 'vi', label: 'Tiếng Việt' },
 ];
 
+export const HOME_CURRENCIES = [
+  { code: 'TWD', label: '新台幣 TWD', symbol: 'NT$' },
+  { code: 'HKD', label: '港幣 HKD', symbol: 'HK$' },
+  { code: 'CNY', label: '人民幣 CNY', symbol: '¥' },
+  { code: 'USD', label: '美元 USD', symbol: '$' },
+  { code: 'KRW', label: '韓元 KRW', symbol: '₩' },
+  { code: 'THB', label: '泰銖 THB', symbol: '฿' },
+  { code: 'VND', label: '越南盾 VND', symbol: '₫' },
+  { code: 'SGD', label: '新加坡幣 SGD', symbol: 'S$' },
+  { code: 'MYR', label: '馬來幣 MYR', symbol: 'RM' },
+  { code: 'EUR', label: '歐元 EUR', symbol: '€' },
+  { code: 'GBP', label: '英鎊 GBP', symbol: '£' },
+  { code: 'AUD', label: '澳幣 AUD', symbol: 'A$' },
+];
+
 export const COMMON_ALLERGENS = [
   { id: 'shrimp', label: '蝦', labelJa: 'えび' },
   { id: 'crab', label: '蟹', labelJa: 'かに' },
