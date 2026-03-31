@@ -26,11 +26,7 @@ const fuse = new Fuse(klookProducts as KlookProduct[], {
   includeScore: true,
 });
 
-const fuseKKday = new Fuse(kkdayProducts as KKdayProduct[], {
-  keys: ['name', 'category'],
-  threshold: 0.4,
-  includeScore: true,
-});
+// KKDay uses category + region filtering instead of fuzzy search
 
 // City → Region mapping
 const CITY_TO_REGION: Record<string, string> = {
