@@ -115,19 +115,17 @@ const Checkout = ({
           </button>
         </div>
 
-        {/* Mode Tabs */}
-        <div className="flex border-b border-gray-800">
-          {(['review', 'staff', 'split'] as const).map(m => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                mode === m ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-500'
-              }`}
-            >
-              {m === 'review' ? t('checkout.review') : m === 'staff' ? t('checkout.staff') : t('checkout.split')}
-            </button>
-          ))}
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 py-2 border-b border-gray-800 text-xs text-gray-500">
+          <span className={mode === 'review' ? 'text-orange-400 font-bold' : ''}>{t('checkout.review')}</span>
+          <span>→</span>
+          <span className={mode === 'staff' ? 'text-orange-400 font-bold' : ''}>{t('checkout.staff')}</span>
+          {mode === 'split' && (
+            <>
+              <span>·</span>
+              <span className="text-orange-400 font-bold">{t('checkout.split')}</span>
+            </>
+          )}
         </div>
 
         {/* Item List */}
@@ -178,16 +176,16 @@ const Checkout = ({
               {orderedItems.map(({ item, quantity, index }) => (
                 <div key={index} className="flex items-center justify-between py-3 border-b border-gray-800/50">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-400">{quantity}x</span>
+                    <span className={`font-bold ${mode === 'staff' ? 'text-lg text-orange-400' : 'text-sm text-gray-400'}`}>{quantity}x</span>
                     <div>
                       {mode === 'staff' ? (
                         <>
-                          <p className="font-bold text-base">{item.originalName}</p>
-                          <p className="text-xs text-gray-500">{item.translatedName}</p>
+                          <p className="font-bold text-xl">{item.originalName}</p>
+                          <p className="text-sm text-gray-400">{item.translatedName}</p>
                         </>
                       ) : (
                         <>
-                          <p className="text-sm font-medium">{item.translatedName}</p>
+                          <p className="font-medium text-base">{item.translatedName}</p>
                           <p className="text-xs text-gray-500">{item.originalName}</p>
                         </>
                       )}
@@ -229,18 +227,17 @@ const Checkout = ({
             </div>
           </div>
 
-          {/* Order confirmed toast */}
           {orderConfirmed ? (
             <div className="w-full py-4 bg-green-600 rounded-xl flex items-center justify-center gap-2 font-bold">
               <Check size={20} /> {t('checkout.success')}
             </div>
           ) : mode === 'staff' ? (
             <div className="space-y-3">
-              {/* Show the Japanese text that will be spoken */}
-              <div className="p-3 bg-gray-900 rounded-xl text-center space-y-1">
-                <p className="text-base font-bold text-white leading-relaxed">{orderText}</p>
+              {/* Japanese order text - visible to user and staff */}
+              <div className="p-4 bg-gray-900 rounded-xl text-center">
+                <p className="text-lg font-bold text-white leading-relaxed">{orderText}</p>
               </div>
-              {/* Play button */}
+              {/* Play */}
               <button
                 onClick={speakOrder}
                 disabled={isSpeaking}
@@ -252,29 +249,33 @@ const Checkout = ({
                     {t('checkout.speaking')}
                   </>
                 ) : (
-                  <>
-                    <PlayCircle size={24} /> {t('checkout.speak')}
-                  </>
+                  <><PlayCircle size={24} /> {t('checkout.speak')}</>
                 )}
               </button>
-              <button
-                onClick={() => setMode('review')}
-                className="w-full py-2 text-sm text-gray-500 hover:text-gray-300"
-              >
-                {t('checkout.back')}
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setMode('review')} className="py-2 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm text-gray-400 font-medium">
+                  {t('checkout.back')}
+                </button>
+                <button onClick={handleConfirm} className="py-2 bg-green-600 hover:bg-green-700 rounded-xl text-sm text-white font-bold flex items-center justify-center gap-1">
+                  <Check size={16} /> {t('checkout.success')}
+                </button>
+              </div>
             </div>
           ) : mode === 'split' ? (
-            <button onClick={handleConfirm} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
-              <Users size={20} /> {t('checkout.confirmSplit')}
-            </button>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setMode('staff')} className="py-3 bg-gray-800 hover:bg-gray-700 rounded-xl font-bold flex items-center justify-center gap-2 text-sm">
-                <PlayCircle size={18} /> {t('checkout.staff')}
+            <div className="space-y-2">
+              <button onClick={handleConfirm} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
+                <Users size={20} /> {t('checkout.confirmSplit')}
               </button>
-              <button onClick={handleConfirm} className="py-3 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold flex items-center justify-center gap-2 text-sm">
-                <Check size={18} /> {t('checkout.confirm')}
+              <button onClick={() => setMode('review')} className="w-full py-2 text-sm text-gray-500">{t('checkout.back')}</button>
+            </div>
+          ) : (
+            /* Review mode — confirm goes to staff mode */
+            <div className="space-y-2">
+              <button onClick={() => setMode('staff')} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg">
+                <Check size={20} /> {t('checkout.confirm')}
+              </button>
+              <button onClick={() => setMode('split')} className="w-full py-2 text-sm text-gray-500 flex items-center justify-center gap-1">
+                <Users size={14} /> {t('checkout.split')}
               </button>
             </div>
           )}
