@@ -6,6 +6,8 @@ import { saveExpense } from '../services/storage';
 interface ReceiptViewProps {
   data: ReceiptAnalysisResult;
   imageSrc?: string;
+  layout: 'stack' | 'side';
+  onLayoutChange: (layout: 'stack' | 'side') => void;
 }
 
 const CATEGORIES = ['購物', '餐飲', '交通', '住宿', '其他'];
@@ -22,11 +24,10 @@ const hasBox = (item: ReceiptItem) => {
   return (n[2] - n[0]) > 0.005 && (n[3] - n[1]) > 0.005;
 };
 
-const ReceiptView = ({ data, imageSrc }: ReceiptViewProps) => {
+const ReceiptView = ({ data, imageSrc, layout, onLayoutChange }: ReceiptViewProps) => {
   const [saved, setSaved] = useState(false);
   const [category, setCategory] = useState('購物');
   const [payer, setPayer] = useState('');
-  const [layout, setLayout] = useState<'stack' | 'side'>('stack');
   const [highlightIdx, setHighlightIdx] = useState<number | null>(null);
 
   const formatPrice = (price: string | number, curr: string) => {
@@ -218,10 +219,10 @@ const ReceiptView = ({ data, imageSrc }: ReceiptViewProps) => {
       {/* Layout toggle */}
       {imageSrc && (
         <div className="flex justify-end mb-2 gap-1">
-          <button onClick={() => setLayout('stack')}
+          <button onClick={() => onLayoutChange('stack')}
             className={`p-1.5 rounded-lg ${layout === 'stack' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}
             title="上下對照"><Rows3 size={16} /></button>
-          <button onClick={() => setLayout('side')}
+          <button onClick={() => onLayoutChange('side')}
             className={`p-1.5 rounded-lg ${layout === 'side' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}
             title="左右對照"><Columns2 size={16} /></button>
         </div>

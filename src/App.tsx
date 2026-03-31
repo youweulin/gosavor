@@ -38,6 +38,7 @@ function App() {
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [receiptLayout, setReceiptLayout] = useState<'stack' | 'side'>('stack');
   const [error, setError] = useState('');
 
   const getApiKey = useCallback((): string | null => {
@@ -212,7 +213,7 @@ function App() {
       </header>
 
       {/* Sticky image — for menu (with markers) or receipt (with markers) or general (photo only) */}
-      {receiptResult && images.length > 0 ? (
+      {receiptResult && images.length > 0 && receiptLayout === 'stack' ? (
         <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm overflow-y-auto max-h-[45vh]">
           <div className="max-w-md mx-auto px-2 py-1 flex justify-center">
             {/* inline-block so container matches image size exactly */}
@@ -339,7 +340,7 @@ function App() {
                 New Scan
               </button>
             </div>
-            <ReceiptView data={receiptResult} imageSrc={images[0]} />
+            <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} />
           </>
         ) : generalResult ? (
           /* General/Sign/Fortune results */
