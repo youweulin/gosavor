@@ -30,8 +30,6 @@ const Checkout = ({
   const [splitPersons, setSplitPersons] = useState(2);
   const [paidBy, setPaidBy] = useState('');
   const t = useT();
-  const [voiceGender, setVoiceGender] = useState<'female' | 'male'>('female');
-  const [greeting, setGreeting] = useState<'tw' | 'kr' | 'en' | 'none'>('tw');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
 
@@ -56,47 +54,22 @@ const Checkout = ({
     return `${val} ${currency}`;
   };
 
-  const greetingTexts: Record<string, { intro: string; thanks: string }> = {
-    tw: { intro: '台湾から来ました。', thanks: '本当にありがとうございます！とても感謝しています！' },
-    kr: { intro: '韓国から来ました。', thanks: '本当にありがとうございます！감사합니다！' },
-    en: { intro: 'I came from abroad.', thanks: 'Thank you so much! とても感謝しています！' },
-    none: { intro: '', thanks: 'ありがとうございます。' },
-  };
+  // Build the Japanese order text — format: 品名 + 數量
+  const orderText = (() => {
+    const counter = (n: number) => {
+      const counters: Record<number, string> = { 1: 'ひとつ', 2: 'ふたつ', 3: 'みっつ', 4: 'よっつ', 5: 'いつつ', 6: 'むっつ', 7: 'ななつ', 8: 'やっつ', 9: 'ここのつ', 10: 'とお' };
+      return counters[n] || `${n}つ`;
+    };
+    const itemsText = orderedItems.map(o => `${o.item.originalName} ${counter(o.quantity)}`).join('、');
+    return `すみません、注文をお願いします。${itemsText}。以上です。ありがとうございます。`;
+  })();
 
   const speakOrder = () => {
-    const g = greetingTexts[greeting];
-    const itemsText = orderedItems.map(o => `${o.item.originalName}、${o.quantity}つ`).join('。');
-    const fullText = `すみません、${g.intro}注文をお願いします。ご注文内容、${itemsText}。以上です。${g.thanks}`;
-
-    const u = new SpeechSynthesisUtterance(fullText);
+    const u = new SpeechSynthesisUtterance(orderText);
     u.lang = 'ja-JP';
-
-    // Pick voice by gender preference
     const voices = window.speechSynthesis.getVoices();
-    const jpVoices = voices.filter(v => v.lang.startsWith('ja'));
-
-    // Female: Kyoko, O-Ren, Google 日本語 (female default)
-    // Male: Otoya, Hattori
-    const femaleKeys = ['Kyoko', 'O-Ren', 'Siri', 'Google'];
-    const maleKeys = ['Otoya', 'Hattori', 'Takumi'];
-
-    const preferred = voiceGender === 'female' ? femaleKeys : maleKeys;
-    const fallback = voiceGender === 'female' ? maleKeys : femaleKeys;
-
-    let voice = null;
-    for (const key of preferred) {
-      voice = jpVoices.find(v => v.name.includes(key));
-      if (voice) break;
-    }
-    if (!voice) {
-      for (const key of fallback) {
-        voice = jpVoices.find(v => v.name.includes(key));
-        if (voice) break;
-      }
-    }
-    if (!voice && jpVoices.length > 0) voice = jpVoices[0];
-    if (voice) u.voice = voice;
-
+    const jpVoice = voices.find(v => v.lang.startsWith('ja')) || null;
+    if (jpVoice) u.voice = jpVoice;
     setIsSpeaking(true);
     u.onend = () => setIsSpeaking(false);
     u.onerror = () => setIsSpeaking(false);
@@ -252,42 +225,9 @@ const Checkout = ({
             </div>
           ) : mode === 'staff' ? (
             <div className="space-y-3">
-              {/* Voice & Greeting settings */}
-              <div className="flex gap-2">
-                {/* Voice gender */}
-                <div className="flex-1">
-                  <p className="text-[10px] text-gray-500 mb-1">{t('voice.label')}</p>
-                  <div className="flex gap-1">
-                    {([['female', t('voice.female')], ['male', t('voice.male')]] as const).map(([val, label]) => (
-                      <button
-                        key={val}
-                        onClick={() => setVoiceGender(val)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          voiceGender === val ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {/* Greeting origin */}
-                <div className="flex-1">
-                  <p className="text-[10px] text-gray-500 mb-1">{t('voice.from')}</p>
-                  <div className="flex gap-1">
-                    {([['tw', '🇹🇼'], ['kr', '🇰🇷'], ['en', '🌍'], ['none', '無']] as const).map(([val, label]) => (
-                      <button
-                        key={val}
-                        onClick={() => setGreeting(val)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          greeting === val ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Show the Japanese text that will be spoken */}
+              <div className="p-3 bg-gray-900 rounded-xl text-center space-y-1">
+                <p className="text-base font-bold text-white leading-relaxed">{orderText}</p>
               </div>
               {/* Play button */}
               <button

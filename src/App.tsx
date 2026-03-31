@@ -171,24 +171,21 @@ function AppInner() {
     }
   };
 
-  if (page === 'history') return <I18nProvider lang={settings.targetLanguage}><OrderHistory onBack={() => setPage('home')} /></I18nProvider>;
-  if (page === 'expenses') return <I18nProvider lang={settings.targetLanguage}><ExpenseBook onBack={() => setPage('home')} /></I18nProvider>;
-  if (page === 'diary') return <I18nProvider lang={settings.targetLanguage}><Diary onBack={() => setPage('home')} /></I18nProvider>;
+  if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;
+  if (page === 'expenses') return <ExpenseBook onBack={() => setPage('home')} />;
+  if (page === 'diary') return <Diary onBack={() => setPage('home')} />;
   if (page === 'settings') {
     return (
-      <I18nProvider lang={settings.targetLanguage}>
-        <Settings
-          settings={settings}
-          onUpdate={updateSettings}
-          onReset={resetSettings}
-          onBack={() => setPage('home')}
-        />
-      </I18nProvider>
+      <Settings
+        settings={settings}
+        onUpdate={updateSettings}
+        onReset={resetSettings}
+        onBack={() => setPage('home')}
+      />
     );
   }
 
   return (
-    <I18nProvider lang={settings.targetLanguage}>
     <div className="min-h-screen bg-gray-50">
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
@@ -441,12 +438,16 @@ function AppInner() {
         onRegister={async (e, p) => { await register(e, p); }}
       />
     </div>
-    </I18nProvider>
   );
 }
 
 function App() {
-  return <AppInner />;
+  const { settings } = useSettings();
+  return (
+    <I18nProvider lang={settings.targetLanguage}>
+      <AppInner />
+    </I18nProvider>
+  );
 }
 
 export default App;
