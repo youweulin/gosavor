@@ -379,21 +379,35 @@ function App() {
       {menuResult && totalOrderQty > 0 && (
         <div className="fixed bottom-6 left-0 right-0 px-4 z-20">
           <div className="max-w-md mx-auto">
-            <button
-              onClick={() => setShowCheckout(true)}
-              className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-orange-200 flex items-center justify-center gap-3 transition-all"
-            >
-              <ShoppingCart size={22} />
-              <span>結帳 ({totalOrderQty} 項)</span>
-              <CurrencyBar
-                foreignCurrency={menuResult.currency}
-                homeCurrency={settings.homeCurrency}
-                amount={Object.entries(quantities).reduce((acc, [idx, qty]) => {
-                  const price = parseFloat(menuResult.items[parseInt(idx)]?.price || '0');
-                  return acc + price * qty;
-                }, 0)}
-              />
-            </button>
+            {(() => {
+              const totalForeign = Object.entries(quantities).reduce((acc, [idx, qty]) => {
+                const price = parseFloat(menuResult.items[parseInt(idx)]?.price || '0');
+                return acc + price * qty;
+              }, 0);
+              const curr = menuResult.currency;
+              const formatted = curr === '¥' || curr === '$' || curr === '€'
+                ? `${curr}${totalForeign.toLocaleString()}`
+                : `${totalForeign.toLocaleString()} ${curr}`;
+              return (
+                <button
+                  onClick={() => setShowCheckout(true)}
+                  className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold shadow-xl shadow-orange-200 transition-all"
+                >
+                  <div className="flex items-center justify-center gap-2 text-lg">
+                    <ShoppingCart size={20} />
+                    <span>結帳 ({totalOrderQty} 項)</span>
+                    <span className="font-black">{formatted}</span>
+                  </div>
+                  <div className="mt-0.5">
+                    <CurrencyBar
+                      foreignCurrency={curr}
+                      homeCurrency={settings.homeCurrency}
+                      amount={totalForeign}
+                    />
+                  </div>
+                </button>
+              );
+            })()}
           </div>
         </div>
       )}

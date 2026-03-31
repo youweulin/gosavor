@@ -67,11 +67,9 @@ const CurrencyBar = ({ foreignCurrency, homeCurrency, amount }: CurrencyBarProps
   const converted = Math.round(amount * rate);
 
   return (
-    <div className="flex items-center gap-2 text-xs text-gray-400">
+    <div className="flex items-center justify-center gap-1 text-sm text-white/80">
       <ArrowLeftRight size={12} />
-      <span>
-        ≈ {converted} {homeCurrency}
-      </span>
+      <span>≈ {converted.toLocaleString()} {homeCurrency}</span>
     </div>
   );
 };
