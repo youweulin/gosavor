@@ -16,6 +16,8 @@ const modeIcons = {
 const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
   const [scans, setScans] = useState<SavedScan[]>([]);
 
+  const [filter, setFilter] = useState<'all' | 'menu' | 'receipt' | 'general'>('all');
+
   useEffect(() => {
     getScanHistory().then(setScans);
   }, []);
@@ -35,7 +37,6 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
     return '';
   };
 
-  const [filter, setFilter] = useState<'all' | 'menu' | 'receipt' | 'general'>('all');
   const filtered = filter === 'all' ? scans : scans.filter(s => (s.scanMode || 'menu') === filter);
 
   return (
