@@ -85,8 +85,9 @@ const ReceiptView = ({ data }: ReceiptViewProps) => {
 
         {/* Items */}
         <div className="space-y-3 font-mono text-sm">
-          <div className="flex justify-between text-gray-400 text-[10px] uppercase tracking-wider">
-            <span>品項</span>
+          <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase tracking-wider">
+            <span className="w-5 text-center">數量</span>
+            <span className="flex-1">品項</span>
             <span>價格</span>
           </div>
 
