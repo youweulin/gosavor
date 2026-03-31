@@ -136,17 +136,19 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
             <div className="mt-2 p-3 bg-gray-800/50 rounded-lg font-mono text-sm text-gray-300">
               {(() => {
                 const converted = 1000 * rate;
-                // Show 2 decimals for small-unit currencies (USD, EUR, GBP, SGD, AUD, MYR)
                 const smallUnit = ['USD', 'EUR', 'GBP', 'SGD', 'AUD', 'MYR', 'HKD'].includes(settings.homeCurrency);
-                const formatted = smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();
+                const c = settings.homeCurrency;
+                // Use consistent precision: show rate × 1000 result, then derive single rate from it
+                const bulkFormatted = smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();
+                const singleFormatted = smallUnit ? rate.toFixed(6) : rate.toFixed(4);
                 return (
                   <div className="grid grid-cols-[auto_auto_1fr] gap-x-2">
-                    <span className="text-right">1 JPY</span>
-                    <span>≈</span>
-                    <span>{rate.toFixed(4)} {settings.homeCurrency}</span>
                     <span className="text-right">¥1,000</span>
                     <span>≈</span>
-                    <span>{formatted} {settings.homeCurrency}</span>
+                    <span>{bulkFormatted} {c}</span>
+                    <span className="text-right text-gray-500">1 JPY</span>
+                    <span className="text-gray-500">≈</span>
+                    <span className="text-gray-500">{singleFormatted} {c}</span>
                   </div>
                 );
               })()}
