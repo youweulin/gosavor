@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Trash2, Calendar, Store, Tag, User, TrendingUp } from 'lucide-react';
 import type { Expense } from '../types';
 import { getExpenses, deleteExpense } from '../services/storage';
+import { useT } from '../i18n/context';
 
 interface ExpenseBookProps {
   onBack: () => void;
 }
 
 const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
+  const t = useT();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filter, setFilter] = useState<string>('all');
 
@@ -50,7 +52,7 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="font-bold text-lg">記帳簿</h1>
+        <h1 className="font-bold text-lg">{t('expenses.title')}</h1>
         <span className="text-xs text-gray-500 ml-auto">{expenses.length} 筆</span>
       </div>
 
@@ -59,7 +61,7 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
         <div className="px-4 py-3 border-b border-gray-800">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp size={14} className="text-orange-400" />
-            <span className="text-xs text-gray-400">總消費</span>
+            <span className="text-xs text-gray-400">{t('expenses.total')}</span>
           </div>
           <div className="flex flex-wrap gap-3">
             {Object.entries(totalByCurrency).map(([curr, total]) => (
@@ -112,8 +114,8 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
         {expenses.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <Store size={48} className="mx-auto mb-4 opacity-30" />
-            <p>還沒有記帳紀錄</p>
-            <p className="text-sm mt-1">掃描收據後加入記帳簿即可</p>
+            <p>{t('expenses.empty')}</p>
+            <p className="text-sm mt-1">{t('expenses.emptyHint')}</p>
           </div>
         ) : (
           Object.entries(grouped).map(([date, items]) => (

@@ -4,7 +4,8 @@ import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
 import { saveOrder, saveScan } from './services/storage';
-import { TARGET_LANGUAGES } from './types';
+import { SUPPORTED_LANGUAGES } from './i18n';
+import { I18nProvider, useT } from './i18n/context';
 import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult, OrderItem, SavedOrder, SavedScan, SplitInfo, ScanMode } from './types';
 
 import CameraCapture from './components/CameraCapture';
@@ -22,7 +23,8 @@ import ExpenseBook from './components/ExpenseBook';
 
 type Page = 'home' | 'history' | 'settings' | 'expenses';
 
-function App() {
+function AppInner() {
+  const t = useT();
   const { settings, updateSettings, resetSettings, hasApiKey } = useSettings();
   const { user, userData, login, register, logout, isRentalActive, isLifetime } = useAuth();
 
@@ -51,12 +53,12 @@ function App() {
     return null;
   }, [settings.geminiApiKey, isRentalActive, isLifetime]);
 
-  const targetLangLabel = TARGET_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
+  const targetLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
 
   const handleAnalyze = async () => {
     const apiKey = getApiKey();
     if (!apiKey) {
-      setError('請先設定 Gemini API Key，或登入使用租用版。');
+      setError(t('error.noKey'));
       return;
     }
     setIsAnalyzing(true);
@@ -97,7 +99,7 @@ function App() {
       }
     } catch (err) {
       console.error(err);
-      setError('分析失敗，請確認 API Key 是否正確或重試。');
+      setError(t('error.failed'));
     } finally {
       setIsAnalyzing(false);
     }
@@ -198,20 +200,20 @@ function App() {
                 onClick={logout}
                 className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
               >
-                {userData?.plan === 'lifetime' ? 'PRO' : userData?.plan === 'rental' ? 'RENTAL' : 'FREE'} &middot; Logout
+                {userData?.plan === 'lifetime' ? 'PRO' : userData?.plan === 'rental' ? 'RENTAL' : 'FREE'} &middot; {t('nav.logout')}
               </button>
             ) : (
               <button onClick={() => setShowAuth(true)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
                 <User size={18} />
               </button>
             )}
-            <button onClick={() => setPage('expenses')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="記帳簿">
+            <button onClick={() => setPage('expenses')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.expenses')}>
               <BookOpen size={18} />
             </button>
-            <button onClick={() => setPage('history')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="點餐紀錄">
+            <button onClick={() => setPage('history')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.history')}>
               <History size={18} />
             </button>
-            <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="設定">
+            <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.settings')}>
               <SettingsIcon size={18} />
             </button>
           </div>
@@ -302,7 +304,7 @@ function App() {
             {error}
             {!hasApiKey && (
               <button onClick={() => setPage('settings')} className="ml-2 underline font-medium">
-                Go to Settings
+                {t('error.goSettings')}
               </button>
             )}
           </div>
@@ -329,10 +331,10 @@ function App() {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="font-bold text-gray-900">{menuResult.restaurantName || 'Menu'}</h2>
-                <p className="text-xs text-gray-400">{menuResult.items.length} 道菜</p>
+                <p className="text-xs text-gray-400">{menuResult.items.length} {t('result.dishes')}</p>
               </div>
               <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
-                重新掃描
+                {t('result.newScan')}
               </button>
             </div>
             <MenuResults
@@ -354,9 +356,9 @@ function App() {
           /* Receipt results */
           <>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">收據分析</h2>
+              <h2 className="font-bold text-gray-900">{t('result.receipt')}</h2>
               <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
-                重新掃描
+                {t('result.newScan')}
               </button>
             </div>
             <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} />
@@ -365,9 +367,9 @@ function App() {
           /* General/Sign/Fortune results */
           <>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">翻譯解析</h2>
+              <h2 className="font-bold text-gray-900">{t('result.translation')}</h2>
               <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
-                重新掃描
+                {t('result.newScan')}
               </button>
             </div>
             <GeneralView data={generalResult} />
@@ -395,7 +397,7 @@ function App() {
                 >
                   <div className="flex items-center justify-center gap-2 text-lg">
                     <ShoppingCart size={20} />
-                    <span>結帳 ({totalOrderQty} 項)</span>
+                    <span>{t('checkout.button')} ({totalOrderQty} {t('result.items')})</span>
                     <span className="font-black">{formatted}</span>
                   </div>
                   <div className="mt-0.5">
@@ -431,6 +433,16 @@ function App() {
         onRegister={async (e, p) => { await register(e, p); }}
       />
     </div>
+  );
+}
+
+// Wrapper with I18nProvider
+function App() {
+  const { settings } = useSettings();
+  return (
+    <I18nProvider lang={settings.targetLanguage}>
+      <AppInner />
+    </I18nProvider>
   );
 }
 

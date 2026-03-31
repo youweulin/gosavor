@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, PlayCircle, Users, Minus, Plus, Check } from 'lucide-react';
 import type { MenuItem, OrderItem, SplitInfo } from '../types';
+import { useT } from '../i18n/context';
 
 interface CheckoutProps {
   isVisible: boolean;
@@ -28,6 +29,7 @@ const Checkout = ({
   const [mode, setMode] = useState<'review' | 'staff' | 'split'>('review');
   const [splitPersons, setSplitPersons] = useState(2);
   const [paidBy, setPaidBy] = useState('');
+  const t = useT();
   const [voiceGender, setVoiceGender] = useState<'female' | 'male'>('female');
   const [greeting, setGreeting] = useState<'tw' | 'kr' | 'en' | 'none'>('tw');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -119,7 +121,7 @@ const Checkout = ({
         {/* Header */}
         <div className="px-5 py-4 flex justify-between items-center border-b border-gray-800">
           <div>
-            <h3 className="font-bold text-lg">結帳確認</h3>
+            <h3 className="font-bold text-lg">{t('checkout.title')}</h3>
             <p className="text-xs text-gray-400">
               {restaurantName || 'Restaurant'} &middot; {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -139,7 +141,7 @@ const Checkout = ({
                 mode === m ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-500'
               }`}
             >
-              {m === 'review' ? '確認清單' : m === 'staff' ? '店員模式' : '分帳'}
+              {m === 'review' ? t('checkout.review') : m === 'staff' ? t('checkout.staff') : t('checkout.split')}
             </button>
           ))}
         </div>
@@ -150,7 +152,7 @@ const Checkout = ({
             <div className="space-y-6 py-4">
               {/* Who paid */}
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider">誰先付款？</label>
+                <label className="text-xs text-gray-400 uppercase tracking-wider">{t('checkout.whoPaid')}</label>
                 <input
                   value={paidBy}
                   onChange={e => setPaidBy(e.target.value)}
@@ -170,7 +172,7 @@ const Checkout = ({
                   </button>
                   <div className="text-center">
                     <p className="text-3xl font-bold">{splitPersons}</p>
-                    <p className="text-xs text-gray-400">人數</p>
+                    <p className="text-xs text-gray-400">{t('checkout.persons')}</p>
                   </div>
                   <button
                     onClick={() => setSplitPersons(splitPersons + 1)}
@@ -180,7 +182,7 @@ const Checkout = ({
                   </button>
                 </div>
                 <div className="mt-4 p-4 bg-gray-900 rounded-xl text-center">
-                  <p className="text-xs text-gray-400">每人金額</p>
+                  <p className="text-xs text-gray-400">{t('checkout.perPerson')}</p>
                   <p className="text-2xl font-bold text-orange-400">
                     {formatPrice(Math.ceil(total / splitPersons))}
                   </p>
@@ -222,23 +224,23 @@ const Checkout = ({
           {/* Totals */}
           <div className="space-y-1 text-sm">
             <div className="flex justify-between text-gray-400">
-              <span>小計 ({totalQty} 項)</span>
+              <span>{t('checkout.subtotal')} ({totalQty} 項)</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
             {taxRate > 0 && (
               <div className="flex justify-between text-gray-400">
-                <span>稅金 ({taxRate}%)</span>
+                <span>{t('checkout.tax')} ({taxRate}%)</span>
                 <span>{formatPrice(taxAmount)}</span>
               </div>
             )}
             {serviceFee > 0 && (
               <div className="flex justify-between text-gray-400">
-                <span>服務費 ({serviceFee}%)</span>
+                <span>{t('checkout.serviceFee')} ({serviceFee}%)</span>
                 <span>{formatPrice(feeAmount)}</span>
               </div>
             )}
             <div className="flex justify-between text-lg font-bold pt-1 border-t border-gray-700">
-              <span>合計</span>
+              <span>{t('checkout.total')}</span>
               <span className="text-orange-400">{formatPrice(total)}</span>
             </div>
           </div>
@@ -246,7 +248,7 @@ const Checkout = ({
           {/* Order confirmed toast */}
           {orderConfirmed ? (
             <div className="w-full py-4 bg-green-600 rounded-xl flex items-center justify-center gap-2 font-bold">
-              <Check size={20} /> 點餐成功！店員秒懂，不需比手畫腳
+              <Check size={20} /> {t('checkout.success')}
             </div>
           ) : mode === 'staff' ? (
             <div className="space-y-3">
@@ -254,9 +256,9 @@ const Checkout = ({
               <div className="flex gap-2">
                 {/* Voice gender */}
                 <div className="flex-1">
-                  <p className="text-[10px] text-gray-500 mb-1">語音</p>
+                  <p className="text-[10px] text-gray-500 mb-1">{t('voice.label')}</p>
                   <div className="flex gap-1">
-                    {([['female', '👩 女聲'], ['male', '👨 男聲']] as const).map(([val, label]) => (
+                    {([['female', t('voice.female')], ['male', t('voice.male')]] as const).map(([val, label]) => (
                       <button
                         key={val}
                         onClick={() => setVoiceGender(val)}
@@ -271,7 +273,7 @@ const Checkout = ({
                 </div>
                 {/* Greeting origin */}
                 <div className="flex-1">
-                  <p className="text-[10px] text-gray-500 mb-1">來自</p>
+                  <p className="text-[10px] text-gray-500 mb-1">{t('voice.from')}</p>
                   <div className="flex gap-1">
                     {([['tw', '🇹🇼'], ['kr', '🇰🇷'], ['en', '🌍'], ['none', '無']] as const).map(([val, label]) => (
                       <button
@@ -296,11 +298,11 @@ const Checkout = ({
                 {isSpeaking ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    正在點餐中...
+                    {t('checkout.speaking')}
                   </>
                 ) : (
                   <>
-                    <PlayCircle size={24} /> 播放日語點餐
+                    <PlayCircle size={24} /> {t('checkout.speak')}
                   </>
                 )}
               </button>
@@ -308,20 +310,20 @@ const Checkout = ({
                 onClick={() => setMode('review')}
                 className="w-full py-2 text-sm text-gray-500 hover:text-gray-300"
               >
-                返回修改
+                {t('checkout.back')}
               </button>
             </div>
           ) : mode === 'split' ? (
             <button onClick={handleConfirm} className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold text-lg flex items-center justify-center gap-2">
-              <Users size={20} /> 確認分帳
+              <Users size={20} /> {t('checkout.confirmSplit')}
             </button>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => setMode('staff')} className="py-3 bg-gray-800 hover:bg-gray-700 rounded-xl font-bold flex items-center justify-center gap-2 text-sm">
-                <PlayCircle size={18} /> 店員模式
+                <PlayCircle size={18} /> {t('checkout.staff')}
               </button>
               <button onClick={handleConfirm} className="py-3 bg-orange-500 hover:bg-orange-600 rounded-xl font-bold flex items-center justify-center gap-2 text-sm">
-                <Check size={18} /> 確認點餐
+                <Check size={18} /> {t('checkout.confirm')}
               </button>
             </div>
           )}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Store, Calendar, MapPin, ShoppingBag, CheckCircle, Bookmark, Globe, Rows3, Columns2, List } from 'lucide-react';
 import type { ReceiptAnalysisResult, ReceiptItem, Expense } from '../types';
 import { saveExpense } from '../services/storage';
+import { useT } from '../i18n/context';
 
 interface ReceiptViewProps {
   data: ReceiptAnalysisResult;
@@ -12,7 +13,7 @@ interface ReceiptViewProps {
   onHighlight: (idx: number) => void;
 }
 
-const CATEGORIES = ['購物', '餐飲', '交通', '住宿', '其他'];
+const CATEGORY_KEYS = ['cat.shopping', 'cat.food', 'cat.transport', 'cat.hotel', 'cat.other'] as const;
 
 const normalize = (box: number[]): number[] => {
   if (box.some(v => v > 1)) return box.map(v => v / 1000);
@@ -27,8 +28,9 @@ const hasBox = (item: ReceiptItem) => {
 };
 
 const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onHighlight }: ReceiptViewProps) => {
+  const t = useT();
   const [saved, setSaved] = useState(false);
-  const [category, setCategory] = useState('購物');
+  const [category, setCategory] = useState('cat.shopping');
   const [payer, setPayer] = useState('');
 
   const formatPrice = (price: string | number, curr: string) => {
@@ -49,7 +51,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
     const expense: Expense = {
       id: crypto.randomUUID(), timestamp: Date.now(),
       merchantName: data.merchantName, amount, currency: data.currency,
-      category, payer: payer || '自己', items: data.items, isTaxFree: data.isTaxFree,
+      category: t(category as any), payer: payer || '自己', items: data.items, isTaxFree: data.isTaxFree,
     };
     await saveExpense(expense);
     setSaved(true);
@@ -113,7 +115,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
           onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.merchantName)}`, '_blank')}
           className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:underline mt-0.5"
         >
-          <MapPin size={8} /> 搜尋店家
+          <MapPin size={8} /> {t('receipt.search')}
         </button>
         <div className="flex items-center justify-center gap-1 text-gray-400 text-[10px] mt-0.5">
           <Calendar size={8} /> {data.date || '—'}
@@ -156,7 +158,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
       {/* Totals */}
       <div className="border-t-2 border-dashed border-gray-300 mt-3 pt-2 space-y-1 text-sm">
         <div className="flex justify-between text-gray-500 text-xs">
-          <span className="flex items-center gap-1"><ShoppingBag size={10} /> 總數量</span>
+          <span className="flex items-center gap-1"><ShoppingBag size={10} /> {t('receipt.qty')}</span>
           <span className="font-bold">{totalQty} 件</span>
         </div>
         {data.tax && (
@@ -170,11 +172,11 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
           </div>
         )}
         <div className="flex justify-between text-gray-500 text-xs">
-          <span>免稅</span>
-          {data.isTaxFree ? <span className="flex items-center gap-1 text-green-600 font-bold"><CheckCircle size={10} /> 免稅</span> : <span>一般</span>}
+          <span>{t('receipt.taxFree')}</span>
+          {data.isTaxFree ? <span className="flex items-center gap-1 text-green-600 font-bold"><CheckCircle size={10} /> {t('receipt.taxFree')}</span> : <span>{t('receipt.taxNormal')}</span>}
         </div>
         <div className="flex justify-between items-end pt-2 border-t-2 border-gray-800">
-          <span className="font-bold text-gray-900">總計</span>
+          <span className="font-bold text-gray-900">{t('receipt.total')}</span>
           <span className="text-xl font-black text-gray-900">{formatPrice(data.totalAmount, data.currency)}</span>
         </div>
       </div>
@@ -184,13 +186,13 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
         {!saved && (
           <>
             <div className="flex gap-1 flex-wrap">
-              {CATEGORIES.map(cat => (
-                <button key={cat} onClick={() => setCategory(cat)}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${category === cat ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500'}`}
-                >{cat}</button>
+              {CATEGORY_KEYS.map(catKey => (
+                <button key={catKey} onClick={() => setCategory(catKey)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${category === catKey ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500'}`}
+                >{t(catKey)}</button>
               ))}
             </div>
-            <input value={payer} onChange={e => setPayer(e.target.value)} placeholder="付款人（選填）"
+            <input value={payer} onChange={e => setPayer(e.target.value)} placeholder={t('receipt.payer')}
               className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:border-orange-500 focus:outline-none" />
           </>
         )}
@@ -199,7 +201,7 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
             saved ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg'
           }`}
         >
-          {saved ? <><CheckCircle size={14} /> 已加入記帳簿</> : <><Bookmark size={14} /> 加入記帳簿</>}
+          {saved ? <><CheckCircle size={14} /> {t('receipt.added')}</> : <><Bookmark size={14} /> {t('receipt.addExpense')}</>}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Camera, ImagePlus, Upload, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
+import { useT } from '../i18n/context';
 import type { ScanMode } from '../types';
 
 interface CameraCaptureProps {
@@ -11,15 +12,16 @@ interface CameraCaptureProps {
   onScanModeChange: (mode: ScanMode) => void;
 }
 
-const modeConfig = {
-  menu: { icon: UtensilsCrossed, label: '菜單翻譯', desc: 'AI 翻譯並生成點餐介面', color: 'bg-orange-500', colorLight: 'bg-orange-100 text-orange-600', shadow: 'shadow-orange-200', iconColor: 'text-orange-500' },
-  receipt: { icon: Receipt, label: '收據翻譯', desc: '掃描收據，翻譯明細', color: 'bg-blue-500', colorLight: 'bg-blue-100 text-blue-600', shadow: 'shadow-blue-200', iconColor: 'text-blue-500' },
-  general: { icon: Languages, label: '萬用翻譯', desc: '籤詩、告示、標誌翻譯', color: 'bg-emerald-600', colorLight: 'bg-emerald-50 text-emerald-700', shadow: 'shadow-emerald-200', iconColor: 'text-emerald-600' },
-};
-
 const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onScanModeChange }: CameraCaptureProps) => {
+  const t = useT();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  const modeConfig = {
+    menu: { icon: UtensilsCrossed, label: t('mode.menu'), desc: t('mode.menu.desc'), color: 'bg-orange-500', colorLight: 'bg-orange-100 text-orange-600', shadow: 'shadow-orange-200', iconColor: 'text-orange-500' },
+    receipt: { icon: Receipt, label: t('mode.receipt'), desc: t('mode.receipt.desc'), color: 'bg-blue-500', colorLight: 'bg-blue-100 text-blue-600', shadow: 'shadow-blue-200', iconColor: 'text-blue-500' },
+    general: { icon: Languages, label: t('mode.general'), desc: t('mode.general.desc'), color: 'bg-emerald-600', colorLight: 'bg-emerald-50 text-emerald-700', shadow: 'shadow-emerald-200', iconColor: 'text-emerald-600' },
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -102,13 +104,13 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
               onClick={() => cameraInputRef.current?.click()}
               className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full font-bold text-base border border-gray-200 shadow-sm transition-colors flex items-center gap-2"
             >
-              <Camera size={18} /> 拍照
+              <Camera size={18} /> {t('camera.shoot')}
             </button>
             <button
               onClick={() => uploadInputRef.current?.click()}
               className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full font-bold text-base border border-gray-200 shadow-sm transition-colors flex items-center gap-2"
             >
-              <Upload size={18} /> 上傳照片
+              <Upload size={18} /> {t('camera.upload')}
             </button>
           </div>
         </div>
@@ -124,7 +126,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
           {isAnalyzing ? (
             <>
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              AI 分析中...
+              {t('camera.analyze')}
             </>
           ) : (
             <>{modeConfig[scanMode].label} ({images.length} 張照片)</>

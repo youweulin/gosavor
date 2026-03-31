@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Minus, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { useT } from '../i18n/context';
 import type { MenuItem } from '../types';
 
 interface MenuResultsProps {
@@ -13,6 +14,7 @@ interface MenuResultsProps {
 }
 
 const MenuResults = ({ items, currency, quantities, onUpdateQuantity, userAllergens, onLocate, onCategoryChange }: MenuResultsProps) => {
+  const t = useT();
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const changeCategory = (cat: string | null) => {
@@ -47,7 +49,7 @@ const MenuResults = ({ items, currency, quantities, onUpdateQuantity, userAllerg
     <div className="space-y-3">
       {/* Stats bar */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-sm text-gray-500">{items.length} 道菜</span>
+        <span className="text-sm text-gray-500">{items.length} {t('result.dishes')}</span>
         <div className="flex gap-2">
           {categories.map(cat => (
             <button
@@ -122,7 +124,7 @@ const MenuResults = ({ items, currency, quantities, onUpdateQuantity, userAllerg
                         </div>
                         {item.recommended && (
                           <span className="shrink-0 ml-2 px-2 py-0.5 bg-orange-100 text-orange-600 text-xs rounded-full font-medium">
-                            推薦
+                            {t('recommended')}
                           </span>
                         )}
                       </div>

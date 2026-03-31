@@ -3,6 +3,7 @@ import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Co
 import { TARGET_LANGUAGES, COMMON_ALLERGENS, HOME_CURRENCIES } from '../types';
 import { fetchRates, getCurrencyCode } from './CurrencyBar';
 import type { AppSettings } from '../types';
+import { useT } from '../i18n/context';
 
 interface SettingsProps {
   settings: AppSettings;
@@ -12,6 +13,7 @@ interface SettingsProps {
 }
 
 const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
+  const t = useT();
   const [showKey, setShowKey] = useState(false);
   const [keyDraft, setKeyDraft] = useState(settings.geminiApiKey);
   const [keySaved, setKeySaved] = useState(false);
@@ -40,14 +42,14 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="font-bold text-lg">應用設定</h1>
+        <h1 className="font-bold text-lg">{t('settings.title')}</h1>
       </div>
 
       <div className="p-4 space-y-6">
         {/* Gemini API Key */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <Key size={14} /> Gemini API Key
+            <Key size={14} /> {t('settings.apiKey')}
           </label>
           <div className="relative">
             <input
@@ -76,7 +78,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
                     : 'bg-gray-800 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {keySaved ? <><Check size={14} /> 已儲存</> : '儲存 Key'}
+              {keySaved ? <><Check size={14} /> {t('settings.saved')}</> : t('settings.saveKey')}
             </button>
             <a
               href="https://aistudio.google.com/apikey"
@@ -84,7 +86,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
               rel="noopener noreferrer"
               className="text-xs text-orange-400 hover:underline"
             >
-              免費取得 API Key
+              {t('settings.getKey')}
             </a>
           </div>
         </div>
@@ -92,7 +94,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
         {/* Language */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <Globe size={14} /> 翻譯語言
+            <Globe size={14} /> {t('settings.language')}
           </label>
           {(() => {
             const selected = TARGET_LANGUAGES.find(l => l.code === settings.targetLanguage);
@@ -116,10 +118,10 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
         {/* Home Currency */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <Coins size={14} /> 本國貨幣
+            <Coins size={14} /> {t('settings.currency')}
           </label>
           <p className="text-xs text-gray-500 mb-2">
-            用於匯率換算，顯示餐點約等於多少本國貨幣。
+            {t('settings.currencyHint')}
           </p>
           <select
             value={settings.homeCurrency}
@@ -153,10 +155,10 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
         {/* Allergens */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <AlertTriangle size={14} /> 過敏原設定
+            <AlertTriangle size={14} /> {t('settings.allergens')}
           </label>
           <p className="text-xs text-gray-500 mb-3">
-            選擇你的過敏原，AI 會自動標記含有這些成分的菜品。
+            {t('settings.allergensHint')}
           </p>
           <div className="flex flex-wrap gap-2">
             {COMMON_ALLERGENS.map(allergen => {
@@ -189,7 +191,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
             onClick={onReset}
             className="w-full py-3 bg-gray-900 border border-gray-700 hover:bg-gray-800 rounded-xl font-medium flex items-center justify-center gap-2 text-gray-400"
           >
-            <RotateCcw size={16} /> 重設
+            <RotateCcw size={16} /> {t('settings.reset')}
           </button>
         </div>
       </div>

@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Trash2, MapPin, Calendar, Navigation } from 'lucide-react';
 import type { SavedOrder } from '../types';
 import { getOrderHistory, deleteOrder } from '../services/storage';
+import { useT } from '../i18n/context';
 
 interface OrderHistoryProps {
   onBack: () => void;
 }
 
 const OrderHistory = ({ onBack }: OrderHistoryProps) => {
+  const t = useT();
   const [orders, setOrders] = useState<SavedOrder[]>([]);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="font-bold text-lg">點餐紀錄</h1>
+        <h1 className="font-bold text-lg">{t('history.title')}</h1>
       </div>
 
       {/* Orders */}
@@ -54,8 +56,8 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
         {orders.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <Calendar size={48} className="mx-auto mb-4 opacity-30" />
-            <p>還沒有點餐紀錄</p>
-            <p className="text-sm mt-1">掃描菜單後點餐即可留下紀錄</p>
+            <p>{t('history.empty')}</p>
+            <p className="text-sm mt-1">{t('history.emptyHint')}</p>
           </div>
         ) : (
           orders.map(order => (
@@ -100,7 +102,7 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
                   onClick={() => navigateTo(order)}
                   className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full text-sm flex items-center gap-2"
                 >
-                  <Navigation size={14} /> 導航
+                  <Navigation size={14} /> {t('history.navigate')}
                 </button>
               </div>
 

@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Sparkles, Info, Volume2, MapPin } from 'lucide-react';
 import type { GeneralAnalysisResult } from '../types';
+import { useT } from '../i18n/context';
 
 interface GeneralViewProps {
   data: GeneralAnalysisResult;
 }
 
 const GeneralView = ({ data }: GeneralViewProps) => {
+  const t = useT();
   const speakText = (text: string) => {
     const u = new SpeechSynthesisUtterance(text);
     window.speechSynthesis.speak(u);
@@ -29,7 +31,8 @@ const GeneralView = ({ data }: GeneralViewProps) => {
   );
 };
 
-const GeneralCard = ({ item, onSpeak }: { item: GeneralAnalysisResult['items'][0]; onSpeak: (t: string) => void }) => {
+const GeneralCard = ({ item, onSpeak }: { item: GeneralAnalysisResult['items'][0]; onSpeak: (text: string) => void }) => {
+  const t = useT();
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -66,7 +69,7 @@ const GeneralCard = ({ item, onSpeak }: { item: GeneralAnalysisResult['items'][0
           <div className="flex gap-3">
             <Sparkles size={16} className="shrink-0 text-orange-500 mt-0.5" />
             <div>
-              <h4 className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1">AI 解說</h4>
+              <h4 className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1">{t('general.aiExplain')}</h4>
               <p className="text-sm text-gray-700 leading-relaxed">{item.explanation}</p>
             </div>
           </div>

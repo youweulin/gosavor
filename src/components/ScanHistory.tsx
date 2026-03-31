@@ -2,18 +2,20 @@ import { useState, useEffect } from 'react';
 import { Clock, Trash2, ChevronRight, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
 import type { SavedScan } from '../types';
 import { getScanHistory, deleteScan } from '../services/storage';
+import { useT } from '../i18n/context';
 
 interface ScanHistoryProps {
   onLoadScan: (scan: SavedScan) => void;
 }
 
 const modeIcons = {
-  menu: { icon: UtensilsCrossed, color: 'text-orange-500', bg: 'bg-orange-50', label: '菜單' },
-  receipt: { icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', label: '收據' },
-  general: { icon: Languages, color: 'text-purple-500', bg: 'bg-purple-50', label: '翻譯' },
+  menu: { icon: UtensilsCrossed, color: 'text-orange-500', bg: 'bg-orange-50', labelKey: 'history.menuType' as const },
+  receipt: { icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', labelKey: 'history.receiptType' as const },
+  general: { icon: Languages, color: 'text-purple-500', bg: 'bg-purple-50', labelKey: 'history.translationType' as const },
 };
 
 const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
+  const t = useT();
   const [scans, setScans] = useState<SavedScan[]>([]);
 
   const [filter, setFilter] = useState<'all' | 'menu' | 'receipt' | 'general'>('all');
@@ -43,14 +45,14 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
     <div className="mt-6">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-medium text-gray-500 flex items-center gap-1">
-          <Clock size={14} /> 最近掃描
+          <Clock size={14} /> {t('history.recent')}
         </h3>
         <div className="flex gap-1">
           {([
-            ['all', '全部'],
-            ['menu', '菜單'],
-            ['receipt', '收據'],
-            ['general', '翻譯'],
+            ['all', t('history.all')],
+            ['menu', t('history.menuType')],
+            ['receipt', t('history.receiptType')],
+            ['general', t('history.translationType')],
           ] as const).map(([key, label]) => (
             <button
               key={key}
@@ -93,7 +95,7 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 text-sm truncate">{scan.restaurantName}</p>
                 <p className="text-xs text-gray-400">
-                  <span className={`${cfg.color} font-medium`}>{cfg.label}</span> · {getSubtitle(scan)} · {new Date(scan.timestamp).toLocaleDateString()}
+                  <span className={`${cfg.color} font-medium`}>{t(cfg.labelKey)}</span> · {getSubtitle(scan)} · {new Date(scan.timestamp).toLocaleDateString()}
                 </p>
               </div>
               {/* Actions */}

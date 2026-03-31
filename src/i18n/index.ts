@@ -39,6 +39,7 @@ const zh_TW: Translations = {
 
   // Results
   'result.dishes': '道菜',
+  'recommended': '推薦',
   'result.items': '項',
   'result.newScan': '重新掃描',
   'result.receipt': '收據分析',
@@ -139,7 +140,7 @@ const en: Translations = {
   'mode.menu': 'Menu', 'mode.receipt': 'Receipt', 'mode.general': 'Translate',
   'mode.menu.desc': 'AI translates menu & helps you order', 'mode.receipt.desc': 'Scan receipt, translate items', 'mode.general.desc': 'Signs, fortune slips, notices',
   'camera.shoot': 'Camera', 'camera.upload': 'Upload', 'camera.analyze': 'Analyzing...',
-  'result.dishes': 'dishes', 'result.items': 'items', 'result.newScan': 'New Scan', 'result.receipt': 'Receipt', 'result.translation': 'Translation',
+  'result.dishes': 'dishes', 'recommended': 'Recommended', 'result.items': 'items', 'result.newScan': 'New Scan', 'result.receipt': 'Receipt', 'result.translation': 'Translation',
   'marker.show': 'Markers', 'marker.hidden': 'Markers hidden', 'marker.expand': 'Expand', 'marker.collapse': 'Collapse',
   'checkout.title': 'Checkout', 'checkout.button': 'Checkout', 'checkout.review': 'Review', 'checkout.staff': 'Staff Mode', 'checkout.split': 'Split',
   'checkout.subtotal': 'Subtotal', 'checkout.tax': 'Tax', 'checkout.serviceFee': 'Service Fee', 'checkout.total': 'Total',
@@ -168,7 +169,7 @@ const fr: Translations = {
   'mode.menu': 'Menu', 'mode.receipt': 'Reçu', 'mode.general': 'Traduire',
   'mode.menu.desc': 'L\'IA traduit le menu et vous aide à commander', 'mode.receipt.desc': 'Scanner le reçu, traduire', 'mode.general.desc': 'Panneaux, omikuji, avis',
   'camera.shoot': 'Photo', 'camera.upload': 'Télécharger', 'camera.analyze': 'Analyse...',
-  'result.dishes': 'plats', 'result.items': 'articles', 'result.newScan': 'Nouveau Scan', 'result.receipt': 'Reçu', 'result.translation': 'Traduction',
+  'result.dishes': 'plats', 'recommended': 'Recommandé', 'result.items': 'articles', 'result.newScan': 'Nouveau Scan', 'result.receipt': 'Reçu', 'result.translation': 'Traduction',
   'marker.show': 'Repères', 'marker.hidden': 'Repères masqués', 'marker.expand': 'Agrandir', 'marker.collapse': 'Réduire',
   'checkout.title': 'Caisse', 'checkout.button': 'Commander', 'checkout.review': 'Vérifier', 'checkout.staff': 'Mode Staff', 'checkout.split': 'Partager',
   'checkout.subtotal': 'Sous-total', 'checkout.tax': 'Taxe', 'checkout.serviceFee': 'Service', 'checkout.total': 'Total',
@@ -197,7 +198,7 @@ const es: Translations = {
   'mode.menu': 'Menú', 'mode.receipt': 'Recibo', 'mode.general': 'Traducir',
   'mode.menu.desc': 'IA traduce el menú y te ayuda a pedir', 'mode.receipt.desc': 'Escanear recibo y traducir', 'mode.general.desc': 'Carteles, omikuji, avisos',
   'camera.shoot': 'Foto', 'camera.upload': 'Subir', 'camera.analyze': 'Analizando...',
-  'result.dishes': 'platos', 'result.items': 'artículos', 'result.newScan': 'Nuevo Scan', 'result.receipt': 'Recibo', 'result.translation': 'Traducción',
+  'result.dishes': 'platos', 'recommended': 'Recomendado', 'result.items': 'artículos', 'result.newScan': 'Nuevo Scan', 'result.receipt': 'Recibo', 'result.translation': 'Traducción',
   'checkout.title': 'Pagar', 'checkout.button': 'Pagar', 'checkout.total': 'Total', 'checkout.confirm': 'Confirmar',
   'checkout.success': '¡Pedido realizado!', 'checkout.speak': 'Pedir en japonés',
   'settings.title': 'Ajustes', 'settings.language': 'Idioma', 'settings.currency': 'Moneda',
@@ -212,7 +213,7 @@ const de: Translations = {
   'mode.menu': 'Speisekarte', 'mode.receipt': 'Quittung', 'mode.general': 'Übersetzen',
   'mode.menu.desc': 'KI übersetzt die Speisekarte', 'mode.receipt.desc': 'Quittung scannen', 'mode.general.desc': 'Schilder, Omikuji, Hinweise',
   'camera.shoot': 'Foto', 'camera.upload': 'Hochladen', 'camera.analyze': 'Analysiert...',
-  'result.dishes': 'Gerichte', 'result.items': 'Artikel', 'result.newScan': 'Neuer Scan',
+  'result.dishes': 'Gerichte', 'recommended': 'Empfohlen', 'result.items': 'Artikel', 'result.newScan': 'Neuer Scan',
   'checkout.title': 'Kasse', 'checkout.button': 'Bestellen', 'checkout.total': 'Gesamt', 'checkout.confirm': 'Bestätigen',
   'settings.title': 'Einstellungen', 'settings.language': 'Sprache', 'settings.currency': 'Währung',
   'history.title': 'Verlauf', 'history.recent': 'Neueste', 'history.all': 'Alle',
@@ -225,7 +226,7 @@ const ko: Translations = {
   'mode.menu': '메뉴 번역', 'mode.receipt': '영수증 번역', 'mode.general': '범용 번역',
   'mode.menu.desc': 'AI가 메뉴를 번역하고 주문을 도와줍니다', 'mode.receipt.desc': '영수증 스캔 및 번역', 'mode.general.desc': '간판, 오미쿠지, 안내문',
   'camera.shoot': '촬영', 'camera.upload': '업로드', 'camera.analyze': '분석 중...',
-  'result.dishes': '요리', 'result.items': '개', 'result.newScan': '새 스캔',
+  'result.dishes': '요리', 'recommended': '추천', 'result.items': '개', 'result.newScan': '새 스캔',
   'checkout.title': '결제', 'checkout.button': '결제', 'checkout.total': '합계', 'checkout.confirm': '주문 확인',
   'checkout.speak': '일본어로 주문',
   'settings.title': '설정', 'settings.language': '언어', 'settings.currency': '통화',
@@ -268,6 +269,7 @@ const zh_CN: Translations = {
   'history.title': '点餐记录', 'history.recent': '最近扫描',
   'receipt.addExpense': '加入记账簿', 'receipt.added': '已加入记账簿',
   'expenses.title': '记账簿',
+  'recommended': '推荐',
 };
 
 const allTranslations: Record<string, Translations> = {
