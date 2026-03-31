@@ -113,10 +113,6 @@ const Checkout = ({
       : undefined;
     onConfirmOrder(orderedItems, total, split);
     setOrderConfirmed(true);
-    setTimeout(() => {
-      setOrderConfirmed(false);
-      onClose();
-    }, 1500);
   };
 
   return (
