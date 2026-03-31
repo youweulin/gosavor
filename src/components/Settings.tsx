@@ -94,22 +94,23 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
             <Globe size={14} /> 翻譯語言
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            {TARGET_LANGUAGES.map(lang => (
-              <button
-                key={lang.code}
-                onClick={() => onUpdate({ targetLanguage: lang.code })}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                  settings.targetLanguage === lang.code
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-900 text-gray-400 border border-gray-700 hover:border-gray-600'
-                }`}
+          {(() => {
+            const selected = TARGET_LANGUAGES.find(l => l.code === settings.targetLanguage);
+            return (
+              <select
+                value={settings.targetLanguage}
+                onChange={e => onUpdate({ targetLanguage: e.target.value })}
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:border-orange-500 focus:outline-none appearance-none text-base"
               >
-                <span className="text-base">{lang.flag}</span>
-                {lang.label}
-              </button>
-            ))}
-          </div>
+                {TARGET_LANGUAGES.map(lang => (
+                  <option key={lang.code} value={lang.code}>{lang.flag} {lang.label}</option>
+                ))}
+              </select>
+            );
+          })()}
+          <p className="text-xs text-gray-500 mt-1">
+            AI 翻譯菜單和收據時使用此語言。已根據你的瀏覽器自動偵測。
+          </p>
         </div>
 
         {/* Home Currency */}
