@@ -130,6 +130,7 @@ For each item:
 - translatedName: MUST translate to ${targetLanguage}. Example: "アリナミンEXプラス" → "合利他命EX Plus" (not English).
 - quantity: number of items
 - price: total price for this line
+- boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 coords, marking where this item appears on the receipt
 Also extract: merchantName (keep original), date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge, isTaxFree (check for 免税/Tax Free), totalQuantity.`;
 
   const imageParts = resized.map(img => ({ inlineData: { mimeType: img.mimeType, data: img.base64 } }));
@@ -160,6 +161,7 @@ Also extract: merchantName (keep original), date, currency (use ¥ for JPY), tot
                 translatedName: { type: Type.STRING },
                 quantity: { type: Type.STRING },
                 price: { type: Type.STRING },
+                boundingBox: { type: Type.ARRAY, items: { type: Type.NUMBER } },
               },
               required: ['originalName', 'translatedName', 'price'],
             },

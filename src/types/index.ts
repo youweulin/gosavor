@@ -24,6 +24,7 @@ export interface ReceiptItem {
   translatedName: string;
   quantity: string;
   price: string;
+  boundingBox?: number[];
 }
 
 export interface ReceiptAnalysisResult {
