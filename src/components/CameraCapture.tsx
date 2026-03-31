@@ -12,9 +12,9 @@ interface CameraCaptureProps {
 }
 
 const modeConfig = {
-  menu: { icon: UtensilsCrossed, label: '菜單翻譯', desc: 'AI 翻譯並生成點餐介面' },
-  receipt: { icon: Receipt, label: '收據翻譯', desc: '掃描收據，翻譯明細' },
-  general: { icon: Languages, label: '萬用翻譯', desc: '籤詩、告示、標誌翻譯' },
+  menu: { icon: UtensilsCrossed, label: '菜單翻譯', desc: 'AI 翻譯並生成點餐介面', color: 'bg-orange-500', colorLight: 'bg-orange-100 text-orange-600', shadow: 'shadow-orange-200', iconColor: 'text-orange-500' },
+  receipt: { icon: Receipt, label: '收據翻譯', desc: '掃描收據，翻譯明細', color: 'bg-blue-500', colorLight: 'bg-blue-100 text-blue-600', shadow: 'shadow-blue-200', iconColor: 'text-blue-500' },
+  general: { icon: Languages, label: '萬用翻譯', desc: '籤詩、告示、標誌翻譯', color: 'bg-green-500', colorLight: 'bg-green-100 text-green-600', shadow: 'shadow-green-200', iconColor: 'text-green-500' },
 };
 
 const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onScanModeChange }: CameraCaptureProps) => {
@@ -80,8 +80,8 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
                   onClick={() => onScanModeChange(mode)}
                   className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all ${
                     active
-                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
-                      : 'bg-white text-gray-500 border border-gray-200 hover:border-orange-200'
+                      ? `${cfg.color} text-white shadow-lg ${cfg.shadow}`
+                      : 'bg-white text-gray-500 border border-gray-200'
                   }`}
                 >
                   <Icon size={18} />
@@ -91,8 +91,8 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
             })}
           </div>
 
-          <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
-            <Camera size={28} className="text-orange-500" />
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${modeConfig[scanMode].colorLight}`}>
+            <Camera size={28} className={modeConfig[scanMode].iconColor} />
           </div>
           <p className="text-gray-500 text-sm text-center">
             {modeConfig[scanMode].desc}
@@ -119,7 +119,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
         <button
           onClick={onAnalyze}
           disabled={isAnalyzing}
-          className="w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl font-bold text-lg shadow-lg shadow-orange-200 transition-colors flex items-center justify-center gap-2"
+          className={`w-full py-3 ${modeConfig[scanMode].color} disabled:opacity-50 text-white rounded-xl font-bold text-lg shadow-lg ${modeConfig[scanMode].shadow} transition-colors flex items-center justify-center gap-2`}
         >
           {isAnalyzing ? (
             <>
