@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Store, Calendar, MapPin, ShoppingBag, CheckCircle, Bookmark, Globe, Rows3, Columns2, List, ArrowLeftRight } from 'lucide-react';
+import { Store, Calendar, MapPin, ShoppingBag, CheckCircle, Bookmark, Rows3, Columns2, List, ArrowLeftRight } from 'lucide-react';
 import type { ReceiptAnalysisResult, ReceiptItem, Expense } from '../types';
 import { saveExpense } from '../services/storage';
 import { useT } from '../i18n/context';

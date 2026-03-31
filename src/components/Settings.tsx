@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, ArrowLeftRight } from 'lucide-react';
+import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins } from 'lucide-react';
 import { TARGET_LANGUAGES, COMMON_ALLERGEN_IDS, HOME_CURRENCIES } from '../types';
-import { fetchRates, getCurrencyCode } from './CurrencyBar';
+import { fetchRates } from './CurrencyBar';
 import type { AppSettings } from '../types';
 import { useT } from '../i18n/context';
 
@@ -97,7 +97,6 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
             <Globe size={14} /> {t('settings.language')}
           </label>
           {(() => {
-            const selected = TARGET_LANGUAGES.find(l => l.code === settings.targetLanguage);
             return (
               <select
                 value={settings.targetLanguage}

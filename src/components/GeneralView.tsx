@@ -23,7 +23,7 @@ const GeneralView = ({ data }: GeneralViewProps) => {
       )}
       {data.items.map((item, idx) =>
         item.category === 'Fortune' ? (
-          <FortuneCard key={idx} item={item} onSpeak={speakText} />
+          <FortuneCard key={idx} item={item} />
         ) : (
           <GeneralCard key={idx} item={item} onSpeak={speakText} />
         )
@@ -33,7 +33,7 @@ const GeneralView = ({ data }: GeneralViewProps) => {
 };
 
 // === Fortune Slip — premium design ===
-const FortuneCard = ({ item, onSpeak }: { item: GeneralAnalysisResult['items'][0]; onSpeak: (text: string) => void }) => {
+const FortuneCard = ({ item }: { item: GeneralAnalysisResult['items'][0] }) => {
   const t = useT();
 
   return (
