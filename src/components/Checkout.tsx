@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, PlayCircle, Users, Minus, Plus, Check, ArrowLeftRight } from 'lucide-react';
+import { X, PlayCircle, Users, Minus, Plus, Check } from 'lucide-react';
 import type { MenuItem, OrderItem, SplitInfo } from '../types';
 import { useT } from '../i18n/context';
 import { fetchRates, getCurrencyCode } from './CurrencyBar';
