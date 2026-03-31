@@ -135,21 +135,21 @@ const InlineImageMap = ({
 
       {/* Swipeable photo carousel */}
       <div
-        className={`rounded-xl overflow-hidden border border-gray-200 shadow-sm ${expanded ? '' : 'flex justify-center'}`}
+        className="flex justify-center rounded-xl overflow-hidden border border-gray-200 shadow-sm"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* relative container must match image size exactly for % positioning */}
-        <div className={`relative ${expanded ? 'w-full' : 'inline-block'}`}>
+        {/* inline-block so container matches image size EXACTLY — critical for % positioning */}
+        <div className="relative inline-block">
         <img
           src={images[activeImageIndex]}
           alt={`Menu page ${activeImageIndex + 1}`}
-          className={`block ${expanded ? 'w-full' : 'max-h-[40vh] w-auto'}`}
+          className={`block ${expanded ? 'max-w-full' : 'max-h-[40vh] w-auto'}`}
         />
 
-        {/* Numbered markers — only in expanded mode for accuracy */}
-        {showMarkers && expanded && visibleItems.map(({ item, idx }) => {
+        {/* Numbered markers */}
+        {showMarkers && visibleItems.map(({ item, idx }) => {
           const active = highlightIndex === idx;
 
           if (hasBox(item)) {
