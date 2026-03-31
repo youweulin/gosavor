@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Key, Percent, Globe, AlertTriangle, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Key, Percent, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check } from 'lucide-react';
 import { TARGET_LANGUAGES, COMMON_ALLERGENS } from '../types';
 import type { AppSettings } from '../types';
 
@@ -12,6 +12,9 @@ interface SettingsProps {
 
 const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
   const [showKey, setShowKey] = useState(false);
+  const [keyDraft, setKeyDraft] = useState(settings.geminiApiKey);
+  const [keySaved, setKeySaved] = useState(false);
+  const keyChanged = keyDraft !== settings.geminiApiKey;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -32,8 +35,8 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           <div className="relative">
             <input
               type={showKey ? 'text' : 'password'}
-              value={settings.geminiApiKey}
-              onChange={e => onUpdate({ geminiApiKey: e.target.value })}
+              value={keyDraft}
+              onChange={e => { setKeyDraft(e.target.value); setKeySaved(false); }}
               placeholder="AIzaSy..."
               className="w-full px-4 py-3 pr-12 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none"
             />
@@ -44,14 +47,29 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
               {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          <a
-            href="https://aistudio.google.com/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-orange-400 mt-1 inline-block hover:underline"
-          >
-            Get a free API Key here
-          </a>
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={() => { onUpdate({ geminiApiKey: keyDraft }); setKeySaved(true); setTimeout(() => setKeySaved(false), 2000); }}
+              disabled={!keyChanged}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 transition-all ${
+                keySaved
+                  ? 'bg-green-600 text-white'
+                  : keyChanged
+                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                    : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {keySaved ? <><Check size={14} /> 已儲存</> : '儲存 Key'}
+            </button>
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-orange-400 hover:underline"
+            >
+              Get a free API Key here
+            </a>
+          </div>
         </div>
 
         {/* Price Estimation */}
