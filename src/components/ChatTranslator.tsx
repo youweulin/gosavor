@@ -234,13 +234,13 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
             }`}>
               {msg.role === 'user' ? (
                 <>
-                  <p className="text-base font-bold text-orange-600">{msg.original}</p>
-                  <p className="text-base mt-2 font-bold text-gray-900">→ {msg.translated}</p>
+                  <p className="text-lg font-bold text-orange-600">{msg.original}</p>
+                  <p className="text-lg mt-2 font-bold text-gray-900">→ {msg.translated}</p>
                 </>
               ) : (
                 <>
-                  <p className="text-base font-bold text-gray-900">{msg.original}</p>
-                  <p className="text-base mt-2 font-bold text-orange-600">→ {msg.translated}</p>
+                  <p className="text-lg font-bold text-gray-900">{msg.original}</p>
+                  <p className="text-lg mt-2 font-bold text-orange-600">→ {msg.translated}</p>
                 </>
               )}
               <button
