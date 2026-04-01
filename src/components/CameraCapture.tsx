@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Camera, ImagePlus, Upload, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
+import { Camera, ImagePlus, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
 import { useT } from '../i18n/context';
 import type { ScanMode } from '../types';
 
@@ -14,7 +14,6 @@ interface CameraCaptureProps {
 
 const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onScanModeChange }: CameraCaptureProps) => {
   const t = useT();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const modeConfig = {
@@ -99,20 +98,12 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
           <p className="text-gray-500 text-sm text-center">
             {modeConfig[scanMode].desc}
           </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => cameraInputRef.current?.click()}
-              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full font-bold text-base border border-gray-200 shadow-sm transition-colors flex items-center gap-2"
-            >
-              <Camera size={18} /> {t('camera.shoot')}
-            </button>
-            <button
-              onClick={() => uploadInputRef.current?.click()}
-              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full font-bold text-base border border-gray-200 shadow-sm transition-colors flex items-center gap-2"
-            >
-              <Upload size={18} /> {t('camera.upload')}
-            </button>
-          </div>
+          <button
+            onClick={() => uploadInputRef.current?.click()}
+            className={`px-8 py-3 ${modeConfig[scanMode].color} text-white rounded-full font-bold text-lg shadow-lg ${modeConfig[scanMode].shadow} transition-colors flex items-center gap-2`}
+          >
+            <Camera size={20} /> {modeConfig[scanMode].label}
+          </button>
         </div>
       )}
 
@@ -134,16 +125,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
         </button>
       )}
 
-      {/* Camera input (opens camera) */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleFileSelect}
-        className="hidden"
-      />
-      {/* Upload input (opens file picker / gallery) */}
+      {/* Single input — iOS shows "Take Photo or Choose from Library" */}
       <input
         ref={uploadInputRef}
         type="file"
