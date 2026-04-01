@@ -62,6 +62,9 @@ const Checkout = ({
   const [staffSaid, setStaffSaid] = useState('');
   const [staffTranslated, setStaffTranslated] = useState('');
   const [chatLog, setChatLog] = useState<{ role: 'you' | 'staff'; ja: string; translated: string }[]>([]);
+  const [miniTranslateInput, setMiniTranslateInput] = useState('');
+  const [miniTranslateResult, setMiniTranslateResult] = useState<{ original: string; ja: string } | null>(null);
+  const [isMiniTranslating, setIsMiniTranslating] = useState(false);
   const isNative = Capacitor.isNativePlatform();
   const [isSpeakingToStaff, setIsSpeakingToStaff] = useState(false);
 
@@ -139,6 +142,29 @@ const Checkout = ({
     };
     const targetCode = langMap[targetLanguage] || 'zh-Hant';
     return translateJapanese(jaText, targetCode, apiKey);
+  };
+
+  // Mini translator: user language → Japanese
+  const handleMiniTranslate = async () => {
+    const text = miniTranslateInput.trim();
+    if (!text || isMiniTranslating) return;
+    setIsMiniTranslating(true);
+    try {
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey });
+      const res = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Translate to Japanese. Only return the translation: "${text}"`,
+        config: { thinkingConfig: { thinkingBudget: 0 } },
+      });
+      const ja = res.text?.trim() || text;
+      setMiniTranslateResult({ original: text, ja });
+      setMiniTranslateInput('');
+    } catch {
+      setMiniTranslateResult({ original: text, ja: '(翻譯失敗)' });
+    } finally {
+      setIsMiniTranslating(false);
+    }
   };
 
   // Listen to staff speaking Japanese
@@ -501,31 +527,36 @@ const Checkout = ({
                 </button>
               )}
 
-              {/* Quick common phrases */}
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { label: '好的', ja: 'はい、お願いします' },
-                  { label: '不要了', ja: 'いいえ、大丈夫です' },
-                  { label: '請再等一下', ja: 'すみません、もう少し待ってください' },
-                  { label: '可以刷卡？', ja: 'カードで払えますか？' },
-                  { label: '廁所在哪？', ja: 'トイレはどこですか？' },
-                  { label: '請給我水', ja: 'お水をください' },
-                  { label: '我要加點', ja: 'すみません、追加注文をお願いします' },
-                  { label: '請結帳', ja: 'お会計をお願いします' },
-                  { label: '非常好吃', ja: 'とても美味しかったです' },
-                  { label: '謝謝', ja: 'ありがとうございました' },
-                ].map((reply, i) => (
+              {/* Mini translator — type and see translation */}
+              <div className="bg-gray-800 rounded-xl p-3 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    value={miniTranslateInput}
+                    onChange={e => setMiniTranslateInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleMiniTranslate()}
+                    placeholder="輸入想說的話..."
+                    className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white placeholder-gray-400 focus:border-orange-500 focus:outline-none"
+                  />
                   <button
-                    key={i}
-                    onClick={() => {
-                      speakCustom(reply.ja);
-                      setChatLog(prev => [...prev, { role: 'you', ja: reply.ja, translated: reply.label }]);
-                    }}
-                    className="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs text-gray-300 font-medium transition-colors"
+                    onClick={handleMiniTranslate}
+                    disabled={!miniTranslateInput.trim() || isMiniTranslating}
+                    className="px-3 py-2 bg-orange-500 rounded-xl text-white text-sm font-bold disabled:opacity-30"
                   >
-                    {reply.label}
+                    {isMiniTranslating ? '...' : '翻譯'}
                   </button>
-                ))}
+                </div>
+                {miniTranslateResult && (
+                  <div className="p-2.5 bg-gray-700/50 rounded-lg">
+                    <p className="text-sm font-bold text-orange-400">{miniTranslateResult.original}</p>
+                    <p className="text-base font-bold text-white mt-1">→ {miniTranslateResult.ja}</p>
+                    <button
+                      onClick={() => { speakCustom(miniTranslateResult.ja); setChatLog(prev => [...prev, { role: 'you', ja: miniTranslateResult.ja, translated: miniTranslateResult.original }]); }}
+                      className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 hover:text-white"
+                    >
+                      <PlayCircle size={14} /> 播放日語
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
