@@ -128,17 +128,27 @@ public class NativeSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         let pitch = call.getFloat("pitch") ?? 1.0
 
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: lang)
         utterance.rate = rate
         utterance.pitchMultiplier = pitch
 
-        // Prefer premium/enhanced voice
-        if let voices = AVSpeechSynthesisVoice.speechVoices() as? [AVSpeechSynthesisVoice] {
-            let premium = voices.filter { $0.language.starts(with: lang.prefix(2)) && $0.quality == .enhanced }
-            if let best = premium.first {
-                utterance.voice = best
-                print("[GoSavor] Using enhanced voice: \(best.name)")
-            }
+        // Find the best voice: premium > enhanced > default
+        let langPrefix = String(lang.prefix(2))
+        let allVoices = AVSpeechSynthesisVoice.speechVoices()
+        let langVoices = allVoices.filter { $0.language.starts(with: langPrefix) }
+
+        // Sort by quality (premium first, then enhanced, then default)
+        let sorted = langVoices.sorted { a, b in
+            let scoreA = a.quality == .premium ? 3 : a.quality == .enhanced ? 2 : 1
+            let scoreB = b.quality == .premium ? 3 : b.quality == .enhanced ? 2 : 1
+            return scoreA > scoreB
+        }
+
+        if let best = sorted.first {
+            utterance.voice = best
+            print("[GoSavor] 🔊 Voice: \(best.name) (\(best.quality == .premium ? "premium" : best.quality == .enhanced ? "enhanced" : "default"))")
+        } else {
+            utterance.voice = AVSpeechSynthesisVoice(language: lang)
+            print("[GoSavor] 🔊 Fallback voice for \(lang)")
         }
 
         synthesizer.stopSpeaking(at: .immediate)

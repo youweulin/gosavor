@@ -72,8 +72,30 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  // Translate using Gemini (small text = tiny cost)
-  const translateWithGemini = async (text: string, from: string, to: string): Promise<string> => {
+  // Translate: Apple first (free offline) → Gemini fallback
+  const translateText = async (text: string, from: string, to: string): Promise<string> => {
+    // Try Apple Translate (native only)
+    if (isNative) {
+      try {
+        const { default: NS } = await import('../services/NativeSpeech');
+        const langMap: Record<string, string> = {
+          'Japanese': 'ja', 'Chinese': 'zh-Hant', 'English': 'en',
+          '繁體中文': 'zh-Hant', '简体中文': 'zh-Hans',
+          '한국어': 'ko', 'ภาษาไทย': 'th', 'Tiếng Việt': 'vi',
+          'Français': 'fr', 'Español': 'es', 'Deutsch': 'de',
+        };
+        const fromCode = langMap[from] || from;
+        const toCode = langMap[to] || to;
+        const res = await NS.translate({ text, from: fromCode, to: toCode });
+        if (res.translated && res.engine === 'apple') {
+          console.log('[GoSavor Chat] ✅ Apple Translate:', text.substring(0, 15), '→', res.translated.substring(0, 15));
+          return res.translated;
+        }
+      } catch (e) {
+        console.warn('[GoSavor Chat] Apple Translate failed:', e);
+      }
+    }
+    // Gemini fallback
     if (!apiKey) return text;
     try {
       const { GoogleGenAI } = await import('@google/genai');
@@ -83,6 +105,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
         contents: `Translate to ${to}. Only return the translation, nothing else: "${text}"`,
         config: { thinkingConfig: { thinkingBudget: 0 } },
       });
+      console.log('[GoSavor Chat] Gemini translate');
       return res.text?.trim() || text;
     } catch { return text; }
   };
@@ -104,7 +127,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       setIsListeningJa(false);
       const text = lastHeardRef.current.trim();
       if (text) {
-        const translated = await translateWithGemini(text, 'Japanese', targetLanguage);
+        const translated = await translateText(text, 'Japanese', targetLanguage);
         updateMessages(prev => [...prev, { role: 'staff', original: text, translated, lang: 'ja' }]);
         // Play translated text in user's language so they can hear it
         await speakText(translated, getUserLangCode(), 0.45);
@@ -137,7 +160,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       setIsListeningUser(false);
       const text = lastHeardRef.current.trim();
       if (text) {
-        const jaTranslated = await translateWithGemini(text, targetLanguage, 'Japanese');
+        const jaTranslated = await translateText(text, targetLanguage, 'Japanese');
         updateMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
         // Speak Japanese translation
         await speakText(jaTranslated, 'ja-JP', 0.45);
@@ -172,7 +195,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
     const text = textInput.trim();
     if (!text) return;
     setTextInput('');
-    const jaTranslated = await translateWithGemini(text, targetLanguage, 'Japanese');
+    const jaTranslated = await translateText(text, targetLanguage, 'Japanese');
     updateMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
     await speakText(jaTranslated, 'ja-JP', 0.45);
     scrollToBottom();
