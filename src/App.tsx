@@ -30,13 +30,14 @@ import ReceiptView from './components/ReceiptView';
 import HomeCard from './components/HomeCard';
 import TripSummary from './components/TripSummary';
 import GeneralView from './components/GeneralView';
+import ChatTranslator from './components/ChatTranslator';
 import ExpenseBook from './components/ExpenseBook';
 import Diary from './components/Diary';
 import RecommendCards from './components/RecommendCards';
 import BottomTabBar from './components/BottomTabBar';
 import { getRecommendations } from './services/affiliate';
 
-type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary';
+type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary' | 'chat';
 
 function AppInner() {
   const t = useT();
@@ -213,6 +214,10 @@ function AppInner() {
   if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;
   if (page === 'expenses') return <ExpenseBook onBack={() => setPage('home')} />;
   if (page === 'diary') return <Diary onBack={() => setPage('home')} />;
+  if (page === 'chat') {
+    const apiKey = getApiKey();
+    return <ChatTranslator onBack={() => setPage('home')} apiKey={apiKey || ''} targetLanguage={settings.targetLanguage} />;
+  }
   if (page === 'settings') {
     return (
       <Settings
@@ -614,11 +619,13 @@ function AppInner() {
         onModeChange={(mode) => {
           setScanMode(mode);
           if (menuResult || receiptResult || generalResult) {
-            handleGoHome(); // reset when switching mode
+            handleGoHome();
           }
         }}
         onCameraPress={handleFileFromBottomBar}
         onDiaryPress={() => setPage('diary')}
+        onChatPress={() => setPage('chat')}
+        chatActive={false}
         hasResults={!!(menuResult || receiptResult || generalResult)}
       />
     </div>

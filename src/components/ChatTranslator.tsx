@@ -1,0 +1,285 @@
+import { useState, useRef } from 'react';
+import { ArrowLeft, Mic, MicOff, Volume2, Send } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { speakText, startListening, stopListening } from '../services/NativeSpeech';
+import { useT } from '../i18n/context';
+
+interface ChatTranslatorProps {
+  onBack: () => void;
+  apiKey: string;
+  targetLanguage: string;
+}
+
+interface ChatMessage {
+  role: 'user' | 'staff';
+  original: string;
+  translated: string;
+  lang: string;
+}
+
+const QUICK_PHRASES = [
+  { label: '你好', ja: 'こんにちは' },
+  { label: '謝謝', ja: 'ありがとうございます' },
+  { label: '請問...', ja: 'すみません' },
+  { label: '多少錢？', ja: 'いくらですか？' },
+  { label: '廁所在哪？', ja: 'トイレはどこですか？' },
+  { label: '可以刷卡嗎？', ja: 'カードで払えますか？' },
+  { label: '推薦什麼？', ja: 'おすすめは何ですか？' },
+  { label: '不辣的', ja: '辛くないのをお願いします' },
+  { label: '要水', ja: 'お水をください' },
+  { label: '好吃！', ja: '美味しいです！' },
+  { label: '再見', ja: 'さようなら' },
+];
+
+const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps) => {
+  const t = useT();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isListeningJa, setIsListeningJa] = useState(false);
+  const [isListeningUser, setIsListeningUser] = useState(false);
+  const [liveText, setLiveText] = useState('');
+  const [textInput, setTextInput] = useState('');
+  const lastHeardRef = useRef('');
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const isNative = Capacitor.isNativePlatform();
+
+  const scrollToBottom = () => {
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  };
+
+  // Translate using Gemini (small text = tiny cost)
+  const translateWithGemini = async (text: string, from: string, to: string): Promise<string> => {
+    if (!apiKey) return text;
+    try {
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey });
+      const res = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Translate to ${to}. Only return the translation, nothing else: "${text}"`,
+        config: { thinkingConfig: { thinkingBudget: 0 } },
+      });
+      return res.text?.trim() || text;
+    } catch { return text; }
+  };
+
+  // Get language code for speech
+  const getUserLangCode = () => {
+    const map: Record<string, string> = {
+      'zh-TW': 'zh-TW', 'zh-CN': 'zh-CN', 'en': 'en-US',
+      'ko': 'ko-KR', 'th': 'th-TH', 'vi': 'vi-VN',
+      'fr': 'fr-FR', 'es': 'es-ES', 'de': 'de-DE', 'id': 'id-ID',
+    };
+    return map[targetLanguage] || 'zh-TW';
+  };
+
+  // Listen to Japanese (staff speaking)
+  const toggleListenJapanese = async () => {
+    if (isListeningJa) {
+      await stopListening();
+      setIsListeningJa(false);
+      const text = lastHeardRef.current.trim();
+      if (text) {
+        const translated = await translateWithGemini(text, 'Japanese', targetLanguage);
+        setMessages(prev => [...prev, { role: 'staff', original: text, translated, lang: 'ja' }]);
+        // Increment chat count
+        const count = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
+        localStorage.setItem('gosavor_chat_count', String(count + 1));
+        scrollToBottom();
+      }
+      setLiveText('');
+      lastHeardRef.current = '';
+      return;
+    }
+
+    setLiveText('');
+    lastHeardRef.current = '';
+    setIsListeningJa(true);
+
+    if (isNative) {
+      await startListening('ja-JP', (text) => {
+        setLiveText(text);
+        lastHeardRef.current = text;
+      });
+    }
+  };
+
+  // Listen to user's language
+  const toggleListenUser = async () => {
+    if (isListeningUser) {
+      await stopListening();
+      setIsListeningUser(false);
+      const text = lastHeardRef.current.trim();
+      if (text) {
+        const jaTranslated = await translateWithGemini(text, targetLanguage, 'Japanese');
+        setMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
+        // Speak Japanese translation
+        await speakText(jaTranslated, 'ja-JP', 0.45);
+        scrollToBottom();
+      }
+      setLiveText('');
+      lastHeardRef.current = '';
+      return;
+    }
+
+    setLiveText('');
+    lastHeardRef.current = '';
+    setIsListeningUser(true);
+
+    if (isNative) {
+      await startListening(getUserLangCode(), (text) => {
+        setLiveText(text);
+        lastHeardRef.current = text;
+      });
+    }
+  };
+
+  // Send quick phrase
+  const sendQuickPhrase = async (label: string, ja: string) => {
+    setMessages(prev => [...prev, { role: 'user', original: label, translated: ja, lang: getUserLangCode() }]);
+    await speakText(ja, 'ja-JP', 0.45);
+    scrollToBottom();
+  };
+
+  // Send typed text
+  const sendTextInput = async () => {
+    const text = textInput.trim();
+    if (!text) return;
+    setTextInput('');
+    const jaTranslated = await translateWithGemini(text, targetLanguage, 'Japanese');
+    setMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
+    await speakText(jaTranslated, 'ja-JP', 0.45);
+    scrollToBottom();
+  };
+
+  // Speak a message
+  const speakMsg = async (text: string, lang: string) => {
+    await speakText(text, lang === 'ja' ? 'ja-JP' : getUserLangCode(), 0.45);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 z-30 bg-purple-600 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-purple-700">
+            <ArrowLeft size={20} className="text-white" />
+          </button>
+          <div>
+            <h1 className="font-bold text-white">對話翻譯</h1>
+            <p className="text-xs text-purple-200">即時翻譯，跟日本人溝通</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {messages.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-4xl mb-3">🗣</p>
+            <p className="font-bold text-gray-400">開始對話</p>
+            <p className="text-xs text-gray-300 mt-1">點下方按鈕說話，或用快速用語</p>
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] rounded-2xl p-3 ${
+              msg.role === 'user'
+                ? 'bg-purple-500 text-white rounded-br-sm'
+                : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm shadow-sm'
+            }`}>
+              <p className="text-sm font-bold">{msg.original}</p>
+              <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-purple-200' : 'text-gray-400'}`}>
+                → {msg.translated}
+              </p>
+              <button
+                onClick={() => speakMsg(msg.role === 'user' ? msg.translated : msg.original, msg.lang)}
+                className={`mt-1 p-1 rounded-full ${msg.role === 'user' ? 'hover:bg-purple-600' : 'hover:bg-gray-100'}`}
+              >
+                <Volume2 size={12} className={msg.role === 'user' ? 'text-purple-200' : 'text-gray-400'} />
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {/* Live listening indicator */}
+        {(isListeningJa || isListeningUser) && (
+          <div className={`flex ${isListeningUser ? 'justify-end' : 'justify-start'}`}>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-3 max-w-[80%]">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-xs text-yellow-700 font-medium">聆聽中...</span>
+              </div>
+              {liveText && <p className="text-sm font-bold text-gray-900 mt-1">{liveText}</p>}
+            </div>
+          </div>
+        )}
+
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* Quick phrases */}
+      <div className="px-4 py-2 border-t border-gray-100 bg-white">
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          {QUICK_PHRASES.map((phrase, i) => (
+            <button
+              key={i}
+              onClick={() => sendQuickPhrase(phrase.label, phrase.ja)}
+              className="shrink-0 px-3 py-1.5 bg-gray-100 hover:bg-purple-50 rounded-full text-xs font-medium text-gray-600 hover:text-purple-600 transition-colors"
+            >
+              {phrase.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Input bar + listen buttons */}
+      <div className="px-4 py-3 bg-white border-t border-gray-200 pb-[calc(env(safe-area-inset-bottom)+80px)]">
+        {/* Text input */}
+        <div className="flex gap-2 mb-3">
+          <input
+            value={textInput}
+            onChange={e => setTextInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && sendTextInput()}
+            placeholder="輸入文字翻譯成日語..."
+            className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-purple-300"
+          />
+          <button
+            onClick={sendTextInput}
+            disabled={!textInput.trim()}
+            className="p-2 bg-purple-500 rounded-xl text-white disabled:opacity-30"
+          >
+            <Send size={18} />
+          </button>
+        </div>
+
+        {/* Voice buttons */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={toggleListenJapanese}
+            className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+              isListeningJa
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+            }`}
+          >
+            {isListeningJa ? <MicOff size={18} /> : <Mic size={18} />}
+            🇯🇵 {isListeningJa ? '停止' : '聽日語'}
+          </button>
+          <button
+            onClick={toggleListenUser}
+            className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+              isListeningUser
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+            }`}
+          >
+            {isListeningUser ? <MicOff size={18} /> : <Mic size={18} />}
+            🗣 {isListeningUser ? '停止' : '我要說'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ChatTranslator;
