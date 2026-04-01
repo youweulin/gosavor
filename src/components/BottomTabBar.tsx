@@ -25,7 +25,7 @@ const BottomTabBar = ({ scanMode, onModeChange, onCameraPress, onDiaryPress, onC
   const CenterIcon = current.icon;
 
   const sideTabs: { mode?: ScanMode; icon: any; label: string; activeColor: string; action?: () => void }[] = [
-    { icon: BookOpen, label: '日記', activeColor: 'text-amber-500', action: onDiaryPress },
+    { mode: 'general', icon: Languages, label: t('mode.general'), activeColor: 'text-slate-600' },
     { mode: 'menu', icon: UtensilsCrossed, label: t('mode.menu'), activeColor: 'text-orange-500' },
     // center is rendered separately
     { mode: 'receipt', icon: Receipt, label: t('mode.receipt'), activeColor: 'text-blue-500' },

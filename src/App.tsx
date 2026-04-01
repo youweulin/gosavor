@@ -7,7 +7,8 @@ import {
   UtensilsCrossed,
   ShoppingCart,
   WalletMinimal,
-  Clock
+  Clock,
+  BookOpen
 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
@@ -270,6 +271,9 @@ function AppInner() {
                 <User size={16} />
               </button>
             )}
+            <button onClick={() => setPage('diary')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="日記">
+              <BookOpen size={16} />
+            </button>
             <button onClick={() => setPage('expenses')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="記帳簿">
               <WalletMinimal size={16} />
             </button>

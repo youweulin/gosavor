@@ -46,9 +46,9 @@ const TripSummary = ({ homeCurrency }: TripSummaryProps) => {
   const chatCount = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
 
   const stats = [
+    { icon: Languages, value: generalScans, label: '圖文翻譯', color: 'text-slate-600', bg: 'bg-slate-50' },
     { icon: UtensilsCrossed, value: menuScans, label: '菜單翻譯', color: 'text-orange-500', bg: 'bg-orange-50' },
     { icon: Receipt, value: receiptScans, label: '收據翻譯', color: 'text-blue-500', bg: 'bg-blue-50' },
-    { icon: Languages, value: generalScans, label: '圖文翻譯', color: 'text-slate-600', bg: 'bg-slate-50' },
     { icon: MessageCircle, value: chatCount, label: '對話翻譯', color: 'text-purple-500', bg: 'bg-purple-50' },
     { icon: Calendar, value: tripDays, label: '天', color: 'text-green-500', bg: 'bg-green-50' },
   ];
