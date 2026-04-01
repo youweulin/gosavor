@@ -366,9 +366,13 @@ Parse this receipt:
 - merchantName: store name (keep original, INCLUDE branch e.g. "ココカラファイン 銀座4丁目店")
 - date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge
 - isTaxFree: check for 免税/Tax Free
-- items: each purchased item with originalName, translatedName (in ${targetLanguage}), quantity, price
-- sourceIds: [block_id(s)] for each item — the OCR block IDs that correspond to this item
-IMPORTANT: translatedName MUST be in ${targetLanguage}, not English.`;
+- items: each purchased item with:
+  - originalName: product name as on receipt
+  - translatedName: translated to ${targetLanguage} (NOT English)
+  - quantity: number of items (e.g. "4")
+  - price: LINE TOTAL price (quantity × unit price). Example: if unit price is ¥5,980 and qty is 4, price should be "23920" NOT "5980"
+  - sourceIds: [block_id(s)] — OCR block IDs for this item
+IMPORTANT: price = total for that line, NOT unit price. Check the receipt carefully for ¥XX,XXX非 amounts.`;
 
     const response = await ai.models.generateContent({
       model: modelName,
@@ -442,7 +446,7 @@ For each item:
 - originalName: text as seen on receipt (original language)
 - translatedName: MUST translate to ${targetLanguage}. Example: "アリナミンEXプラス" → "合利他命EX Plus" (not English).
 - quantity: number of items (e.g. "4")
-- price: total price for this line
+- price: LINE TOTAL (qty × unit price). If ¥5,980 × 4, price="23920" NOT "5980"
 - boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 coords
 Also extract: merchantName (keep original, INCLUDE branch name), date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge, isTaxFree, totalQuantity.`;
 
