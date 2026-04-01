@@ -170,8 +170,8 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
         </div>
       </div>
 
-      {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {/* Chat messages — extra padding at bottom for fixed buttons */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-52 space-y-3">
         {messages.length === 0 && (
           <div className="text-center py-12">
             <p className="text-4xl mb-3">🗣</p>
