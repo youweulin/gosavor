@@ -36,13 +36,13 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
   }, [settings.homeCurrency]);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-gray-950 text-gray-200">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-800">
         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} className="text-white" />
         </button>
-        <h1 className="font-bold text-lg">{t('settings.title')}</h1>
+        <h1 className="font-bold text-lg text-white">{t('settings.title')}</h1>
       </div>
 
       <div className="p-4 space-y-6">
@@ -109,7 +109,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
               </select>
             );
           })()}
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-400 mt-1">
             AI 翻譯菜單和收據時使用此語言。已根據你的瀏覽器自動偵測。
           </p>
         </div>
@@ -151,7 +151,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
                   </div>
                 );
               })()}
-              <p className="text-[10px] text-gray-500 mt-2 font-sans">
+              <p className="text-[10px] text-gray-400 mt-2 font-sans">
                 {t('settings.rateSource')} · {t('settings.rateUpdated')} {rateTime}
               </p>
             </div>
@@ -195,7 +195,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
         <div className="pt-4 space-y-3">
           <button
             onClick={onReset}
-            className="w-full py-3 bg-gray-900 border border-gray-700 hover:bg-gray-800 rounded-xl font-medium flex items-center justify-center gap-2 text-gray-400"
+            className="w-full py-3 bg-white border border-gray-300 hover:bg-gray-800 rounded-xl font-medium flex items-center justify-center gap-2 text-gray-400"
           >
             <RotateCcw size={16} /> {t('settings.reset')}
           </button>

@@ -5,7 +5,9 @@ import {
   Settings as SettingsIcon,
   User,
   UtensilsCrossed,
-  ShoppingCart
+  ShoppingCart,
+  WalletMinimal,
+  Clock
 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
@@ -201,6 +203,11 @@ function AppInner() {
     }
   };
 
+  // Hidden file input for camera/gallery (MUST be before any early returns — React hooks rule)
+  const fileInputRef = useCallback((node: HTMLInputElement | null) => {
+    if (node) (window as any).__gosavor_file_input = node;
+  }, []);
+
   if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;
   if (page === 'expenses') return <ExpenseBook onBack={() => setPage('home')} />;
   if (page === 'diary') return <Diary onBack={() => setPage('home')} />;
@@ -214,11 +221,6 @@ function AppInner() {
       />
     );
   }
-
-  // Hidden file input for camera/gallery
-  const fileInputRef = useCallback((node: HTMLInputElement | null) => {
-    if (node) (window as any).__gosavor_file_input = node;
-  }, []);
 
   const handleFileFromBottomBar = () => {
     const input = (window as any).__gosavor_file_input as HTMLInputElement;
@@ -251,18 +253,24 @@ function AppInner() {
             </div>
             <span className="font-bold text-gray-900">GoSavor</span>
           </button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {user ? (
               <button onClick={logout} className="px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
                 {userData?.plan === 'lifetime' ? 'PRO' : userData?.plan === 'rental' ? 'RENTAL' : 'FREE'} · {t('nav.logout')}
               </button>
             ) : (
-              <button onClick={() => setShowAuth(true)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
-                <User size={18} />
+              <button onClick={() => setShowAuth(true)} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500">
+                <User size={16} />
               </button>
             )}
-            <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
-              <SettingsIcon size={18} />
+            <button onClick={() => setPage('expenses')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="記帳簿">
+              <WalletMinimal size={16} />
+            </button>
+            <button onClick={() => setPage('history')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="點餐紀錄">
+              <Clock size={16} />
+            </button>
+            <button onClick={() => setPage('settings')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="設定">
+              <SettingsIcon size={16} />
             </button>
           </div>
         </div>

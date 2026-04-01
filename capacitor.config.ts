@@ -7,6 +7,7 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'automatic',
   },
+  // server: { url: 'http://localhost:5180', cleartext: true }, // uncomment for dev
 };
 
 export default config;

@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Camera, ImagePlus, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
+import { ImagePlus, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
 import { useT } from '../i18n/context';
 import type { ScanMode } from '../types';
 
@@ -40,8 +40,17 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
     onImagesChange(images.filter((_, i) => i !== index));
   };
 
+  const currentMode = modeConfig[scanMode];
+
   return (
     <div className="space-y-4">
+      {/* Hint when no images */}
+      {images.length === 0 && (
+        <div className="text-center py-4">
+          <p className="text-gray-400 text-sm">{currentMode.desc}</p>
+        </div>
+      )}
+
       {/* Image Preview */}
       {images.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-2">

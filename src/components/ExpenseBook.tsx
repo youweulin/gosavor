@@ -48,24 +48,24 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-800">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">
-          <ArrowLeft size={20} />
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-200">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
+          <ArrowLeft size={20} className="text-gray-700" />
         </button>
-        <h1 className="font-bold text-lg">{t('expenses.title')}</h1>
-        <span className="text-xs text-gray-500 ml-auto">{expenses.length} 筆</span>
+        <h1 className="font-bold text-lg text-gray-900">{t('expenses.title')}</h1>
+        <span className="text-xs text-gray-400 ml-auto">{expenses.length} 筆</span>
       </div>
 
       {/* Summary */}
       {Object.keys(totalByCurrency).length > 0 && (
-        <div className="px-4 py-3 border-b border-gray-800">
+        <div className="px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={14} className="text-orange-400" />
+            <TrendingUp size={14} className="text-orange-500" />
             <span className="text-xs text-gray-400">{t('expenses.total')}</span>
           </div>
           <div className="flex flex-wrap gap-3">
             {Object.entries(totalByCurrency).map(([curr, total]) => (
-              <div key={curr} className="text-xl font-black text-orange-400">
+              <div key={curr} className="text-xl font-black text-orange-500">
                 {formatAmount(total, curr)}
               </div>
             ))}
@@ -87,11 +87,11 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
       )}
 
       {/* Filter */}
-      <div className="px-4 py-2 flex gap-1 overflow-x-auto border-b border-gray-800">
+      <div className="px-4 py-2 flex gap-1 overflow-x-auto border-b border-gray-200">
         <button
           onClick={() => setFilter('all')}
           className={`px-3 py-1 rounded-full text-xs font-medium shrink-0 ${
-            filter === 'all' ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400'
+            filter === 'all' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'
           }`}
         >
           全部
@@ -101,7 +101,7 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
             key={cat}
             onClick={() => setFilter(cat)}
             className={`px-3 py-1 rounded-full text-xs font-medium shrink-0 ${
-              filter === cat ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400'
+              filter === cat ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'
             }`}
           >
             {cat}
@@ -132,7 +132,7 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
               </div>
               <div className="space-y-2">
                 {items.map(exp => (
-                  <div key={exp.id} className="bg-gray-900 rounded-xl p-3 border border-gray-800">
+                  <div key={exp.id} className="bg-white shadow-sm rounded-xl p-3 border border-gray-200">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm">{exp.merchantName}</p>
@@ -149,10 +149,10 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-orange-400">{formatAmount(exp.amount, exp.currency)}</span>
+                        <span className="font-bold text-orange-500">{formatAmount(exp.amount, exp.currency)}</span>
                         <button
                           onClick={() => handleDelete(exp.id)}
-                          className="p-1.5 rounded-full hover:bg-gray-800 text-gray-600 hover:text-red-400"
+                          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 hover:text-red-400"
                         >
                           <Trash2 size={14} />
                         </button>

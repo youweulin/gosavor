@@ -44,8 +44,8 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-800">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-800">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-200">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
           <ArrowLeft size={20} />
         </button>
         <h1 className="font-bold text-lg">{t('history.title')}</h1>
@@ -61,7 +61,7 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
           </div>
         ) : (
           orders.map(order => (
-            <div key={order.id} className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
+            <div key={order.id} className="bg-white rounded-2xl shadow-sm p-4 border border-gray-200">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
@@ -75,7 +75,7 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
                     </p>
                   )}
                 </div>
-                <button onClick={() => handleDelete(order.id)} className="p-2 rounded-full hover:bg-gray-800">
+                <button onClick={() => handleDelete(order.id)} className="p-2 rounded-full hover:bg-gray-100">
                   <Trash2 size={16} className="text-gray-500" />
                 </button>
               </div>
@@ -94,7 +94,7 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
               </div>
 
               {/* Total + Navigate */}
-              <div className="mt-3 pt-3 border-t border-gray-800 flex justify-between items-center">
+              <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
                 <span className="font-bold text-lg text-orange-400">
                   {formatPrice(order.totalAmount, order.currency)}
                 </span>
