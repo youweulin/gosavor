@@ -67,39 +67,14 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
         </div>
       )}
 
-      {/* Camera + Upload buttons */}
+      {/* Mode description (no buttons — mode is selected via bottom tab bar) */}
       {images.length === 0 && (
-        <div className="flex flex-col items-center gap-4 py-6">
-          {/* Mode selector */}
-          <div className="flex gap-2 w-full">
-            {(Object.entries(modeConfig) as [ScanMode, typeof modeConfig.menu][]).map(([mode, cfg]) => {
-              const Icon = cfg.icon;
-              const active = scanMode === mode;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => onScanModeChange(mode)}
-                  className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all ${
-                    active
-                      ? `${cfg.color} text-white shadow-lg ${cfg.shadow}`
-                      : 'bg-white text-gray-500 border border-gray-200'
-                  }`}
-                >
-                  <Icon size={18} />
-                  {cfg.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            onClick={() => uploadInputRef.current?.click()}
-            className={`w-24 h-24 rounded-full flex items-center justify-center ${modeConfig[scanMode].color} shadow-xl ${modeConfig[scanMode].shadow} hover:scale-105 active:scale-95 transition-transform`}
-          >
-            <Camera size={40} className="text-white" />
-          </button>
-          <p className="text-gray-500 text-sm text-center">
+        <div className="flex flex-col items-center py-8">
+          <p className="text-gray-400 text-sm text-center">
             {modeConfig[scanMode].desc}
+          </p>
+          <p className="text-gray-300 text-xs mt-1">
+            點下方 📷 開始掃描
           </p>
         </div>
       )}

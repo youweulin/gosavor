@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
-import { 
-  Share2, 
+import {
+  Share2,
   X,
-  Settings as SettingsIcon, 
-  History, 
-  User, 
-  UtensilsCrossed, 
-  ShoppingCart, 
-  BookOpen, 
-  NotebookPen 
+  Settings as SettingsIcon,
+  History,
+  User,
+  UtensilsCrossed,
+  ShoppingCart,
+  BookOpen,
+  NotebookPen
 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
@@ -32,6 +32,7 @@ import GeneralView from './components/GeneralView';
 import ExpenseBook from './components/ExpenseBook';
 import Diary from './components/Diary';
 import RecommendCards from './components/RecommendCards';
+import BottomTabBar from './components/BottomTabBar';
 import { getRecommendations } from './services/affiliate';
 
 type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary';
@@ -217,9 +218,34 @@ function AppInner() {
     );
   }
 
+  // Hidden file input for camera/gallery
+  const fileInputRef = useCallback((node: HTMLInputElement | null) => {
+    if (node) (window as any).__gosavor_file_input = node;
+  }, []);
+
+  const handleFileFromBottomBar = () => {
+    const input = (window as any).__gosavor_file_input as HTMLInputElement;
+    if (input) input.click();
+  };
+
+  const handleBottomBarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setImages(prev => [...prev, ev.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Bar */}
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Simplified Top Bar */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
@@ -230,32 +256,30 @@ function AppInner() {
           </button>
           <div className="flex items-center gap-1">
             {user ? (
-              <button
-                onClick={logout}
-                className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
-              >
-                {userData?.plan === 'lifetime' ? 'PRO' : userData?.plan === 'rental' ? 'RENTAL' : 'FREE'} &middot; {t('nav.logout')}
+              <button onClick={logout} className="px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
+                {userData?.plan === 'lifetime' ? 'PRO' : userData?.plan === 'rental' ? 'RENTAL' : 'FREE'} · {t('nav.logout')}
               </button>
             ) : (
               <button onClick={() => setShowAuth(true)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
                 <User size={18} />
               </button>
             )}
-            <button onClick={() => setPage('diary')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.diary')}>
-              <NotebookPen size={18} />
-            </button>
-            <button onClick={() => setPage('expenses')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.expenses')}>
-              <BookOpen size={18} />
-            </button>
-            <button onClick={() => setPage('history')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.history')}>
-              <History size={18} />
-            </button>
-            <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title={t('nav.settings')}>
+            <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
               <SettingsIcon size={18} />
             </button>
           </div>
         </div>
       </header>
+
+      {/* Hidden file input for bottom bar camera button */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleBottomBarFile}
+        className="hidden"
+      />
 
       {/* Sticky image — for menu (with markers) or receipt (with markers) or general (photo only) */}
       {receiptResult && images.length > 0 && receiptLayout === 'stack' ? (
@@ -546,6 +570,20 @@ function AppInner() {
           </div>
         </div>
       )}
+
+      {/* Bottom Tab Bar */}
+      <BottomTabBar
+        scanMode={scanMode}
+        onModeChange={(mode) => {
+          setScanMode(mode);
+          if (menuResult || receiptResult || generalResult) {
+            handleGoHome(); // reset when switching mode
+          }
+        }}
+        onCameraPress={handleFileFromBottomBar}
+        onDiaryPress={() => setPage('diary')}
+        hasResults={!!(menuResult || receiptResult || generalResult)}
+      />
     </div>
   );
 }
