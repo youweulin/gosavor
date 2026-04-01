@@ -113,6 +113,20 @@ export interface Expense {
   isTaxFree?: boolean;
 }
 
+// === Trip ===
+export interface Trip {
+  id: string;
+  name: string;          // e.g. "東京 5日遊"
+  startDate: number;     // timestamp
+  endDate?: number;       // timestamp (when finished)
+  location?: string;      // main city
+  totalScans: number;
+  totalMeals: number;
+  totalReceipts: number;
+  totalSpending: Record<string, number>; // { "¥": 30813 }
+  isActive: boolean;
+}
+
 // === Settings ===
 export interface AppSettings {
   geminiApiKey: string;

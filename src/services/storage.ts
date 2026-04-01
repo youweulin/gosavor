@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS } from '../types';
-import type { AppSettings, SavedOrder, SavedScan, Expense } from '../types';
+import type { AppSettings, SavedOrder, SavedScan, Expense, Trip } from '../types';
 
 const SETTINGS_KEY = 'gosavor_settings';
 const ORDERS_KEY = 'gosavor_orders';
@@ -191,4 +191,80 @@ export const deleteExpense = async (id: string): Promise<Expense[]> => {
     console.error('Failed to delete expense', e);
   }
   return getExpenses();
+};
+
+// === Trip Management (localStorage) ===
+const TRIPS_KEY = 'gosavor_trips';
+const ACTIVE_TRIP_KEY = 'gosavor_active_trip';
+
+export const getTrips = (): Trip[] => {
+  try {
+    return JSON.parse(localStorage.getItem(TRIPS_KEY) || '[]');
+  } catch { return []; }
+};
+
+export const getActiveTrip = (): Trip | null => {
+  try {
+    const stored = localStorage.getItem(ACTIVE_TRIP_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch { return null; }
+};
+
+export const startTrip = (name: string, location?: string): Trip => {
+  const trip: Trip = {
+    id: crypto.randomUUID(),
+    name,
+    startDate: Date.now(),
+    location,
+    totalScans: 0,
+    totalMeals: 0,
+    totalReceipts: 0,
+    totalSpending: {},
+    isActive: true,
+  };
+  localStorage.setItem(ACTIVE_TRIP_KEY, JSON.stringify(trip));
+  return trip;
+};
+
+export const updateActiveTrip = (partial: Partial<Trip>) => {
+  const trip = getActiveTrip();
+  if (!trip) return;
+  const updated = { ...trip, ...partial };
+  localStorage.setItem(ACTIVE_TRIP_KEY, JSON.stringify(updated));
+};
+
+export const finishTrip = async (): Promise<Trip | null> => {
+  const trip = getActiveTrip();
+  if (!trip) return null;
+
+  // Calculate final stats from scan history
+  const scans = await getScanHistory();
+  const expenses = await getExpenses();
+  const tripScans = scans.filter(s => s.timestamp >= trip.startDate);
+  const tripExpenses = expenses.filter(e => e.timestamp >= trip.startDate);
+
+  const spending: Record<string, number> = {};
+  tripExpenses.forEach(e => {
+    spending[e.currency] = (spending[e.currency] || 0) + e.amount;
+  });
+
+  const finished: Trip = {
+    ...trip,
+    endDate: Date.now(),
+    isActive: false,
+    totalScans: tripScans.length,
+    totalMeals: tripScans.filter(s => (s.scanMode || 'menu') === 'menu').length,
+    totalReceipts: tripScans.filter(s => s.scanMode === 'receipt').length,
+    totalSpending: spending,
+  };
+
+  // Save to trip history
+  const trips = getTrips();
+  trips.unshift(finished);
+  localStorage.setItem(TRIPS_KEY, JSON.stringify(trips.slice(0, 20)));
+
+  // Clear active trip
+  localStorage.removeItem(ACTIVE_TRIP_KEY);
+
+  return finished;
 };
