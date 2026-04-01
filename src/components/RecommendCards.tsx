@@ -4,7 +4,7 @@ import type { Product } from '../services/affiliate';
 
 interface RecommendCardsProps {
   loadProducts: () => Promise<Product[]>;
-  context?: 'loading' | 'result';
+  context?: 'loading' | 'result' | 'home';
 }
 
 const RecommendCards = ({ loadProducts, context = 'result' }: RecommendCardsProps) => {

@@ -27,6 +27,8 @@ import CurrencyBar from './components/CurrencyBar';
 import InlineImageMap from './components/InlineImageMap';
 import ScanHistory from './components/ScanHistory';
 import ReceiptView from './components/ReceiptView';
+import HomeCard from './components/HomeCard';
+import TripSummary from './components/TripSummary';
 import GeneralView from './components/GeneralView';
 import ExpenseBook from './components/ExpenseBook';
 import Diary from './components/Diary';
@@ -377,27 +379,41 @@ function AppInner() {
         )}
 
         {!menuResult && !receiptResult && !generalResult ? (
-          <div className="flex flex-col min-h-[70vh]">
-            <CameraCapture
-              images={images}
-              onImagesChange={setImages}
-              onAnalyze={handleAnalyze}
-              isAnalyzing={isAnalyzing}
-              scanMode={scanMode}
-            />
-            
-            {/* Show recommendations while analyzing */}
-            {isAnalyzing && (
-              <div className="mt-4">
-                <RecommendCards loadProducts={() => getRecommendations(scanMode)} context="loading" />
+          <div className="flex flex-col">
+            {/* Home screen content when no photos/results */}
+            {images.length === 0 && !isAnalyzing ? (
+              <div className="space-y-4">
+                {/* Welcome + Location + Weather */}
+                <HomeCard />
+
+                {/* Trip Summary */}
+                <TripSummary homeCurrency={settings.homeCurrency} />
+
+                {/* Recommendations */}
+                <div>
+                  <RecommendCards loadProducts={() => getRecommendations(scanMode)} context="home" />
+                </div>
+
+                {/* Recent Scans */}
+                <ScanHistory onLoadScan={handleLoadScan} />
+              </div>
+            ) : (
+              /* Camera capture + analyzing state */
+              <div>
+                <CameraCapture
+                  images={images}
+                  onImagesChange={setImages}
+                  onAnalyze={handleAnalyze}
+                  isAnalyzing={isAnalyzing}
+                  scanMode={scanMode}
+                />
+                {isAnalyzing && (
+                  <div className="mt-4">
+                    <RecommendCards loadProducts={() => getRecommendations(scanMode)} context="loading" />
+                  </div>
+                )}
               </div>
             )}
-            
-            <div className="flex-1">
-              {images.length === 0 && !isAnalyzing && (
-                <ScanHistory onLoadScan={handleLoadScan} />
-              )}
-            </div>
 
             {/* Footer Info */}
             {images.length === 0 && !isAnalyzing && (
