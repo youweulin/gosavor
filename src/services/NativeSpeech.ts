@@ -71,20 +71,7 @@ export const translateJapanese = async (
   targetLang = 'zh-Hant',
   apiKey?: string
 ): Promise<string> => {
-  // Try Apple Translate first (instant, offline)
-  if (Capacitor.isNativePlatform()) {
-    try {
-      const res = await NativeSpeech.translate({ text, from: 'ja', to: targetLang });
-      if (res.translated && res.engine === 'apple') {
-        console.log('[GoSavor] Apple Translate:', text, '→', res.translated);
-        return res.translated;
-      }
-    } catch (e) {
-      console.warn('[GoSavor] Apple Translate failed:', e);
-    }
-  }
-
-  // Fallback: Gemini (needs network + API key)
+  // Use Gemini for translation (Apple Translate causes system popup that blocks UI)
   if (apiKey) {
     try {
       const { GoogleGenAI } = await import('@google/genai');
