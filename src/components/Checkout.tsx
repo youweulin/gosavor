@@ -521,14 +521,16 @@ const Checkout = ({
                   </button>
                 </div>
                 {miniTranslateResult && (
-                  <div className="p-3 bg-gray-800 rounded-xl">
-                    <p className="text-sm font-bold text-orange-400">{miniTranslateResult.original}</p>
-                    <p className="text-base font-bold text-white mt-1">→ {miniTranslateResult.ja}</p>
+                  <div className="p-3 bg-gray-800 rounded-xl flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-orange-400">{miniTranslateResult.original}</p>
+                      <p className="text-xl font-black text-white mt-1">→ {miniTranslateResult.ja}</p>
+                    </div>
                     <button
                       onClick={() => speakCustom(miniTranslateResult.ja)}
-                      className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 hover:text-white"
+                      className="shrink-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center hover:bg-orange-600 mt-2"
                     >
-                      <PlayCircle size={14} /> 播放
+                      <PlayCircle size={22} className="text-white" />
                     </button>
                   </div>
                 )}

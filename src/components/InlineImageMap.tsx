@@ -134,7 +134,7 @@ const InlineImageMap = ({
         <img
           src={images[activeImageIndex]}
           alt={`Menu page ${activeImageIndex + 1}`}
-          className="block max-w-full"
+          className="block max-w-full max-h-[45vh]"
         />
 
         {/* Numbered markers */}
@@ -147,11 +147,7 @@ const InlineImageMap = ({
               <div
                 key={idx}
                 onClick={() => onTapItem(idx)}
-                className={`absolute cursor-pointer rounded-lg border-2 transition-all duration-300
-                  ${active 
-                    ? 'z-10 border-orange-500 bg-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.6)]' 
-                    : 'border-orange-500/50 bg-white/10 hover:bg-orange-500/20'}
-                `}
+                className={`absolute cursor-pointer ${active ? 'z-10' : ''}`}
                 style={{
                   top: `${ymin * 100}%`,
                   left: `${xmin * 100}%`,
