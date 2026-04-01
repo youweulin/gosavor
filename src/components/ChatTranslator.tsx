@@ -106,6 +106,8 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       if (text) {
         const translated = await translateWithGemini(text, 'Japanese', targetLanguage);
         updateMessages(prev => [...prev, { role: 'staff', original: text, translated, lang: 'ja' }]);
+        // Play translated text in user's language so they can hear it
+        await speakText(translated, getUserLangCode(), 0.45);
         // Increment chat count
         const count = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
         localStorage.setItem('gosavor_chat_count', String(count + 1));
@@ -176,9 +178,17 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
     scrollToBottom();
   };
 
-  // Speak a message
-  const speakMsg = async (text: string, lang: string) => {
-    await speakText(text, lang === 'ja' ? 'ja-JP' : getUserLangCode(), 0.45);
+  // Speak a message — always play the TRANSLATED version
+  // User message: play Japanese (translated) for the staff
+  // Staff message: play user language (translated) for the user
+  const speakMsg = async (msg: ChatMessage) => {
+    if (msg.role === 'user') {
+      // User said something → play the Japanese translation
+      await speakText(msg.translated, 'ja-JP', 0.45);
+    } else {
+      // Staff said Japanese → play user's language translation
+      await speakText(msg.translated, getUserLangCode(), 0.45);
+    }
   };
 
   return (
@@ -227,7 +237,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
                 → {msg.translated}
               </p>
               <button
-                onClick={() => speakMsg(msg.role === 'user' ? msg.translated : msg.original, msg.lang)}
+                onClick={() => speakMsg(msg)}
                 className={`mt-1 p-1 rounded-full ${msg.role === 'user' ? 'hover:bg-blue-400/30' : 'hover:bg-gray-100'}`}
               >
                 <Volume2 size={12} className={msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'} />
