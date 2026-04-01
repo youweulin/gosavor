@@ -158,14 +158,14 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-purple-600 px-4 py-3">
+      <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-200 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-purple-700">
-            <ArrowLeft size={20} className="text-white" />
+          <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100">
+            <ArrowLeft size={20} className="text-gray-700" />
           </button>
           <div>
-            <h1 className="font-bold text-white">對話翻譯</h1>
-            <p className="text-xs text-purple-200">即時翻譯，跟日本人溝通</p>
+            <h1 className="font-bold text-gray-900">對話翻譯</h1>
+            <p className="text-xs text-gray-400">即時翻譯，跟日本人溝通</p>
           </div>
         </div>
       </div>
@@ -184,18 +184,18 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] rounded-2xl p-3 ${
               msg.role === 'user'
-                ? 'bg-purple-500 text-white rounded-br-sm'
+                ? 'bg-[#5B9BD5] text-white rounded-br-sm'
                 : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm shadow-sm'
             }`}>
-              <p className="text-sm font-bold">{msg.original}</p>
-              <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-purple-200' : 'text-gray-400'}`}>
+              <p className="text-sm">{msg.original}</p>
+              <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
                 → {msg.translated}
               </p>
               <button
                 onClick={() => speakMsg(msg.role === 'user' ? msg.translated : msg.original, msg.lang)}
-                className={`mt-1 p-1 rounded-full ${msg.role === 'user' ? 'hover:bg-purple-600' : 'hover:bg-gray-100'}`}
+                className={`mt-1 p-1 rounded-full ${msg.role === 'user' ? 'hover:bg-blue-400/30' : 'hover:bg-gray-100'}`}
               >
-                <Volume2 size={12} className={msg.role === 'user' ? 'text-purple-200' : 'text-gray-400'} />
+                <Volume2 size={12} className={msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'} />
               </button>
             </div>
           </div>
@@ -217,6 +217,8 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
         <div ref={chatEndRef} />
       </div>
 
+      {/* Fixed bottom area */}
+      <div className="sticky bottom-0 z-20">
       {/* Quick phrases */}
       <div className="px-4 py-2 border-t border-gray-100 bg-white">
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
@@ -233,7 +235,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       </div>
 
       {/* Input bar + listen buttons */}
-      <div className="px-4 py-3 bg-white border-t border-gray-200 pb-[calc(env(safe-area-inset-bottom)+80px)]">
+      <div className="px-4 py-3 bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)]">
         {/* Text input */}
         <div className="flex gap-2 mb-3">
           <input
@@ -241,12 +243,12 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
             onChange={e => setTextInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendTextInput()}
             placeholder="輸入文字翻譯成日語..."
-            className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-purple-300"
+            className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-200"
           />
           <button
             onClick={sendTextInput}
             disabled={!textInput.trim()}
-            className="p-2 bg-purple-500 rounded-xl text-white disabled:opacity-30"
+            className="p-2 bg-[#5B9BD5] rounded-xl text-white disabled:opacity-30"
           >
             <Send size={18} />
           </button>
@@ -270,7 +272,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
             className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
               isListeningUser
                 ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                : 'bg-blue-50 text-[#5B9BD5] hover:bg-blue-100'
             }`}
           >
             {isListeningUser ? <MicOff size={18} /> : <Mic size={18} />}
@@ -278,6 +280,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
           </button>
         </div>
       </div>
+      </div>{/* close sticky bottom */}
     </div>
   );
 };
