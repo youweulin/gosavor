@@ -160,27 +160,16 @@ const Checkout = ({
       const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
 
       let translated = '';
-      if (hasKana) {
-        // Japanese → user language (Apple Translate first)
-        translated = await translateJapanese(text, 'zh-Hant', apiKey);
-      } else {
-        // User language → Japanese (try Apple first, then Gemini)
-        if (Capacitor.isNativePlatform()) {
-          try {
-            const res = await NativeSpeechPlugin.translate({ text, from: 'zh-Hant', to: 'ja' });
-            if (res.translated && res.engine === 'apple') translated = res.translated;
-          } catch {}
-        }
-        if (!translated && apiKey) {
-          const { GoogleGenAI } = await import('@google/genai');
-          const ai = new GoogleGenAI({ apiKey });
-          const res = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `Translate to Japanese. Only return the translation: "${text}"`,
-            config: { thinkingConfig: { thinkingBudget: 0 } },
-          });
-          translated = res.text?.trim() || '';
-        }
+      if (apiKey) {
+        const targetLang = hasKana ? targetLanguage : 'Japanese';
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey });
+        const res = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `Translate to ${targetLang}. Only return the translation, nothing else: "${text}"`,
+          config: { thinkingConfig: { thinkingBudget: 0 } },
+        });
+        translated = res.text?.trim() || '';
       }
       setMiniTranslateResult({ original: text, ja: translated || '(翻譯失敗)' });
       setMiniTranslateInput('');
