@@ -243,44 +243,9 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       </div>
 
       {/* Fixed bottom area */}
-      <div className="sticky bottom-0 z-20">
-      {/* Quick phrases */}
-      <div className="px-4 py-2 border-t border-gray-100 bg-white">
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-          {QUICK_PHRASES.map((phrase, i) => (
-            <button
-              key={i}
-              onClick={() => sendQuickPhrase(phrase.label, phrase.ja)}
-              className="shrink-0 px-3 py-1.5 bg-gray-100 hover:bg-purple-50 rounded-full text-xs font-medium text-gray-600 hover:text-purple-600 transition-colors"
-            >
-              {phrase.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Input bar + listen buttons */}
-      <div className="px-4 py-3 bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)]">
-        {/* Text input */}
-        <div className="flex gap-2 mb-3">
-          <input
-            value={textInput}
-            onChange={e => setTextInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendTextInput()}
-            placeholder="輸入文字翻譯成日語..."
-            className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-200"
-          />
-          <button
-            onClick={sendTextInput}
-            disabled={!textInput.trim()}
-            className="p-2 bg-[#5B9BD5] rounded-xl text-white disabled:opacity-30"
-          >
-            <Send size={18} />
-          </button>
-        </div>
-
-        {/* Voice buttons */}
-        <div className="grid grid-cols-2 gap-3">
+      <div className="sticky bottom-0 z-20 bg-white border-t border-gray-200">
+        {/* Voice buttons — most important, on top */}
+        <div className="px-4 pt-3 grid grid-cols-2 gap-3">
           <button
             onClick={toggleListenJapanese}
             className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
@@ -304,7 +269,39 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
             🗣 {isListeningUser ? '停止' : '我要說'}
           </button>
         </div>
-      </div>
+
+        {/* Quick phrases */}
+        <div className="px-0 py-2">
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+            {QUICK_PHRASES.map((phrase, i) => (
+              <button
+                key={i}
+                onClick={() => sendQuickPhrase(phrase.label, phrase.ja)}
+                className="shrink-0 px-3 py-1.5 bg-gray-100 hover:bg-blue-50 rounded-full text-xs font-medium text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                {phrase.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Text input */}
+        <div className="flex gap-2 pb-[env(safe-area-inset-bottom)]">
+          <input
+            value={textInput}
+            onChange={e => setTextInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && sendTextInput()}
+            placeholder="輸入文字翻譯成日語..."
+            className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-200"
+          />
+          <button
+            onClick={sendTextInput}
+            disabled={!textInput.trim()}
+            className="p-2 bg-[#5B9BD5] rounded-xl text-white disabled:opacity-30"
+          >
+            <Send size={18} />
+          </button>
+        </div>
       </div>{/* close sticky bottom */}
     </div>
   );
