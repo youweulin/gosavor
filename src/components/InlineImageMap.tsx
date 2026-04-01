@@ -159,7 +159,7 @@ const InlineImageMap = ({
                   className={`absolute flex items-center justify-center rounded-full font-black transition-all duration-300
                     ${active
                       ? '-top-3 -left-3 w-9 h-9 text-base bg-orange-500 text-white shadow-[0_0_0_2px_white,0_0_12px_rgba(249,115,22,0.7)] animate-bounce'
-                      : '-top-2 -left-2 w-5 h-5 text-[9px] bg-transparent text-gray-900 border-2 border-gray-900 font-black'
+                      : '-top-2 -left-2 w-5 h-5 text-[9px] bg-white/50 text-gray-900 border-2 border-gray-900 font-black'
                     }`}
                 >
                   {idx + 1}
