@@ -67,6 +67,9 @@ const Checkout = ({
   const [isMiniTranslating, setIsMiniTranslating] = useState(false);
   const isNative = Capacitor.isNativePlatform();
   const [isSpeakingToStaff, setIsSpeakingToStaff] = useState(false);
+  const lastHeardRef = useRef('');
+  const userHeardRef = useRef('');
+  const [userSaid, setUserSaid] = useState('');
 
   const handleClose = () => {
     setMode('review');
@@ -168,7 +171,6 @@ const Checkout = ({
   };
 
   // Listen to staff speaking Japanese
-  const lastHeardRef = useRef('');
 
   const toggleListening = async () => {
     if (isListening) {
@@ -209,9 +211,6 @@ const Checkout = ({
     'Français': 'fr-FR', 'Español': 'es-ES', 'Deutsch': 'de-DE',
   };
   const userLangCode = userLangMap[targetLanguage] || 'zh-TW';
-
-  const userHeardRef = useRef('');
-  const [userSaid, setUserSaid] = useState('');
 
   const handleSpeakToStaff = async () => {
     if (isSpeakingToStaff) {
