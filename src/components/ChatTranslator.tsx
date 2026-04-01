@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, Mic, MicOff, Volume2, Send } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Volume2, Send, Trash2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { speakText, startListening, stopListening } from '../services/NativeSpeech';
 import { useT } from '../i18n/context';
@@ -33,7 +33,14 @@ const QUICK_PHRASES = [
 
 const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps) => {
   const t = useT();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const CHAT_HISTORY_KEY = 'gosavor_chat_history';
+
+  // Load saved messages
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    } catch { return []; }
+  });
   const [isListeningJa, setIsListeningJa] = useState(false);
   const [isListeningUser, setIsListeningUser] = useState(false);
   const [liveText, setLiveText] = useState('');
@@ -41,6 +48,15 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
   const lastHeardRef = useRef('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isNative = Capacitor.isNativePlatform();
+
+  // Save messages whenever they change
+  const updateMessages = (updater: (prev: ChatMessage[]) => ChatMessage[]) => {
+    setMessages(prev => {
+      const next = updater(prev);
+      try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(next.slice(-100))); } catch {}
+      return next;
+    });
+  };
 
   const scrollToBottom = () => {
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -79,7 +95,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       const text = lastHeardRef.current.trim();
       if (text) {
         const translated = await translateWithGemini(text, 'Japanese', targetLanguage);
-        setMessages(prev => [...prev, { role: 'staff', original: text, translated, lang: 'ja' }]);
+        updateMessages(prev => [...prev, { role: 'staff', original: text, translated, lang: 'ja' }]);
         // Increment chat count
         const count = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
         localStorage.setItem('gosavor_chat_count', String(count + 1));
@@ -110,7 +126,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       const text = lastHeardRef.current.trim();
       if (text) {
         const jaTranslated = await translateWithGemini(text, targetLanguage, 'Japanese');
-        setMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
+        updateMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
         // Speak Japanese translation
         await speakText(jaTranslated, 'ja-JP', 0.45);
         scrollToBottom();
@@ -134,7 +150,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
 
   // Send quick phrase
   const sendQuickPhrase = async (label: string, ja: string) => {
-    setMessages(prev => [...prev, { role: 'user', original: label, translated: ja, lang: getUserLangCode() }]);
+    updateMessages(prev => [...prev, { role: 'user', original: label, translated: ja, lang: getUserLangCode() }]);
     await speakText(ja, 'ja-JP', 0.45);
     scrollToBottom();
   };
@@ -145,7 +161,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
     if (!text) return;
     setTextInput('');
     const jaTranslated = await translateWithGemini(text, targetLanguage, 'Japanese');
-    setMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
+    updateMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
     await speakText(jaTranslated, 'ja-JP', 0.45);
     scrollToBottom();
   };
@@ -163,10 +179,19 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
           <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100">
             <ArrowLeft size={20} className="text-gray-700" />
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="font-bold text-gray-900">對話翻譯</h1>
             <p className="text-xs text-gray-400">即時翻譯，跟日本人溝通</p>
           </div>
+          {messages.length > 0 && (
+            <button
+              onClick={() => { updateMessages(() => []); }}
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-400"
+              title="清除對話"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </div>
 
