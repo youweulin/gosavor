@@ -141,9 +141,9 @@ const MenuResults = ({ items, currency, quantities, onUpdateQuantity, userAllerg
                         </div>
                       </div>
 
-                      {/* Description — collapsed, tap to show */}
-                      {item.description && qty > 0 && (
-                        <p className="mt-1 text-xs text-gray-500 leading-relaxed pl-8">{item.description}</p>
+                      {/* Description */}
+                      {item.description && (
+                        <p className="mt-1 text-xs text-gray-500 leading-snug pl-8">{item.description}</p>
                       )}
                     </div>
                   );
