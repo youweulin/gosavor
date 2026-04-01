@@ -3,12 +3,9 @@ import {
   Share2,
   X,
   Settings as SettingsIcon,
-  History,
   User,
   UtensilsCrossed,
-  ShoppingCart,
-  BookOpen,
-  NotebookPen
+  ShoppingCart
 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
@@ -371,34 +368,50 @@ function AppInner() {
           </div>
         )}
 
-        {/* No results yet — show camera */}
         {!menuResult && !receiptResult && !generalResult ? (
-          <>
+          <div className="flex flex-col min-h-[70vh]">
             <CameraCapture
               images={images}
               onImagesChange={setImages}
               onAnalyze={handleAnalyze}
               isAnalyzing={isAnalyzing}
               scanMode={scanMode}
-              onScanModeChange={setScanMode}
             />
+            
             {/* Show recommendations while analyzing */}
             {isAnalyzing && (
               <div className="mt-4">
                 <RecommendCards loadProducts={() => getRecommendations(scanMode)} context="loading" />
               </div>
             )}
+            
+            <div className="flex-1">
+              {images.length === 0 && !isAnalyzing && (
+                <ScanHistory onLoadScan={handleLoadScan} />
+              )}
+            </div>
+
+            {/* Footer Info */}
             {images.length === 0 && !isAnalyzing && (
-              <ScanHistory onLoadScan={handleLoadScan} />
+              <div className="flex flex-col items-center py-10 opacity-60">
+                <p className="text-gray-400 text-sm text-center font-medium">
+                  {scanMode === 'menu' ? t('mode.menu.desc') : scanMode === 'receipt' ? t('mode.receipt.desc') : t('mode.general.desc')}
+                </p>
+                <p className="text-gray-300 text-[10px] mt-1.5 uppercase tracking-widest font-bold flex items-center gap-2">
+                  <span className="w-4 h-px bg-gray-200" />
+                  點下方 📷 開始掃描
+                  <span className="w-4 h-px bg-gray-200" />
+                </p>
+              </div>
             )}
-          </>
+          </div>
         ) : menuResult ? (
           /* Menu results */
           <>
             <div className="mb-3 flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-gray-900 truncate">{menuResult.restaurantName || 'Menu'}</h2>
+                  <h2 className="font-bold text-gray-900 truncate">{String(menuResult.restaurantName || 'Menu')}</h2>
                   <button 
                     onClick={() => setShowDebug(true)}
                     className="shrink-0 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded font-mono hover:bg-slate-200"
@@ -446,7 +459,7 @@ function AppInner() {
           /* Receipt results */
           <>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">{t('result.receipt')}</h2>
+              <h2 className="font-bold text-gray-900">{String(t('result.receipt'))}</h2>
               <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
                 {t('result.newScan')}
               </button>
@@ -465,7 +478,7 @@ function AppInner() {
           /* General/Sign/Fortune results */
           <>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">{t('result.translation')}</h2>
+              <h2 className="font-bold text-gray-900">{String(t('result.translation'))}</h2>
               <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
                 {t('result.newScan')}
               </button>

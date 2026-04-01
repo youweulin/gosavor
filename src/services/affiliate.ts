@@ -1,7 +1,9 @@
 import Fuse from 'fuse.js';
 import klookProducts from '../data/klook_products.json';
+import kkdayProducts from '../data/kkday_products.json';
 
 const KLOOK_AID = '30600';
+const KKDAY_CID = '14336';
 const API_BASE = 'https://aff-api.gosavor.com'; // TODO: replace with real URL
 
 // === Types ===
@@ -89,6 +91,69 @@ const getTimeCategory = (): 'morning' | 'afternoon' | 'evening' | 'night' => {
 // These are manually picked best-sellers that actually convert
 const C = (id: string, title: string, cat: Product['category'], region: string, emoji: string, reason: string): Product =>
   ({ id, platform: 'klook', title, url: '', category: cat, region, emoji, reason });
+
+const KKDAY_CAT_MAP: Record<string, Product['category']> = {
+  'attractions': 'ticket', 'sightseeing': 'tour', 'gourmet': 'food',
+  'transportation': 'transport', 'activity': 'tour',
+};
+
+interface KKDayProduct {
+  id: string;
+  platform: string;
+  title: string;
+  imageUrl?: string;
+  affiliateUrl: string;
+  category: string;
+  region: string;
+}
+const fuseKKday = new Fuse(kkdayProducts as KKDayProduct[], {
+  keys: ['title', 'region'],
+  threshold: 0.4,
+});
+
+// Search KKDay products by region + category
+const searchKKDay = (region: string | null, category: Product['category'], limit = 2): Product[] => {
+  // Map our category to KKDay categories
+  const kkCats: string[] = [];
+  if (category === 'ticket') kkCats.push('attractions');
+  if (category === 'tour') kkCats.push('sightseeing', 'activity');
+  if (category === 'food') kkCats.push('gourmet');
+  if (category === 'transport') kkCats.push('transportation');
+
+  let filtered = (kkdayProducts as KKDayProduct[]);
+  if (region) {
+    // Map our region to KKDay regions (they use city names like 'Tokyo', 'Osaka', etc.)
+    const regionMap: Record<string, string[]> = {
+      'Tokyo': ['Tokyo', 'Chiba', 'Yokohama', 'Hakone', 'Nikko', 'Kamakura', 'Saitama'],
+      'Kansai': ['Osaka', 'Kyoto', 'Kobe', 'Nara', 'Kansai', 'Wakayama', 'Shiga'],
+      'Hokkaido': ['Hokkaido', 'Sapporo', 'Hakodate', 'Otaru', 'Asahikawa'],
+      'Kyushu': ['Fukuoka', 'Kyushu', 'Oita', 'Nagasaki', 'Miyazaki', 'Saga', 'Kagoshima', 'Fukuoka/Oita'],
+      'Okinawa': ['Okinawa'],
+      'Nagoya': ['Nagoya', 'Gifu', 'Mie', 'Kanazawa', 'Kanazawa/Shirakawa-go', 'Chubu'],
+      'Tohoku': ['Miyagi', 'Aomori', 'Akita', 'Iwate', 'Yamagata', 'Fukushima'],
+    };
+    const regionKeys = regionMap[region] || [region];
+    filtered = filtered.filter(p => regionKeys.some(r => p.region === r));
+  }
+
+  if (kkCats.length > 0) {
+    const catFiltered = filtered.filter(p => kkCats.includes(p.category));
+    if (catFiltered.length > 0) filtered = catFiltered;
+  }
+
+  // Shuffle and pick
+  const shuffled = filtered.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, limit).map(p => ({
+    id: p.id,
+    platform: 'kkday' as const,
+    title: p.title.length > 35 ? p.title.substring(0, 35) + '...' : p.title,
+    url: p.affiliateUrl,
+    category: KKDAY_CAT_MAP[p.category] || 'tour',
+    region: p.region,
+    emoji: p.category === 'gourmet' ? '🍽️' : p.category === 'attractions' ? '🎫' : p.category === 'transportation' ? '🚃' : '✨',
+    reason: region ? `${region}推薦` : '日本推薦',
+  }));
+};
 
 const CURATED: Record<string, Product[]> = {
   Tokyo: [
@@ -204,9 +269,15 @@ const CURATED: Record<string, Product[]> = {
   ],
 };
 
-// Fill in affiliate URLs
+// Fill in affiliate URLs (Klook only — KKDay already has URLs from K() helper)
 Object.values(CURATED).flat().forEach(p => {
-  if (!p.url) p.url = `https://www.klook.com/zh-TW/activity/${p.id}/?aid=${KLOOK_AID}`;
+  if (!p.url) {
+    if (p.platform === 'kkday') {
+      p.url = `https://www.kkday.com/zh-tw/product/${p.id}?cid=${KKDAY_CID}`;
+    } else {
+      p.url = `https://www.klook.com/zh-TW/activity/${p.id}/?aid=${KLOOK_AID}`;
+    }
+  }
 });
 
 // === Scan mode → category priority ===
@@ -286,31 +357,34 @@ export const getRecommendations = async (
     }
   }
 
-  // Step 2: Offline — use curated high-conversion products
-  console.log(`[GoSavor Ads] Using offline curated products`);
+  // Step 2: Offline — mix Klook curated + KKDay dynamic
+  console.log(`[GoSavor Ads] Using offline: Klook curated + KKDay search`);
   const regionKey = region || 'Tokyo';
   const curated = CURATED[regionKey] || CURATED['Tokyo'];
 
-  // Score and sort by relevance
+  // Score Klook curated products
   const scored = curated.map(product => {
     let score = 0;
-    // Category match with scan mode priorities
     const catIndex = priorities.indexOf(product.category);
-    if (catIndex >= 0) score += (3 - catIndex) * 10; // higher priority = higher score
-    // Time boost
+    if (catIndex >= 0) score += (3 - catIndex) * 10;
     if (timeBoost.includes(product.category)) score += 5;
-    // Randomness (so it's not always the same)
     score += Math.random() * 3;
     return { product, score };
   });
-
   scored.sort((a, b) => b.score - a.score);
-  const results = scored.slice(0, 3).map(s => ({
+
+  // Pick 2 Klook + 1 KKDay (alternating platforms = more diverse)
+  const klookPicks = scored.slice(0, 2).map(s => ({
     ...s.product,
     reason: s.product.reason || `${label}推薦`,
   }));
 
-  // If not enough curated, fill with Fuse.js search
+  // Get 1 KKDay product matching the primary category
+  const kkdayPicks = searchKKDay(region, priorities[0], 1);
+
+  const results = [...klookPicks, ...kkdayPicks];
+
+  // If not enough, fill with Fuse.js Klook search
   if (results.length < 3) {
     const searchQuery = `${label} ${priorities[0] === 'food' ? '美食 體驗' : '景點 門票'}`;
     const extras = searchOffline(searchQuery, region, 3 - results.length);

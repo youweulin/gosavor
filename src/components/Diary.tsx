@@ -183,7 +183,7 @@ const Diary = ({ onBack }: DiaryProps) => {
                           )}
                           <div className="flex-1 min-w-0 pt-1">
                             <h3 className="font-black text-slate-900 leading-tight truncate mb-1 pr-8">
-                              {scan.restaurantName || 'Scan Analysis'}
+                              {String(scan.restaurantName || 'Scan Analysis')}
                             </h3>
                             <div className="flex items-center gap-2 mb-2">
                               <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-bold">
@@ -194,12 +194,11 @@ const Diary = ({ onBack }: DiaryProps) => {
                               )}
                             </div>
                             
-                            {/* Display Tags */}
-                            {scan.tags && scan.tags.length > 0 && !isEditing && (
+                            {Array.isArray(scan.tags) && scan.tags.length > 0 && !isEditing && (
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {scan.tags.map(tid => (
                                   <span key={tid} className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-bold">
-                                    #{t(`diary.tag.${tid}`).split(' ')[0]}
+                                    #{String(t(`diary.tag.${tid}`)).split(' ')[0]}
                                   </span>
                                 ))}
                               </div>
@@ -213,7 +212,7 @@ const Diary = ({ onBack }: DiaryProps) => {
                             <div className="mt-4 p-3 bg-slate-50 rounded-2xl border border-slate-100 relative">
                               <div className="absolute -top-3 left-3 text-2xl">{scan.mood}</div>
                               <p className="text-sm text-slate-700 leading-relaxed pt-1">
-                                {scan.note}
+                                {String(scan.note || '')}
                               </p>
                             </div>
                           )

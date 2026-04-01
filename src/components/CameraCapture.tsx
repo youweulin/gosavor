@@ -9,10 +9,9 @@ interface CameraCaptureProps {
   onAnalyze: () => void;
   isAnalyzing: boolean;
   scanMode: ScanMode;
-  onScanModeChange: (mode: ScanMode) => void;
 }
 
-const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onScanModeChange }: CameraCaptureProps) => {
+const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode }: CameraCaptureProps) => {
   const t = useT();
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,17 +66,6 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
         </div>
       )}
 
-      {/* Mode description (no buttons — mode is selected via bottom tab bar) */}
-      {images.length === 0 && (
-        <div className="flex flex-col items-center py-8">
-          <p className="text-gray-400 text-sm text-center">
-            {modeConfig[scanMode].desc}
-          </p>
-          <p className="text-gray-300 text-xs mt-1">
-            點下方 📷 開始掃描
-          </p>
-        </div>
-      )}
 
       {/* Analyze button */}
       {images.length > 0 && (
