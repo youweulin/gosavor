@@ -480,84 +480,45 @@ const Checkout = ({
                 </div>
               )}
 
-              {/* Listen to staff */}
+              {/* Voice buttons — same row */}
               {isNative && (
                 <div className="space-y-2">
-                  <button
-                    onClick={toggleListening}
-                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                      isListening
-                        ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                        : 'bg-blue-500 hover:bg-blue-600'
-                    }`}
-                  >
-                    {isListening ? (
-                      <><MicOff size={20} /> 停止聆聽</>
-                    ) : (
-                      <><Mic size={20} /> 🎤 聽店員說話</>
-                    )}
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={toggleListening}
+                      className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                        isListening
+                          ? 'bg-red-500 animate-pulse'
+                          : 'bg-gray-700 hover:bg-gray-600'
+                      }`}
+                    >
+                      {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                      🇯🇵 {isListening ? '停止' : '日語'}
+                    </button>
+                    <button
+                      onClick={handleSpeakToStaff}
+                      className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                        isSpeakingToStaff
+                          ? 'bg-red-500 animate-pulse'
+                          : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                      }`}
+                    >
+                      {isSpeakingToStaff ? <MicOff size={16} /> : <Mic size={16} />}
+                      🗣 {isSpeakingToStaff ? '停止' : '我說'}
+                    </button>
+                  </div>
+
+                  {/* Translation result — shows below buttons */}
                   {staffSaid && (
-                    <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                      <p className="text-xs text-blue-400 mb-1">🇯🇵 店員說：</p>
+                    <div className="p-3 bg-gray-800 rounded-xl">
                       <p className="text-sm font-bold text-white">{staffSaid}</p>
                       {staffTranslated && (
-                        <p className="text-sm text-orange-300 mt-1">→ {staffTranslated}</p>
+                        <p className="text-sm font-bold text-orange-400 mt-1">→ {staffTranslated}</p>
                       )}
                     </div>
                   )}
                 </div>
               )}
-
-              {/* I want to say — speak your language, auto translate to Japanese */}
-              {isNative && (
-                <button
-                  onClick={handleSpeakToStaff}
-                  className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                    isSpeakingToStaff
-                      ? 'bg-green-500 hover:bg-green-600 animate-pulse'
-                      : 'bg-gray-700 hover:bg-gray-600'
-                  }`}
-                >
-                  {isSpeakingToStaff ? (
-                    <><MicOff size={20} /> 停止</>
-                  ) : (
-                    <><MessageCircle size={20} /> 🗣 我要說（{targetLanguage}→日語）</>
-                  )}
-                </button>
-              )}
-
-              {/* Mini translator — type and see translation */}
-              <div className="bg-gray-800 rounded-xl p-3 space-y-2">
-                <div className="flex gap-2">
-                  <input
-                    value={miniTranslateInput}
-                    onChange={e => setMiniTranslateInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleMiniTranslate()}
-                    placeholder="輸入想說的話..."
-                    className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white placeholder-gray-400 focus:border-orange-500 focus:outline-none"
-                  />
-                  <button
-                    onClick={handleMiniTranslate}
-                    disabled={!miniTranslateInput.trim() || isMiniTranslating}
-                    className="px-3 py-2 bg-orange-500 rounded-xl text-white text-sm font-bold disabled:opacity-30"
-                  >
-                    {isMiniTranslating ? '...' : '翻譯'}
-                  </button>
-                </div>
-                {miniTranslateResult && (
-                  <div className="p-2.5 bg-gray-700/50 rounded-lg">
-                    <p className="text-sm font-bold text-orange-400">{miniTranslateResult.original}</p>
-                    <p className="text-base font-bold text-white mt-1">→ {miniTranslateResult.ja}</p>
-                    <button
-                      onClick={() => { speakCustom(miniTranslateResult.ja); setChatLog(prev => [...prev, { role: 'you', ja: miniTranslateResult.ja, translated: miniTranslateResult.original }]); }}
-                      className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 hover:text-white"
-                    >
-                      <PlayCircle size={14} /> 播放日語
-                    </button>
-                  </div>
-                )}
-              </div>
 
               {/* Actions */}
               <div className="grid grid-cols-2 gap-2">
