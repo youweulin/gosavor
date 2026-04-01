@@ -531,7 +531,7 @@ function AppInner() {
 
       {/* Floating Checkout */}
       {menuResult && totalOrderQty > 0 && (
-        <div className="fixed bottom-24 left-0 right-0 px-4 z-20">
+        <div className="fixed bottom-0 left-0 right-0 px-4 pb-2 z-40 bg-gradient-to-t from-gray-50 via-gray-50/95 to-transparent pt-4">
           <div className="max-w-md mx-auto">
             {(() => {
               const totalForeign = Object.entries(quantities).reduce((acc, [idx, qty]) => {
