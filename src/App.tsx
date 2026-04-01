@@ -443,31 +443,22 @@ function AppInner() {
           <>
             <div className="mb-3 flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-gray-900 truncate">{String(menuResult.restaurantName || 'Menu')}</h2>
-                  <button 
-                    onClick={() => setShowDebug(true)}
-                    className="shrink-0 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded font-mono hover:bg-slate-200"
-                  >
-                    DEBUG
-                  </button>
+                <h2 className="font-bold text-gray-900 truncate">{String(menuResult.restaurantName || 'Menu').replace(/\[Native\]\s?|\[Cloud\]\s?/g, '')}</h2>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <span>{menuResult.items.length} {t('result.dishes')}</span>
+                  <span>·</span>
+                  <button onClick={() => { setScanMode('receipt'); handleAnalyze(); }} className="text-blue-500 hover:underline">收據</button>
+                  <button onClick={() => { setScanMode('general'); handleAnalyze(); }} className="text-slate-500 hover:underline">萬用</button>
                 </div>
-                <p className="text-xs text-gray-400">{menuResult.items.length} {t('result.dishes')}</p>
               </div>
-              <div className="flex items-center gap-2 ml-2">
-                <button onClick={handleShareMenu} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600" title="分享菜單">
-                  <Share2 size={16} />
+              <div className="flex items-center gap-1.5 ml-2">
+                <button onClick={handleShareMenu} className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500">
+                  <Share2 size={14} />
                 </button>
-                <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium whitespace-nowrap">
+                <button onClick={handleGoHome} className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
                   {t('result.newScan')}
                 </button>
               </div>
-            </div>
-            {/* Wrong mode? Re-analyze */}
-            <div className="mb-3 flex items-center gap-1 text-xs text-gray-400">
-              <span>不對？改用</span>
-              <button onClick={() => { setScanMode('receipt'); handleAnalyze(); }} className="px-2 py-0.5 bg-blue-50 text-blue-500 rounded-full font-medium hover:bg-blue-100">收據翻譯</button>
-              <button onClick={() => { setScanMode('general'); handleAnalyze(); }} className="px-2 py-0.5 bg-slate-50 text-slate-500 rounded-full font-medium hover:bg-slate-100">萬用翻譯</button>
             </div>
             <MenuResults
               items={menuResult.items}
@@ -491,16 +482,17 @@ function AppInner() {
         ) : receiptResult ? (
           /* Receipt results */
           <>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">{String(t('result.receipt'))}</h2>
-              <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-gray-900">{String(t('result.receipt'))}</h2>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <button onClick={() => { setScanMode('menu'); handleAnalyze(); }} className="text-orange-500 hover:underline">菜單</button>
+                  <button onClick={() => { setScanMode('general'); handleAnalyze(); }} className="text-slate-500 hover:underline">萬用</button>
+                </div>
+              </div>
+              <button onClick={handleGoHome} className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
                 {t('result.newScan')}
               </button>
-            </div>
-            <div className="mb-3 flex items-center gap-1 text-xs text-gray-400">
-              <span>不對？改用</span>
-              <button onClick={() => { setScanMode('menu'); handleAnalyze(); }} className="px-2 py-0.5 bg-orange-50 text-orange-500 rounded-full font-medium hover:bg-orange-100">菜單翻譯</button>
-              <button onClick={() => { setScanMode('general'); handleAnalyze(); }} className="px-2 py-0.5 bg-slate-50 text-slate-500 rounded-full font-medium hover:bg-slate-100">萬用翻譯</button>
             </div>
             <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} homeCurrency={settings.homeCurrency} />
             <div className="mt-4">
@@ -510,16 +502,17 @@ function AppInner() {
         ) : generalResult ? (
           /* General/Sign/Fortune results */
           <>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">{String(t('result.translation'))}</h2>
-              <button onClick={handleGoHome} className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-gray-900">{String(t('result.translation'))}</h2>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <button onClick={() => { setScanMode('menu'); handleAnalyze(); }} className="text-orange-500 hover:underline">菜單</button>
+                  <button onClick={() => { setScanMode('receipt'); handleAnalyze(); }} className="text-blue-500 hover:underline">收據</button>
+                </div>
+              </div>
+              <button onClick={handleGoHome} className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 font-medium">
                 {t('result.newScan')}
               </button>
-            </div>
-            <div className="mb-3 flex items-center gap-1 text-xs text-gray-400">
-              <span>不對？改用</span>
-              <button onClick={() => { setScanMode('menu'); handleAnalyze(); }} className="px-2 py-0.5 bg-orange-50 text-orange-500 rounded-full font-medium hover:bg-orange-100">菜單翻譯</button>
-              <button onClick={() => { setScanMode('receipt'); handleAnalyze(); }} className="px-2 py-0.5 bg-blue-50 text-blue-500 rounded-full font-medium hover:bg-blue-100">收據翻譯</button>
             </div>
             <GeneralView data={generalResult} />
             <div className="mt-4">

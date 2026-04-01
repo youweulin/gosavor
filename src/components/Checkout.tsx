@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, PlayCircle, Users, Minus, Plus, Check, Mic, MicOff, MessageCircle } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { MenuItem, OrderItem, SplitInfo } from '../types';
@@ -168,7 +168,7 @@ const Checkout = ({
   };
 
   // Listen to staff speaking Japanese
-  const lastHeardRef = { current: '' };
+  const lastHeardRef = useRef('');
 
   const toggleListening = async () => {
     if (isListening) {
@@ -210,50 +210,44 @@ const Checkout = ({
   };
   const userLangCode = userLangMap[targetLanguage] || 'zh-TW';
 
+  const userHeardRef = useRef('');
+  const [userSaid, setUserSaid] = useState('');
+
   const handleSpeakToStaff = async () => {
     if (isSpeakingToStaff) {
       await stopListening();
       setIsSpeakingToStaff(false);
-      return;
-    }
-    setIsSpeakingToStaff(true);
-    try {
-      await startListening(userLangCode, async (text, isFinal) => {
-        if (isFinal && text.trim()) {
-          setIsSpeakingToStaff(false);
-          // Translate user's language → Japanese
-          const appleToLang: Record<string, string> = {
-            'zh-TW': 'zh-Hant', 'zh-CN': 'zh-Hans', 'en-US': 'en',
-            'ko-KR': 'ko', 'th-TH': 'th', 'vi-VN': 'vi',
-            'fr-FR': 'fr', 'es-ES': 'es', 'de-DE': 'de',
-          };
-          const fromCode = appleToLang[userLangCode] || 'zh-Hant';
-          let translated = '';
-          if (Capacitor.isNativePlatform()) {
-            try {
-              const { default: NS } = await import('../services/NativeSpeech');
-              const res = await NS.translate({ text, from: fromCode, to: 'ja' });
-              if (res.translated && res.engine === 'apple') translated = res.translated;
-            } catch { /* fallback below */ }
-          }
-          if (!translated && apiKey) {
-            try {
-              const { GoogleGenAI } = await import('@google/genai');
-              const ai = new GoogleGenAI({ apiKey });
-              const res = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `Translate to natural Japanese. Return ONLY Japanese:\n${text}`,
-                config: { thinkingConfig: { thinkingBudget: 0 } },
-              });
-              translated = res.text?.trim() || '';
-            } catch { /* ignore */ }
-          }
+      const text = userHeardRef.current.trim();
+      if (text && apiKey) {
+        setUserSaid(text);
+        // Translate to Japanese using Gemini
+        try {
+          const { GoogleGenAI } = await import('@google/genai');
+          const ai = new GoogleGenAI({ apiKey });
+          const res = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Translate to natural Japanese. Return ONLY Japanese:\n${text}`,
+            config: { thinkingConfig: { thinkingBudget: 0 } },
+          });
+          const translated = res.text?.trim() || '';
           if (translated) {
-            // Speak the Japanese translation
             await speakText(translated, 'ja-JP', 0.45);
             setChatLog(prev => [...prev, { role: 'you', ja: translated, translated: text }]);
+            setStaffSaid(''); // clear old staff message
+            setStaffTranslated('');
           }
-        }
+        } catch { /* ignore */ }
+      }
+      userHeardRef.current = '';
+      return;
+    }
+    userHeardRef.current = '';
+    setUserSaid('');
+    setIsSpeakingToStaff(true);
+    try {
+      await startListening(userLangCode, (text) => {
+        userHeardRef.current = text;
+        setUserSaid(text);
       });
     } catch {
       setIsSpeakingToStaff(false);
@@ -508,13 +502,20 @@ const Checkout = ({
                     </button>
                   </div>
 
-                  {/* Translation result — shows below buttons */}
+                  {/* Translation results — shows below buttons */}
                   {staffSaid && (
                     <div className="p-3 bg-gray-800 rounded-xl">
-                      <p className="text-sm font-bold text-white">{staffSaid}</p>
+                      <p className="text-[10px] text-gray-500 mb-1">🇯🇵 店員：</p>
+                      <p className="text-base font-bold text-white">{staffSaid}</p>
                       {staffTranslated && (
-                        <p className="text-sm font-bold text-orange-400 mt-1">→ {staffTranslated}</p>
+                        <p className="text-base font-bold text-orange-400 mt-1">→ {staffTranslated}</p>
                       )}
+                    </div>
+                  )}
+                  {userSaid && (
+                    <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+                      <p className="text-[10px] text-gray-500 mb-1">🗣 你說：</p>
+                      <p className="text-base font-bold text-orange-400">{userSaid}</p>
                     </div>
                   )}
                 </div>
