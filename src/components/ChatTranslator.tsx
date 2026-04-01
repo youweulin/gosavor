@@ -232,8 +232,8 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
                 ? 'bg-[#5B9BD5] text-white rounded-br-sm'
                 : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm shadow-sm'
             }`}>
-              <p className="text-sm">{msg.original}</p>
-              <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
+              <p className="text-sm font-medium">{msg.original}</p>
+              <p className={`text-sm mt-1.5 ${msg.role === 'user' ? 'text-white font-bold' : 'text-orange-600 font-bold'}`}>
                 → {msg.translated}
               </p>
               <button
