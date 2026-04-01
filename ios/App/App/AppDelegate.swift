@@ -15,7 +15,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             if let vc = self.window?.rootViewController as? CAPBridgeViewController {
                 vc.bridge?.registerPluginInstance(VisionOCRPlugin())
                 vc.bridge?.registerPluginInstance(NativeSpeechPlugin())
-                print("[GoSavor] ✅ VisionOCRPlugin registered via AppDelegate!")
+                if #available(iOS 16.0, *) {
+                    vc.bridge?.registerPluginInstance(LiveTranslatePlugin())
+                }
+                print("[GoSavor] ✅ All plugins registered via AppDelegate!")
             } else {
                 print("[GoSavor] ❌ Could not find CAPBridgeViewController")
             }

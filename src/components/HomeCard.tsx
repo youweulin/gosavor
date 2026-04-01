@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, Thermometer } from 'lucide-react';
+import { MapPin, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, ScanEye } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { startLiveTranslate } from '../services/LiveTranslate';
 import { useT } from '../i18n/context';
 
 interface WeatherData {
@@ -130,6 +132,17 @@ const HomeCard = () => {
           </div>
         )}
       </div>
+
+      {/* Live Translate button — iOS only */}
+      {Capacitor.isNativePlatform() && (
+        <button
+          onClick={() => startLiveTranslate().catch(e => console.warn('LiveTranslate:', e))}
+          className="mt-3 w-full py-2.5 bg-white/80 hover:bg-white rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-orange-600 border border-orange-200 transition-colors"
+        >
+          <ScanEye size={18} />
+          即時翻譯（對準即翻）
+        </button>
+      )}
     </div>
   );
 };

@@ -375,3 +375,195 @@ struct TranslationHostView: View {
             }
     }
 }
+
+// MARK: - LiveTranslate Plugin (AR-like real-time translation)
+import VisionKit
+
+@available(iOS 16.0, *)
+@objc(LiveTranslatePlugin)
+public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "LiveTranslatePlugin"
+    public let jsName = "LiveTranslate"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise)
+    ]
+
+    private var scannerVC: DataScannerViewController?
+    private var translationSession: Any? // TranslationSession (iOS 18+)
+
+    override public func load() {
+        print("[GoSavor] ✅ LiveTranslatePlugin loaded!")
+    }
+
+    @objc func isSupported(_ call: CAPPluginCall) {
+        let supported = DataScannerViewController.isSupported && DataScannerViewController.isAvailable
+        call.resolve(["supported": supported])
+    }
+
+    @objc func start(_ call: CAPPluginCall) {
+        let targetLang = call.getString("targetLang") ?? "zh-Hant"
+
+        guard DataScannerViewController.isSupported && DataScannerViewController.isAvailable else {
+            call.reject("DataScanner not supported on this device")
+            return
+        }
+
+        DispatchQueue.main.async {
+            let scanner = DataScannerViewController(
+                recognizedDataTypes: [.text()],
+                qualityLevel: .accurate,
+                recognizesMultipleItems: true,
+                isHighFrameRateTrackingEnabled: true,
+                isHighlightingEnabled: true
+            )
+
+            scanner.delegate = self
+
+            // Add close button overlay
+            let closeButton = UIButton(type: .system)
+            closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+            closeButton.tintColor = .white
+            closeButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            closeButton.layer.cornerRadius = 22
+            closeButton.frame = CGRect(x: 20, y: 60, width: 44, height: 44)
+            closeButton.addTarget(self, action: #selector(self.closeScannerTapped), for: .touchUpInside)
+            scanner.view.addSubview(closeButton)
+
+            // Add "Live Translate" label
+            let label = UILabel()
+            label.text = "📷 即時翻譯"
+            label.textColor = .white
+            label.font = .boldSystemFont(ofSize: 16)
+            label.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            label.layer.cornerRadius = 12
+            label.clipsToBounds = true
+            label.textAlignment = .center
+            label.frame = CGRect(x: (UIScreen.main.bounds.width - 140) / 2, y: 60, width: 140, height: 36)
+            scanner.view.addSubview(label)
+
+            // Add translation overlay label at bottom
+            let translationLabel = UILabel()
+            translationLabel.tag = 999
+            translationLabel.numberOfLines = 0
+            translationLabel.textColor = .white
+            translationLabel.font = .boldSystemFont(ofSize: 18)
+            translationLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+            translationLabel.layer.cornerRadius = 16
+            translationLabel.clipsToBounds = true
+            translationLabel.textAlignment = .center
+            let bottomY = UIScreen.main.bounds.height - 200
+            translationLabel.frame = CGRect(x: 20, y: bottomY, width: UIScreen.main.bounds.width - 40, height: 120)
+            translationLabel.text = "對準文字自動翻譯..."
+            scanner.view.addSubview(translationLabel)
+
+            self.scannerVC = scanner
+
+            // Setup translation session for iOS 18+
+            if #available(iOS 18.0, *) {
+                self.setupTranslation(targetLang: targetLang)
+            }
+
+            // Present scanner
+            if let rootVC = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .flatMap({ $0.windows })
+                .first(where: { $0.isKeyWindow })?.rootViewController {
+                rootVC.present(scanner, animated: true) {
+                    try? scanner.startScanning()
+                    print("[GoSavor] 📷 LiveTranslate started")
+                }
+            }
+
+            call.resolve(["success": true])
+        }
+    }
+
+    @objc func stop(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            self.scannerVC?.stopScanning()
+            self.scannerVC?.dismiss(animated: true)
+            self.scannerVC = nil
+            print("[GoSavor] 📷 LiveTranslate stopped")
+            call.resolve(["success": true])
+        }
+    }
+
+    @objc private func closeScannerTapped() {
+        scannerVC?.stopScanning()
+        scannerVC?.dismiss(animated: true)
+        scannerVC = nil
+        notifyListeners("liveTranslateClosed", data: [:])
+    }
+
+    @available(iOS 18.0, *)
+    private func setupTranslation(targetLang: String) {
+        // We'll use the TranslationBridge for translation
+        print("[GoSavor] Translation target: \(targetLang)")
+    }
+
+    private func translateAndDisplay(text: String) {
+        guard !text.isEmpty else { return }
+
+        if #available(iOS 18.0, *) {
+            Task { @MainActor in
+                let bridge = TranslationBridge()
+                do {
+                    let result = try await bridge.translate(
+                        text: text,
+                        from: Locale.Language(identifier: "ja"),
+                        to: Locale.Language(identifier: "zh-Hant")
+                    )
+                    // Update the overlay label
+                    if let label = self.scannerVC?.view.viewWithTag(999) as? UILabel {
+                        label.text = "\(text)\n→ \(result)"
+                    }
+                    print("[GoSavor] 📷 Live: \(text.prefix(20)) → \(result.prefix(20))")
+                } catch {
+                    print("[GoSavor] 📷 Translation error: \(error)")
+                    if let label = self.scannerVC?.view.viewWithTag(999) as? UILabel {
+                        label.text = text
+                    }
+                }
+            }
+        } else {
+            // iOS < 18: just show original text
+            DispatchQueue.main.async {
+                if let label = self.scannerVC?.view.viewWithTag(999) as? UILabel {
+                    label.text = text
+                }
+            }
+        }
+    }
+}
+
+@available(iOS 16.0, *)
+extension LiveTranslatePlugin: DataScannerViewControllerDelegate {
+    public func dataScanner(_ dataScanner: DataScannerViewController, didAdd addedItems: [RecognizedItem], allItems: [RecognizedItem]) {
+        // Collect all text items
+        let texts = allItems.compactMap { item -> String? in
+            if case .text(let text) = item {
+                return text.transcript
+            }
+            return nil
+        }
+        let combined = texts.joined(separator: "\n")
+        if !combined.isEmpty {
+            translateAndDisplay(text: combined)
+        }
+    }
+
+    public func dataScanner(_ dataScanner: DataScannerViewController, didUpdate updatedItems: [RecognizedItem], allItems: [RecognizedItem]) {
+        let texts = allItems.compactMap { item -> String? in
+            if case .text(let text) = item {
+                return text.transcript
+            }
+            return nil
+        }
+        let combined = texts.joined(separator: "\n")
+        if !combined.isEmpty {
+            translateAndDisplay(text: combined)
+        }
+    }
+}
