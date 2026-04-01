@@ -160,7 +160,25 @@ const Checkout = ({
       const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
 
       let translated = '';
-      if (apiKey) {
+
+      // Try Apple Translate with 5s timeout
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const fromLang = hasKana ? 'ja' : 'zh-Hant';
+          const toLang = hasKana ? 'zh-Hant' : 'ja';
+          const appleResult = await Promise.race([
+            NativeSpeechPlugin.translate({ text, from: fromLang, to: toLang }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+          ]);
+          if (appleResult?.translated && appleResult?.engine === 'apple') {
+            translated = appleResult.translated;
+            console.log('[GoSavor] ✅ Apple Translate in checkout:', text.substring(0, 15), '→', translated.substring(0, 15));
+          }
+        } catch { /* fallback below */ }
+      }
+
+      // Gemini fallback
+      if (!translated && apiKey) {
         const targetLang = hasKana ? targetLanguage : 'Japanese';
         const { GoogleGenAI } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey });
@@ -170,6 +188,7 @@ const Checkout = ({
           config: { thinkingConfig: { thinkingBudget: 0 } },
         });
         translated = res.text?.trim() || '';
+        console.log('[GoSavor] Gemini fallback in checkout');
       }
       setMiniTranslateResult({ original: text, ja: translated || '(翻譯失敗)' });
       setMiniTranslateInput('');
