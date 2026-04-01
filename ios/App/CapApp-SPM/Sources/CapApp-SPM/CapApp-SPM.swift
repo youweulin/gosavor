@@ -4,7 +4,8 @@ import Vision
 import UIKit
 import AVFoundation
 import Speech
-// Translation framework requires SwiftUI — using Gemini fallback for now
+import SwiftUI
+import Translation
 
 public let isCapacitorApp = true
 
@@ -261,9 +262,100 @@ public class NativeSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Missing text")
             return
         }
-        // Apple Translation framework is SwiftUI-only (needs .translationTask modifier)
-        // For now, return empty and let JS fallback to Gemini
-        print("[GoSavor] translate called: \(text.prefix(30))... (delegating to Gemini)")
-        call.resolve(["translated": "", "engine": "unavailable"])
+        let from = call.getString("from") ?? "ja"
+        let to = call.getString("to") ?? "zh-Hant"
+
+        print("[GoSavor] 🌐 translate: \(text.prefix(30))... (\(from)→\(to))")
+
+        if #available(iOS 18.0, *) {
+            Task { @MainActor in
+                do {
+                    let sourceLang = Locale.Language(identifier: from)
+                    let targetLang = Locale.Language(identifier: to)
+
+                    // Create a hidden SwiftUI view with .translationTask
+                    let translator = TranslationBridge()
+                    let result = try await translator.translate(text: text, from: sourceLang, to: targetLang)
+                    print("[GoSavor] ✅ Apple Translate: \(text.prefix(20))... → \(result.prefix(20))...")
+                    call.resolve(["translated": result, "engine": "apple"])
+                } catch {
+                    print("[GoSavor] ❌ Apple Translate error: \(error)")
+                    call.resolve(["translated": "", "engine": "failed"])
+                }
+            }
+        } else {
+            print("[GoSavor] Apple Translate needs iOS 18+")
+            call.resolve(["translated": "", "engine": "unavailable"])
+        }
+    }
+}
+
+// MARK: - SwiftUI Bridge for Apple Translation
+// TranslationSession can only be created via .translationTask SwiftUI modifier
+// So we embed a hidden SwiftUI view in UIKit to access it
+
+@available(iOS 18.0, *)
+class TranslationBridge {
+    func translate(text: String, from: Locale.Language, to: Locale.Language) async throws -> String {
+        return try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.main.async {
+                let view = TranslationHostView(
+                    sourceText: text,
+                    sourceLang: from,
+                    targetLang: to
+                ) { result in
+                    continuation.resume(returning: result)
+                } onError: { error in
+                    continuation.resume(throwing: error)
+                }
+
+                let hostingController = UIHostingController(rootView: view)
+                hostingController.view.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+                hostingController.view.isHidden = true
+
+                // Add to key window temporarily
+                if let window = UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .flatMap({ $0.windows })
+                    .first(where: { $0.isKeyWindow }) {
+                    window.addSubview(hostingController.view)
+
+                    // Clean up after 10 seconds max
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                        hostingController.view.removeFromSuperview()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+struct TranslationHostView: View {
+    let sourceText: String
+    let sourceLang: Locale.Language
+    let targetLang: Locale.Language
+    let onSuccess: (String) -> Void
+    let onError: (Error) -> Void
+
+    @State private var config: TranslationSession.Configuration?
+
+    var body: some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .translationTask(config) { session in
+                do {
+                    let response = try await session.translate(sourceText)
+                    onSuccess(response.targetText)
+                } catch {
+                    onError(error)
+                }
+            }
+            .onAppear {
+                config = TranslationSession.Configuration(
+                    source: sourceLang,
+                    target: targetLang
+                )
+            }
     }
 }

@@ -361,7 +361,7 @@ function AppInner() {
             {/* Show recommendations while analyzing */}
             {isAnalyzing && (
               <div className="mt-4">
-                <RecommendCards recommendations={getRecommendations(scanMode)} context="loading" />
+                <RecommendCards loadProducts={() => getRecommendations(scanMode)} context="loading" />
               </div>
             )}
             {images.length === 0 && !isAnalyzing && (
@@ -409,7 +409,7 @@ function AppInner() {
             />
             {/* Affiliate recommendations */}
             <div className="mt-4">
-              <RecommendCards recommendations={getRecommendations('menu', menuResult.restaurantName)} />
+              <RecommendCards loadProducts={() => getRecommendations('menu', menuResult.restaurantName)} />
             </div>
           </>
         ) : receiptResult ? (
@@ -423,7 +423,7 @@ function AppInner() {
             </div>
             <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} homeCurrency={settings.homeCurrency} />
             <div className="mt-4">
-              <RecommendCards recommendations={getRecommendations('receipt', receiptResult.merchantName)} />
+              <RecommendCards loadProducts={() => getRecommendations('receipt', receiptResult.merchantName)} />
             </div>
           </>
         ) : generalResult ? (
@@ -437,7 +437,7 @@ function AppInner() {
             </div>
             <GeneralView data={generalResult} />
             <div className="mt-4">
-              <RecommendCards recommendations={getRecommendations('general', undefined, generalResult.locationGuess)} />
+              <RecommendCards loadProducts={() => getRecommendations('general', undefined, generalResult.locationGuess)} />
             </div>
           </>
         ) : null}
