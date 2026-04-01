@@ -87,34 +87,120 @@ const getTimeCategory = (): 'morning' | 'afternoon' | 'evening' | 'night' => {
 
 // === High-conversion curated products per region ===
 // These are manually picked best-sellers that actually convert
+const C = (id: string, title: string, cat: Product['category'], region: string, emoji: string, reason: string): Product =>
+  ({ id, platform: 'klook', title, url: '', category: cat, region, emoji, reason });
+
 const CURATED: Record<string, Product[]> = {
   Tokyo: [
-    { id: '601', platform: 'klook', title: '富士山箱根一日遊', url: '', category: 'tour', region: 'Tokyo', emoji: '🗻', reason: '東京最熱門一日遊' },
-    { id: '100861', platform: 'klook', title: '日本 eSIM 上網卡', url: '', category: 'transport', region: 'Tokyo', emoji: '📶', reason: '旅遊必備' },
-    { id: '2282', platform: 'klook', title: 'teamLab Planets 門票', url: '', category: 'ticket', region: 'Tokyo', emoji: '🎨', reason: '東京必去景點' },
-    { id: '4708', platform: 'klook', title: '東京晴空塔門票', url: '', category: 'ticket', region: 'Tokyo', emoji: '🗼', reason: '東京地標' },
-    { id: '6498', platform: 'klook', title: '東京迪士尼門票', url: '', category: 'ticket', region: 'Tokyo', emoji: '🏰', reason: '親子必去' },
-    { id: '1551', platform: 'klook', title: '淺草和服體驗', url: '', category: 'food', region: 'Tokyo', emoji: '👘', reason: '文化體驗' },
+    // 門票
+    C('695', '東京迪士尼樂園/海洋門票', 'ticket', 'Tokyo', '🏰', '親子必去・即買即用'),
+    C('2276', '三麗鷗彩虹樂園門票', 'ticket', 'Tokyo', '🎀', 'Hello Kitty 粉絲必去'),
+    C('4911', '東京鐵塔瞭望台門票', 'ticket', 'Tokyo', '🗼', '東京地標・夜景超美'),
+    C('5609', '品川水族館門票', 'ticket', 'Tokyo', '🐬', '品川站旁・親子推薦'),
+    C('5563', '東京樂高樂園門票', 'ticket', 'Tokyo', '🧱', '親子室內景點'),
+    // 一日遊
+    C('601', '富士山箱根一日遊', 'tour', 'Tokyo', '🗻', '東京最熱門一日遊'),
+    C('20405', '日光東照宮＆華嚴瀑布一日遊', 'tour', 'Tokyo', '⛩️', '世界遺產一日遊'),
+    C('7891', '橫濱八景島海島樂園', 'tour', 'Tokyo', '🎡', '橫濱親子一日遊'),
+    // 體驗
+    C('2125', '淺草和服租賃＆攝影', 'food', 'Tokyo', '👘', '淺草文化體驗'),
+    C('8318', '淺草和服體驗（站前店）', 'food', 'Tokyo', '👘', '淺草站前・方便'),
+    // 交通
+    C('1552', '東京地鐵一日/二日/三日券', 'transport', 'Tokyo', '🚇', '省交通費必備'),
+    C('1420', 'JR Pass 全日本鐵路通票', 'transport', 'Tokyo', '🚄', '跨城市必備'),
+    C('1418', 'JR Pass 東日本鐵路周遊券', 'transport', 'Tokyo', '🚃', '東日本旅遊'),
+    C('9985', '箱根鎌倉周遊券', 'transport', 'Tokyo', '🎫', '箱根鎌倉一票到底'),
   ],
   Kansai: [
-    { id: '2618', platform: 'klook', title: '大阪環球影城門票', url: '', category: 'ticket', region: 'Kansai', emoji: '🎢', reason: '大阪必去' },
-    { id: '4191', platform: 'klook', title: '京都嵐山竹林一日遊', url: '', category: 'tour', region: 'Kansai', emoji: '🎋', reason: '京都經典' },
-    { id: '5765', platform: 'klook', title: '大阪周遊卡', url: '', category: 'transport', region: 'Kansai', emoji: '🚃', reason: '省交通費必備' },
-    { id: '3027', platform: 'klook', title: '京都和服租借', url: '', category: 'food', region: 'Kansai', emoji: '👘', reason: '京都必體驗' },
-    { id: '5032', platform: 'klook', title: '奈良東大寺+餵鹿', url: '', category: 'tour', region: 'Kansai', emoji: '🦌', reason: '可愛小鹿' },
-    { id: '7228', platform: 'klook', title: '大阪道頓堀美食導覽', url: '', category: 'food', region: 'Kansai', emoji: '🍜', reason: '在地美食' },
+    // 門票
+    C('598', '大阪海遊館門票', 'ticket', 'Kansai', '🐠', '大阪親子必去'),
+    C('2424', '阿倍野展望台 HARUKAS 300', 'ticket', 'Kansai', '🌃', '大阪最高展望台'),
+    C('1464', '京都塔門票', 'ticket', 'Kansai', '🗼', '京都地標'),
+    // 一日遊
+    C('3208', '伏見稻荷＆嵐山＆清水寺＆金閣寺一日遊', 'tour', 'Kansai', '⛩️', '京都經典全包'),
+    C('2602', '六甲山＆有馬溫泉＆神戶三田 Outlets 一日遊', 'tour', 'Kansai', '♨️', '溫泉＋購物'),
+    // 體驗
+    C('1079', '京都和服租借（夢館）', 'food', 'Kansai', '👘', '京都最人氣和服店'),
+    C('2826', '京都和服＆日式妝容＆拍攝', 'food', 'Kansai', '📸', '含攝影服務'),
+    // 交通
+    C('1512', '阪急 Tourist Pass', 'transport', 'Kansai', '🚃', '大阪京都神戶通用'),
+    C('2969', 'JR Pass 高山北陸地區周遊券', 'transport', 'Kansai', '🚄', '白川鄉必備'),
+    C('1420', 'JR Pass 全日本鐵路通票', 'transport', 'Kansai', '🚄', '跨城市必備'),
   ],
   Hokkaido: [
-    { id: '8823', platform: 'klook', title: '小樽運河巡禮', url: '', category: 'tour', region: 'Hokkaido', emoji: '🏔', reason: '北海道經典' },
-    { id: '12055', platform: 'klook', title: '旭山動物園門票', url: '', category: 'ticket', region: 'Hokkaido', emoji: '🐧', reason: '親子推薦' },
+    // 門票
+    C('1304', '札幌電視塔觀景台門票', 'ticket', 'Hokkaido', '🗼', '札幌地標'),
+    C('14477', 'JR 塔展望室 T38 門票', 'ticket', 'Hokkaido', '🌃', '札幌夜景'),
+    C('14723', '登別尼克斯海洋公園門票', 'ticket', 'Hokkaido', '🐧', '海洋動物表演'),
+    C('37463', '千歲水族館門票', 'ticket', 'Hokkaido', '🐟', '新千歲機場旁'),
+    // 一日遊
+    C('4160', '旭山動物園＆精靈露臺＆美瑛一日遊', 'tour', 'Hokkaido', '🦊', '北海道最熱門一日遊'),
+    C('15633', '旭山動物園＆美瑛雪樂園一日遊', 'tour', 'Hokkaido', '⛄', '冬季限定'),
+    C('21262', '札幌旭山動物園＆美瑛自然之旅', 'tour', 'Hokkaido', '🏔', '自然風光'),
+    // 體驗
+    C('10139', '札幌美月櫻和服體驗', 'food', 'Hokkaido', '👘', '札幌和服'),
+    C('15668', '蟹本家螃蟹料理（札幌站前）', 'food', 'Hokkaido', '🦀', '北海道必吃螃蟹'),
+    // 交通
+    C('3067', '北海道 JR Pass 鐵路周遊券', 'transport', 'Hokkaido', '🚃', '北海道交通必備'),
+    C('1420', 'JR Pass 全日本鐵路通票', 'transport', 'Hokkaido', '🚄', '跨城市必備'),
   ],
   Kyushu: [
-    { id: '9234', platform: 'klook', title: '別府地獄溫泉巡禮', url: '', category: 'tour', region: 'Kyushu', emoji: '♨️', reason: '九州溫泉之旅' },
-    { id: '15032', platform: 'klook', title: '由布院一日遊', url: '', category: 'tour', region: 'Kyushu', emoji: '🌿', reason: '九州最美小鎮' },
+    // 門票
+    C('19854', '福岡塔門票', 'ticket', 'Kyushu', '🗼', '福岡地標'),
+    C('22209', '大分海洋宮殿水族館門票', 'ticket', 'Kyushu', '🐠', '大分親子景點'),
+    C('35833', '九州國立博物館門票', 'ticket', 'Kyushu', '🏛', '太宰府旁'),
+    C('37485', '城島高原公園門票', 'ticket', 'Kyushu', '🎢', '別府遊樂園'),
+    C('37696', '鹿兒島水族館門票', 'ticket', 'Kyushu', '🐬', '鹿兒島親子'),
+    // 一日遊（從資料看沒有直接的，用體驗替代）
+    // 體驗
+    C('1014', '福岡和服租借（太宰府/柳川）', 'food', 'Kyushu', '👘', '太宰府和服散步'),
+    C('36138', '熊本水前寺和服體驗', 'food', 'Kyushu', '👘', '熊本文化體驗'),
+    C('22549', '蟹本家螃蟹料理（福岡）', 'food', 'Kyushu', '🦀', '福岡必吃'),
+    // 交通
+    C('2371', 'JR Pass 全九州/南九州/北九州周遊券', 'transport', 'Kyushu', '🚃', '九州交通必備'),
+    C('28320', '九州 SUNQ PASS 巴士券', 'transport', 'Kyushu', '🚌', '巴士走遍九州'),
+    C('1420', 'JR Pass 全日本鐵路通票', 'transport', 'Kyushu', '🚄', '跨城市必備'),
   ],
   Okinawa: [
-    { id: '18900', platform: 'klook', title: '美麗海水族館門票', url: '', category: 'ticket', region: 'Okinawa', emoji: '🐠', reason: '沖繩必去' },
-    { id: '19550', platform: 'klook', title: '青之洞窟潛水體驗', url: '', category: 'food', region: 'Okinawa', emoji: '🤿', reason: '沖繩必玩' },
+    // 門票
+    C('1421', '美麗海水族館門票', 'ticket', 'Okinawa', '🐠', '沖繩必去No.1'),
+    C('8900', '美麗海水族館五合一套票', 'ticket', 'Okinawa', '🎫', '五景點一票搞定'),
+    C('13427', '琉球村門票', 'ticket', 'Okinawa', '🏯', '沖繩文化體驗'),
+    C('13582', '東南植物樂園門票', 'ticket', 'Okinawa', '🌴', '熱帶植物園'),
+    C('14671', '名護鳳梨園門票', 'ticket', 'Okinawa', '🍍', '鳳梨主題樂園'),
+    C('29033', '古宇利海洋塔門票', 'ticket', 'Okinawa', '🌊', '古宇利島地標'),
+    C('37791', '沖繩世界文化王國門票', 'ticket', 'Okinawa', '🦁', '鐘乳石洞＋文化村'),
+    // 一日遊
+    C('6489', '美之島觀光巴士一日遊', 'tour', 'Okinawa', '🚌', '那霸出發・輕鬆遊'),
+    C('19157', '美麗海水族館＆美國村之旅', 'tour', 'Okinawa', '🏖', '水族館＋購物'),
+    C('28134', '美麗海水族館一日遊巴士', 'tour', 'Okinawa', '🐋', '含交通最方便'),
+    // 體驗
+    C('6336', '沖繩浴衣＆和服租借', 'food', 'Okinawa', '👘', '沖繩風和服'),
+  ],
+  Nagoya: [
+    // 門票
+    C('1759', '名古屋港水族館門票', 'ticket', 'Nagoya', '🐬', '名古屋必去'),
+    // 一日遊
+    C('2598', '白川鄉＆飛驒高山巴士一日遊', 'tour', 'Nagoya', '🏔', '世界遺產合掌村'),
+    C('14117', '高山＆白川鄉一日遊（含飛驒牛午餐）', 'tour', 'Nagoya', '🥩', '含和牛午餐'),
+    C('121048', '白川鄉＆郡上八幡＆飛驒高山一日遊', 'tour', 'Nagoya', '⛩️', '三景點全包'),
+    // 美食
+    C('15649', '蟹本家螃蟹料理（名古屋站前）', 'food', 'Nagoya', '🦀', '名古屋必吃'),
+    // 交通
+    C('2969', 'JR Pass 高山北陸地區周遊券', 'transport', 'Nagoya', '🚄', '白川鄉必備'),
+    C('1420', 'JR Pass 全日本鐵路通票', 'transport', 'Nagoya', '🚄', '跨城市必備'),
+  ],
+  Tohoku: [
+    // 門票
+    C('43404', '仙台海洋森林水族館門票', 'ticket', 'Tohoku', '🐟', '仙台親子景點'),
+    C('92169', '會津若松城門票', 'ticket', 'Tohoku', '🏯', '東北名城'),
+    C('86491', '松島博物館門票', 'ticket', 'Tohoku', '🏛', '日本三景'),
+    // 一日遊
+    C('103016', '藏王狐狸村＆銀山溫泉一日遊', 'tour', 'Tohoku', '🦊', '超可愛狐狸村'),
+    C('93989', '鳴子峽紅葉＆銀山溫泉一日遊', 'tour', 'Tohoku', '🍁', '秋季限定'),
+    // 交通
+    C('9007', 'JR Pass 東北・南北海道周遊券', 'transport', 'Tohoku', '🚃', '東北交通必備'),
+    C('1420', 'JR Pass 全日本鐵路通票', 'transport', 'Tohoku', '🚄', '跨城市必備'),
   ],
 };
 
@@ -124,10 +210,11 @@ Object.values(CURATED).flat().forEach(p => {
 });
 
 // === Scan mode → category priority ===
+// 推「接下來想做的事」而不是「正在做的事」
 const SCAN_PRIORITIES: Record<string, Product['category'][]> = {
-  menu: ['food', 'ticket', 'tour'],       // 在餐廳 → 推美食體驗 > 景點 > 一日遊
-  receipt: ['shopping', 'ticket', 'tour'], // 在購物 → 推優惠 > 景點 > 一日遊
-  general: ['ticket', 'tour', 'food'],     // 在景點 → 推門票 > 一日遊 > 美食
+  menu: ['ticket', 'tour', 'food'],        // 在吃飯 → 推下午景點/體驗（和服、一日遊）
+  receipt: ['ticket', 'tour', 'food'],     // 在購物 → 推景點/體驗（逛完去玩）
+  general: ['food', 'tour', 'ticket'],     // 在景點 → 推美食/下一個行程
 };
 
 const TIME_BOOST: Record<string, Product['category'][]> = {
