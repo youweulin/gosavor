@@ -212,9 +212,9 @@ Object.values(CURATED).flat().forEach(p => {
 // === Scan mode → category priority ===
 // 推「接下來想做的事」而不是「正在做的事」
 const SCAN_PRIORITIES: Record<string, Product['category'][]> = {
-  menu: ['ticket', 'tour', 'food'],        // 在吃飯 → 推下午景點/體驗（和服、一日遊）
-  receipt: ['ticket', 'tour', 'food'],     // 在購物 → 推景點/體驗（逛完去玩）
-  general: ['food', 'tour', 'ticket'],     // 在景點 → 推美食/下一個行程
+  menu: ['ticket', 'tour', 'food'],        // 吃飽了 → 下午去景點/體驗
+  receipt: ['food', 'ticket', 'tour'],     // 買完藥妝 → 餓了找吃的/逛景點
+  general: ['food', 'tour', 'ticket'],     // 逛完景點 → 餓了找吃的/下一個行程
 };
 
 const TIME_BOOST: Record<string, Product['category'][]> = {
