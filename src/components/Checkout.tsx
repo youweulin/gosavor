@@ -4,7 +4,9 @@ import { Capacitor } from '@capacitor/core';
 import type { MenuItem, OrderItem, SplitInfo } from '../types';
 import { useT } from '../i18n/context';
 import { fetchRates, getCurrencyCode } from './CurrencyBar';
-import { speakText, startListening, stopListening, translateJapanese } from '../services/NativeSpeech';
+import { speakText, translateJapanese } from '../services/NativeSpeech';
+import { registerPlugin } from '@capacitor/core';
+const NativeSpeechPlugin = registerPlugin<any>('NativeSpeech');
 
 interface CheckoutProps {
   isVisible: boolean;
@@ -147,21 +149,40 @@ const Checkout = ({
     return translateJapanese(jaText, targetCode, apiKey);
   };
 
-  // Mini translator: user language → Japanese
+  // Mini translator: auto-detect → translate
   const handleMiniTranslate = async () => {
     const text = miniTranslateInput.trim();
     if (!text || isMiniTranslating) return;
     setIsMiniTranslating(true);
     try {
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey });
-      const res = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `Translate to Japanese. Only return the translation: "${text}"`,
-        config: { thinkingConfig: { thinkingBudget: 0 } },
-      });
-      const ja = res.text?.trim() || text;
-      setMiniTranslateResult({ original: text, ja });
+      // Detect if input is Japanese (has hiragana/katakana/kanji)
+      const isJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text) && !/[\u4e00-\u9fff]{2,}/.test(text.replace(/[\u3040-\u309F\u30A0-\u30FF]/g, ''));
+      const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
+
+      let translated = '';
+      if (hasKana) {
+        // Japanese → user language (Apple Translate first)
+        translated = await translateJapanese(text, 'zh-Hant', apiKey);
+      } else {
+        // User language → Japanese (try Apple first, then Gemini)
+        if (Capacitor.isNativePlatform()) {
+          try {
+            const res = await NativeSpeechPlugin.translate({ text, from: 'zh-Hant', to: 'ja' });
+            if (res.translated && res.engine === 'apple') translated = res.translated;
+          } catch {}
+        }
+        if (!translated && apiKey) {
+          const { GoogleGenAI } = await import('@google/genai');
+          const ai = new GoogleGenAI({ apiKey });
+          const res = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Translate to Japanese. Only return the translation: "${text}"`,
+            config: { thinkingConfig: { thinkingBudget: 0 } },
+          });
+          translated = res.text?.trim() || '';
+        }
+      }
+      setMiniTranslateResult({ original: text, ja: translated || '(翻譯失敗)' });
       setMiniTranslateInput('');
     } catch {
       setMiniTranslateResult({ original: text, ja: '(翻譯失敗)' });
@@ -473,52 +494,37 @@ const Checkout = ({
                 </div>
               )}
 
-              {/* Voice buttons — same row */}
-              {isNative && (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
+              {/* Quick translate — type text, auto detect & translate */}
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    value={miniTranslateInput}
+                    onChange={e => setMiniTranslateInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleMiniTranslate()}
+                    placeholder="輸入中文或日文，自動翻譯..."
+                    className="flex-1 px-3 py-3 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={handleMiniTranslate}
+                    disabled={!miniTranslateInput.trim() || isMiniTranslating}
+                    className="px-4 py-3 bg-orange-500 rounded-xl text-white font-bold disabled:opacity-30"
+                  >
+                    {isMiniTranslating ? '...' : '翻譯'}
+                  </button>
+                </div>
+                {miniTranslateResult && (
+                  <div className="p-3 bg-gray-800 rounded-xl">
+                    <p className="text-sm font-bold text-orange-400">{miniTranslateResult.original}</p>
+                    <p className="text-base font-bold text-white mt-1">→ {miniTranslateResult.ja}</p>
                     <button
-                      onClick={toggleListening}
-                      className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                        isListening
-                          ? 'bg-red-500 animate-pulse'
-                          : 'bg-gray-700 hover:bg-gray-600'
-                      }`}
+                      onClick={() => speakCustom(miniTranslateResult.ja)}
+                      className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 hover:text-white"
                     >
-                      {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-                      🇯🇵 {isListening ? '停止' : '日語'}
-                    </button>
-                    <button
-                      onClick={handleSpeakToStaff}
-                      className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                        isSpeakingToStaff
-                          ? 'bg-red-500 animate-pulse'
-                          : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
-                      }`}
-                    >
-                      {isSpeakingToStaff ? <MicOff size={16} /> : <Mic size={16} />}
-                      🗣 {isSpeakingToStaff ? '停止' : '我說'}
+                      <PlayCircle size={14} /> 播放
                     </button>
                   </div>
-
-                  {/* Translation results — shows below buttons */}
-                  {staffSaid && (
-                    <div className="p-3 bg-gray-800 rounded-xl">
-                      <p className="text-[10px] text-gray-500 mb-1">🇯🇵 店員：</p>
-                      <p className="text-base font-bold text-white">{staffSaid}</p>
-                      {staffTranslated && (
-                        <p className="text-base font-bold text-orange-400 mt-1">→ {staffTranslated}</p>
-                      )}
-                    </div>
-                  )}
-                  {userSaid && (
-                    <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-                      <p className="text-[10px] text-gray-500 mb-1">🗣 你說：</p>
-                      <p className="text-base font-bold text-orange-400">{userSaid}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Actions */}
               <div className="grid grid-cols-2 gap-2">
