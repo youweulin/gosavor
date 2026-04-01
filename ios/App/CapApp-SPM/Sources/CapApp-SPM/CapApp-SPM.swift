@@ -136,16 +136,22 @@ public class NativeSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         let allVoices = AVSpeechSynthesisVoice.speechVoices()
         let langVoices = allVoices.filter { $0.language.starts(with: langPrefix) }
 
-        // Sort by quality (premium first, then enhanced, then default)
+        // Sort by quality (best available first)
         let sorted = langVoices.sorted { a, b in
-            let scoreA = a.quality == .premium ? 3 : a.quality == .enhanced ? 2 : 1
-            let scoreB = b.quality == .premium ? 3 : b.quality == .enhanced ? 2 : 1
-            return scoreA > scoreB
+            func score(_ v: AVSpeechSynthesisVoice) -> Int {
+                if #available(iOS 16.0, *) { if v.quality == .premium { return 3 } }
+                if v.quality == .enhanced { return 2 }
+                return 1
+            }
+            return score(a) > score(b)
         }
 
         if let best = sorted.first {
             utterance.voice = best
-            print("[GoSavor] 🔊 Voice: \(best.name) (\(best.quality == .premium ? "premium" : best.quality == .enhanced ? "enhanced" : "default"))")
+            var qualityName = "default"
+            if best.quality == .enhanced { qualityName = "enhanced" }
+            if #available(iOS 16.0, *) { if best.quality == .premium { qualityName = "premium" } }
+            print("[GoSavor] 🔊 Voice: \(best.name) (\(qualityName))")
         } else {
             utterance.voice = AVSpeechSynthesisVoice(language: lang)
             print("[GoSavor] 🔊 Fallback voice for \(lang)")
