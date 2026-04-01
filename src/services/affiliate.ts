@@ -333,6 +333,24 @@ const fetchFromAPI = async (region: string, category: string): Promise<Product[]
   }
 };
 
+// === Seen tracking — don't repeat recommendations ===
+const seenProductIds = new Set<string>();
+
+// === Area-specific keyword boost ===
+const AREA_KEYWORDS: Record<string, string[]> = {
+  'akihabara': ['動漫', 'アニメ', '電器', '秋葉原', 'anime', 'maid'],
+  'asakusa': ['和服', '淺草', '人力車', '雷門'],
+  'shibuya': ['渋谷', 'SKY', '展望'],
+  'harajuku': ['原宿', 'クレープ', '竹下'],
+  'odaiba': ['台場', 'teamLab', 'お台場'],
+  'ginza': ['銀座', '歌舞伎', '築地'],
+  'dotonbori': ['道頓堀', '章魚燒', 'たこ焼き'],
+  'arashiyama': ['嵐山', '竹林', '嵯峨'],
+  'fushimi': ['伏見', '稻荷', '千本鳥居'],
+  'gion': ['祇園', '舞妓', '花見小路'],
+  'hakata': ['博多', '屋台', 'ラーメン'],
+};
+
 // === Main: Smart Recommendation Engine ===
 export const getRecommendations = async (
   scanMode: string,
@@ -352,46 +370,70 @@ export const getRecommendations = async (
     const primaryCategory = priorities[0];
     const apiProducts = await fetchFromAPI(region, primaryCategory);
     if (apiProducts && apiProducts.length > 0) {
-      console.log(`[GoSavor Ads] API returned ${apiProducts.length} products`);
-      return apiProducts.slice(0, 3);
+      const unseen = apiProducts.filter(p => !seenProductIds.has(p.id));
+      if (unseen.length >= 2) {
+        unseen.slice(0, 2).forEach(p => seenProductIds.add(p.id));
+        return unseen.slice(0, 2);
+      }
     }
   }
 
-  // Step 2: Offline — mix Klook curated + KKDay dynamic
-  console.log(`[GoSavor Ads] Using offline: Klook curated + KKDay search`);
+  // Step 2: Offline — 1 Klook + 1 KKDay (only 2, less ad-like)
+  console.log(`[GoSavor Ads] Offline: 1 Klook + 1 KKDay`);
   const regionKey = region || 'Tokyo';
   const curated = CURATED[regionKey] || CURATED['Tokyo'];
 
   // Score Klook curated products
-  const scored = curated.map(product => {
-    let score = 0;
-    const catIndex = priorities.indexOf(product.category);
-    if (catIndex >= 0) score += (3 - catIndex) * 10;
-    if (timeBoost.includes(product.category)) score += 5;
-    score += Math.random() * 3;
-    return { product, score };
-  });
+  const areaBoost = area ? (AREA_KEYWORDS[area] || []) : [];
+
+  const scored = curated
+    .filter(p => !seenProductIds.has(p.id)) // skip already shown
+    .map(product => {
+      let score = 0;
+      // Category match with scan mode
+      const catIndex = priorities.indexOf(product.category);
+      if (catIndex >= 0) score += (3 - catIndex) * 10;
+      // Time boost
+      if (timeBoost.includes(product.category)) score += 5;
+      // Area keyword boost — if product title matches area keywords
+      if (areaBoost.length > 0 && areaBoost.some(kw => product.title.includes(kw))) {
+        score += 15; // strong boost for area-relevant products
+      }
+      // Randomness
+      score += Math.random() * 4;
+      return { product, score };
+    });
+
   scored.sort((a, b) => b.score - a.score);
 
-  // Pick 2 Klook + 1 KKDay (alternating platforms = more diverse)
-  const klookPicks = scored.slice(0, 2).map(s => ({
-    ...s.product,
-    reason: s.product.reason || `${label}推薦`,
-  }));
+  const results: Product[] = [];
 
-  // Get 1 KKDay product matching the primary category
-  const kkdayPicks = searchKKDay(region, priorities[0], 1);
-
-  const results = [...klookPicks, ...kkdayPicks];
-
-  // If not enough, fill with Fuse.js Klook search
-  if (results.length < 3) {
-    const searchQuery = `${label} ${priorities[0] === 'food' ? '美食 體驗' : '景點 門票'}`;
-    const extras = searchOffline(searchQuery, region, 3 - results.length);
-    results.push(...extras);
+  // Pick 1 best Klook
+  if (scored.length > 0) {
+    const pick = scored[0].product;
+    results.push({ ...pick, reason: pick.reason || `${label}推薦` });
+    seenProductIds.add(pick.id);
   }
 
-  return results.slice(0, 3);
+  // Pick 1 KKDay
+  const kkdayPicks = searchKKDay(region, priorities[0], 3)
+    .filter(p => !seenProductIds.has(p.id));
+  if (kkdayPicks.length > 0) {
+    results.push(kkdayPicks[0]);
+    seenProductIds.add(kkdayPicks[0].id);
+  }
+
+  // If still need 1 more (no KKDay match), fill from Klook
+  if (results.length < 2 && scored.length > 1) {
+    const extra = scored[1].product;
+    results.push({ ...extra, reason: extra.reason || `${label}推薦` });
+    seenProductIds.add(extra.id);
+  }
+
+  // Reset seen if we've shown too many (cycle back)
+  if (seenProductIds.size > 50) seenProductIds.clear();
+
+  return results.slice(0, 2);
 };
 
 // === Exports ===
