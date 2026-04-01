@@ -283,7 +283,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
           <button
             onClick={sendTextInput}
             disabled={!textInput.trim()}
-            className="p-2 bg-[#5B9BD5] rounded-xl text-white disabled:opacity-30"
+            className="p-2 bg-orange-500 rounded-xl text-white disabled:opacity-30"
           >
             <Send size={18} />
           </button>
@@ -296,7 +296,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
             className={`py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
               isListeningJa
                 ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
             }`}
           >
             {isListeningJa ? <MicOff size={16} /> : <Mic size={16} />}
@@ -307,7 +307,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
             className={`py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
               isListeningUser
                 ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-blue-50 text-[#5B9BD5] hover:bg-blue-100'
+                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
             }`}
           >
             {isListeningUser ? <MicOff size={16} /> : <Mic size={16} />}
