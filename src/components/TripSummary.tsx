@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera, UtensilsCrossed, Receipt, Wallet, Calendar } from 'lucide-react';
+import { UtensilsCrossed, Receipt, Languages, MessageCircle, Wallet, Calendar } from 'lucide-react';
 import type { SavedScan, Expense } from '../types';
 import { getScanHistory, getExpenses } from '../services/storage';
 
@@ -42,10 +42,14 @@ const TripSummary = ({ homeCurrency }: TripSummaryProps) => {
       ? `${currency}${formatted}` : `${formatted} ${currency}`;
   };
 
+  // TODO: track conversation count in localStorage
+  const chatCount = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
+
   const stats = [
-    { icon: Camera, value: totalScans, label: '次掃描', color: 'text-orange-500', bg: 'bg-orange-50' },
-    { icon: UtensilsCrossed, value: menuScans, label: '餐', color: 'text-orange-500', bg: 'bg-orange-50' },
-    { icon: Receipt, value: receiptScans, label: '張收據', color: 'text-blue-500', bg: 'bg-blue-50' },
+    { icon: UtensilsCrossed, value: menuScans, label: '菜單翻譯', color: 'text-orange-500', bg: 'bg-orange-50' },
+    { icon: Receipt, value: receiptScans, label: '收據翻譯', color: 'text-blue-500', bg: 'bg-blue-50' },
+    { icon: Languages, value: generalScans, label: '圖文翻譯', color: 'text-slate-600', bg: 'bg-slate-50' },
+    { icon: MessageCircle, value: chatCount, label: '對話翻譯', color: 'text-purple-500', bg: 'bg-purple-50' },
     { icon: Calendar, value: tripDays, label: '天', color: 'text-green-500', bg: 'bg-green-50' },
   ];
 
@@ -54,7 +58,7 @@ const TripSummary = ({ homeCurrency }: TripSummaryProps) => {
       <h3 className="text-sm font-bold text-gray-500 mb-3">🗾 這趟旅行</h3>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-4 gap-2 mb-3">
+      <div className="grid grid-cols-5 gap-1.5 mb-3">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (

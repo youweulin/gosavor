@@ -154,6 +154,9 @@ const Checkout = ({
         const translated = await translateText(finalText);
         setStaffTranslated(translated);
         setChatLog(prev => [...prev, { role: 'staff' as const, ja: finalText, translated }]);
+        // Increment chat count for trip stats
+        const count = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
+        localStorage.setItem('gosavor_chat_count', String(count + 1));
       }
       return;
     }
