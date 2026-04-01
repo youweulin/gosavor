@@ -227,27 +227,27 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl p-3 ${
+            <div className={`max-w-[85%] rounded-2xl p-4 ${
               msg.role === 'user'
                 ? 'bg-[#8CD790] rounded-br-sm'
                 : 'bg-white border border-gray-200 rounded-bl-sm shadow-sm'
             }`}>
               {msg.role === 'user' ? (
                 <>
-                  <p className="text-sm font-bold text-orange-600">{msg.original}</p>
-                  <p className="text-sm mt-1.5 font-bold text-gray-900">→ {msg.translated}</p>
+                  <p className="text-base font-bold text-orange-600">{msg.original}</p>
+                  <p className="text-base mt-2 font-bold text-gray-900">→ {msg.translated}</p>
                 </>
               ) : (
                 <>
-                  <p className="text-sm font-bold text-gray-900">{msg.original}</p>
-                  <p className="text-sm mt-1.5 font-bold text-orange-600">→ {msg.translated}</p>
+                  <p className="text-base font-bold text-gray-900">{msg.original}</p>
+                  <p className="text-base mt-2 font-bold text-orange-600">→ {msg.translated}</p>
                 </>
               )}
               <button
                 onClick={() => speakMsg(msg)}
-                className="mt-1 p-1 rounded-full hover:bg-black/10"
+                className="mt-2 p-1.5 rounded-full hover:bg-black/10"
               >
-                <Volume2 size={12} className="text-gray-500" />
+                <Volume2 size={16} className="text-gray-500" />
               </button>
             </div>
           </div>
@@ -270,59 +270,59 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       </div>
 
       {/* Fixed bottom area */}
-      <div className="sticky bottom-0 z-20 bg-white border-t border-gray-200 px-4 pt-2">
-        {/* Text input — on top so keyboard doesn't cover it */}
-        <div className="flex gap-2 mb-2">
+      <div className="sticky bottom-0 z-20 bg-white border-t border-gray-200 px-4 pt-3">
+        {/* Text input */}
+        <div className="flex gap-2 mb-3">
           <input
             value={textInput}
             onChange={e => setTextInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendTextInput()}
             placeholder="輸入文字翻譯成日語..."
-            className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-200"
+            className="flex-1 px-4 py-3 bg-gray-100 rounded-2xl text-base focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-200"
           />
           <button
             onClick={sendTextInput}
             disabled={!textInput.trim()}
-            className="p-2 bg-orange-500 rounded-xl text-white disabled:opacity-30"
+            className="px-4 py-3 bg-orange-500 rounded-2xl text-white disabled:opacity-30"
           >
-            <Send size={18} />
+            <Send size={22} />
           </button>
         </div>
 
         {/* Voice buttons */}
-        <div className="grid grid-cols-2 gap-2 mb-2">
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <button
             onClick={toggleListenJapanese}
-            className={`py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+            className={`py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
               isListeningJa
                 ? 'bg-red-500 text-white animate-pulse'
                 : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
             }`}
           >
-            {isListeningJa ? <MicOff size={16} /> : <Mic size={16} />}
+            {isListeningJa ? <MicOff size={20} /> : <Mic size={20} />}
             🇯🇵 {isListeningJa ? '停止' : '日語'}
           </button>
           <button
             onClick={toggleListenUser}
-            className={`py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+            className={`py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
               isListeningUser
                 ? 'bg-red-500 text-white animate-pulse'
                 : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
             }`}
           >
-            {isListeningUser ? <MicOff size={16} /> : <Mic size={16} />}
+            {isListeningUser ? <MicOff size={20} /> : <Mic size={20} />}
             {isListeningUser ? '停止' : userLangLabel}
           </button>
         </div>
 
         {/* Quick phrases */}
         <div className="pb-[env(safe-area-inset-bottom)]">
-          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {QUICK_PHRASES.map((phrase, i) => (
               <button
                 key={i}
                 onClick={() => sendQuickPhrase(phrase.label, phrase.ja)}
-                className="shrink-0 px-3 py-1.5 bg-gray-100 hover:bg-blue-50 rounded-full text-xs font-medium text-gray-600 hover:text-blue-600 transition-colors"
+                className="shrink-0 px-4 py-2 bg-gray-100 hover:bg-orange-50 rounded-full text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
               >
                 {phrase.label}
               </button>
