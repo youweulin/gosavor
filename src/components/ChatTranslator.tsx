@@ -229,18 +229,25 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] rounded-2xl p-3 ${
               msg.role === 'user'
-                ? 'bg-[#5B9BD5] text-white rounded-br-sm'
-                : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm shadow-sm'
+                ? 'bg-[#8CD790] rounded-br-sm'
+                : 'bg-white border border-gray-200 rounded-bl-sm shadow-sm'
             }`}>
-              <p className="text-sm font-medium">{msg.original}</p>
-              <p className={`text-sm mt-1.5 ${msg.role === 'user' ? 'text-white font-bold' : 'text-orange-600 font-bold'}`}>
-                → {msg.translated}
-              </p>
+              {msg.role === 'user' ? (
+                <>
+                  <p className="text-sm font-bold text-orange-600">{msg.original}</p>
+                  <p className="text-sm mt-1.5 font-bold text-gray-900">→ {msg.translated}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-gray-900">{msg.original}</p>
+                  <p className="text-sm mt-1.5 font-bold text-orange-600">→ {msg.translated}</p>
+                </>
+              )}
               <button
                 onClick={() => speakMsg(msg)}
-                className={`mt-1 p-1 rounded-full ${msg.role === 'user' ? 'hover:bg-blue-400/30' : 'hover:bg-gray-100'}`}
+                className="mt-1 p-1 rounded-full hover:bg-black/10"
               >
-                <Volume2 size={12} className={msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'} />
+                <Volume2 size={12} className="text-gray-500" />
               </button>
             </div>
           </div>
