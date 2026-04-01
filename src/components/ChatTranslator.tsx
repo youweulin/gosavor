@@ -49,6 +49,16 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isNative = Capacitor.isNativePlatform();
 
+  // User language label for button
+  const userLangLabel = (() => {
+    const map: Record<string, string> = {
+      'zh-TW': '🇹🇼 中文', 'zh-CN': '🇨🇳 中文', 'en': '🇺🇸 English',
+      'ko': '🇰🇷 한국어', 'th': '🇹🇭 ไทย', 'vi': '🇻🇳 Tiếng Việt',
+      'fr': '🇫🇷 Français', 'es': '🇪🇸 Español', 'de': '🇩🇪 Deutsch', 'id': '🇮🇩 Indonesia',
+    };
+    return map[targetLanguage] || '🗣 我說';
+  })();
+
   // Save messages whenever they change
   const updateMessages = (updater: (prev: ChatMessage[]) => ChatMessage[]) => {
     setMessages(prev => {
@@ -243,50 +253,9 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
       </div>
 
       {/* Fixed bottom area */}
-      <div className="sticky bottom-0 z-20 bg-white border-t border-gray-200">
-        {/* Voice buttons — most important, on top */}
-        <div className="px-4 pt-3 grid grid-cols-2 gap-3">
-          <button
-            onClick={toggleListenJapanese}
-            className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-              isListeningJa
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-            }`}
-          >
-            {isListeningJa ? <MicOff size={18} /> : <Mic size={18} />}
-            🇯🇵 {isListeningJa ? '停止' : '聽日語'}
-          </button>
-          <button
-            onClick={toggleListenUser}
-            className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-              isListeningUser
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-blue-50 text-[#5B9BD5] hover:bg-blue-100'
-            }`}
-          >
-            {isListeningUser ? <MicOff size={18} /> : <Mic size={18} />}
-            🗣 {isListeningUser ? '停止' : '我要說'}
-          </button>
-        </div>
-
-        {/* Quick phrases */}
-        <div className="px-0 py-2">
-          <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-            {QUICK_PHRASES.map((phrase, i) => (
-              <button
-                key={i}
-                onClick={() => sendQuickPhrase(phrase.label, phrase.ja)}
-                className="shrink-0 px-3 py-1.5 bg-gray-100 hover:bg-blue-50 rounded-full text-xs font-medium text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                {phrase.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Text input */}
-        <div className="flex gap-2 pb-[env(safe-area-inset-bottom)]">
+      <div className="sticky bottom-0 z-20 bg-white border-t border-gray-200 px-4 pt-2">
+        {/* Text input — on top so keyboard doesn't cover it */}
+        <div className="flex gap-2 mb-2">
           <input
             value={textInput}
             onChange={e => setTextInput(e.target.value)}
@@ -301,6 +270,47 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
           >
             <Send size={18} />
           </button>
+        </div>
+
+        {/* Voice buttons */}
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <button
+            onClick={toggleListenJapanese}
+            className={`py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+              isListeningJa
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+            }`}
+          >
+            {isListeningJa ? <MicOff size={16} /> : <Mic size={16} />}
+            🇯🇵 {isListeningJa ? '停止' : '日語'}
+          </button>
+          <button
+            onClick={toggleListenUser}
+            className={`py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+              isListeningUser
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-blue-50 text-[#5B9BD5] hover:bg-blue-100'
+            }`}
+          >
+            {isListeningUser ? <MicOff size={16} /> : <Mic size={16} />}
+            {isListeningUser ? '停止' : userLangLabel}
+          </button>
+        </div>
+
+        {/* Quick phrases */}
+        <div className="pb-[env(safe-area-inset-bottom)]">
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+            {QUICK_PHRASES.map((phrase, i) => (
+              <button
+                key={i}
+                onClick={() => sendQuickPhrase(phrase.label, phrase.ja)}
+                className="shrink-0 px-3 py-1.5 bg-gray-100 hover:bg-blue-50 rounded-full text-xs font-medium text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                {phrase.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>{/* close sticky bottom */}
     </div>
