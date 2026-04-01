@@ -92,18 +92,15 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
             })}
           </div>
 
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${modeConfig[scanMode].colorLight}`}>
-            <Camera size={28} className={modeConfig[scanMode].iconColor} />
-          </div>
+          <button
+            onClick={() => uploadInputRef.current?.click()}
+            className={`w-24 h-24 rounded-full flex items-center justify-center ${modeConfig[scanMode].color} shadow-xl ${modeConfig[scanMode].shadow} hover:scale-105 active:scale-95 transition-transform`}
+          >
+            <Camera size={40} className="text-white" />
+          </button>
           <p className="text-gray-500 text-sm text-center">
             {modeConfig[scanMode].desc}
           </p>
-          <button
-            onClick={() => uploadInputRef.current?.click()}
-            className={`px-8 py-3 ${modeConfig[scanMode].color} text-white rounded-full font-bold text-lg shadow-lg ${modeConfig[scanMode].shadow} transition-colors flex items-center gap-2`}
-          >
-            <Camera size={20} /> {modeConfig[scanMode].label}
-          </button>
         </div>
       )}
 
