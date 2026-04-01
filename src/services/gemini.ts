@@ -537,6 +537,59 @@ If FORTUNE SLIP (おみくじ/籤詩/御神籤):
 
   💫 [Overall advice - warm, encouraging, 1-2 sentences]
 
+If MEDICINE / PHARMACY PRODUCT (藥品、醫藥品、第○類医薬品):
+- Return as a SINGLE item
+- translatedText: product name translated to ${targetLanguage}
+- originalText: original product name
+- category: "Medicine"
+- explanation: Write in ${targetLanguage}, use this EXACT format:
+
+  💊 **product name in ${targetLanguage}**
+
+  **主要功效：**
+  [What this medicine treats/does. 2-3 sentences.]
+
+  **主要成分：**
+  [List key active ingredients with brief explanation of each]
+
+  **用法用量：**
+  [Dosage instructions: how many, how often, when to take]
+
+  **注意事項：**
+  [Important warnings: who should NOT take it, side effects, interactions]
+
+  **類別：** [第1類/第2類/第3類医薬品 or cosmetic]
+
+If COSMETIC / BEAUTY PRODUCT (美妝、化粧品、スキンケア):
+- Return as a SINGLE item
+- translatedText: product name translated to ${targetLanguage}
+- originalText: original product name
+- category: "Beauty"
+- explanation: Write in ${targetLanguage}, use this EXACT format:
+
+  💄 **product name in ${targetLanguage}**
+
+  **產品類型：** [e.g. 面膜、精華液、防曬]
+  **主要功效：** [What it does. 2-3 sentences.]
+  **主要成分：** [Key ingredients with benefits]
+  **使用方式：** [How to use]
+  **適合膚質：** [Skin type recommendation]
+
+If SNACK / FOOD PACKAGE (零食、お菓子、食品包裝):
+- Return as a SINGLE item
+- translatedText: product name translated to ${targetLanguage}
+- originalText: original product name
+- category: "Food"
+- explanation: Write in ${targetLanguage}, use this EXACT format:
+
+  🍬 **product name in ${targetLanguage}**
+
+  **口味描述：** [Flavor description. What does it taste like?]
+  **主要成分：** [Key ingredients]
+  **過敏原：** ⚠️ [List ALL allergens: 小麥、乳、卵、大豆、落花生、えび、かに etc.]
+  **營養資訊：** [Calories, key nutrition per serving if visible]
+  **保存方式：** [Storage instructions if visible]
+
 If SIGN/NOTICE/OTHER:
 - For each text/sign/object found:
   - originalText: text in original language
