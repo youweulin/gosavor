@@ -237,3 +237,161 @@ export const submitPriceReports = async (
     });
   }
 };
+
+// =============================================
+// Price Comparison (比價查詢)
+// =============================================
+
+export interface PriceCompareResult {
+  store_name: string;
+  store_branch: string | null;
+  price: number;
+  is_tax_free: boolean;
+  jan_code: string | null;
+  created_at: string;
+}
+
+export interface ProductRanking {
+  translated_name: string;
+  product_name: string;
+  jan_code: string | null;
+  normalized_key: string;
+  report_count: number;
+  min_price: number;
+  max_price: number;
+  avg_price: number;
+}
+
+/** 用 JAN Code 或商品名查比價 */
+export const comparePrices = async (
+  janCode?: string,
+  productName?: string,
+): Promise<PriceCompareResult[]> => {
+  try {
+    let query = supabase
+      .from('price_reports')
+      .select('store_name, store_branch, price, is_tax_free, jan_code, created_at')
+      .order('price', { ascending: true });
+
+    if (janCode) {
+      query = query.eq('jan_code', janCode);
+    } else if (productName) {
+      const key = normalizeProductName(productName);
+      query = query.eq('normalized_key', key);
+    } else {
+      return [];
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('[GoSavor] Compare error:', error.message); return []; }
+    return data || [];
+  } catch { return []; }
+};
+
+/** 用 JAN Code 查商品摘要 */
+export const getProductSummary = async (janCode: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('price_reports')
+      .select('translated_name, product_name, price, store_name, store_branch, is_tax_free, created_at')
+      .eq('jan_code', janCode)
+      .order('price', { ascending: true });
+
+    if (error || !data || data.length === 0) return null;
+
+    const prices = data.map(d => d.price);
+    return {
+      translatedName: data[0].translated_name,
+      productName: data[0].product_name,
+      janCode,
+      reportCount: data.length,
+      minPrice: Math.min(...prices),
+      maxPrice: Math.max(...prices),
+      avgPrice: Math.round(prices.reduce((a, b) => a + b, 0) / prices.length),
+      stores: data,
+    };
+  } catch { return null; }
+};
+
+/** 熱門商品排行榜 TOP N */
+export const getPopularProducts = async (limit = 20): Promise<ProductRanking[]> => {
+  try {
+    const { data, error } = await supabase.rpc('get_popular_products', { result_limit: limit });
+    if (error) {
+      // Fallback: simple query if RPC not available
+      console.warn('[GoSavor] RPC fallback:', error.message);
+      const { data: fallback } = await supabase
+        .from('price_reports')
+        .select('translated_name, product_name, jan_code, normalized_key, price')
+        .not('jan_code', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (!fallback) return [];
+
+      // Client-side aggregation
+      const grouped: Record<string, ProductRanking> = {};
+      for (const row of fallback) {
+        const key = row.jan_code || row.normalized_key;
+        if (!grouped[key]) {
+          grouped[key] = {
+            translated_name: row.translated_name,
+            product_name: row.product_name,
+            jan_code: row.jan_code,
+            normalized_key: row.normalized_key,
+            report_count: 0,
+            min_price: row.price,
+            max_price: row.price,
+            avg_price: 0,
+          };
+        }
+        const g = grouped[key];
+        g.report_count++;
+        g.min_price = Math.min(g.min_price, row.price);
+        g.max_price = Math.max(g.max_price, row.price);
+        g.avg_price = Math.round(((g.avg_price * (g.report_count - 1)) + row.price) / g.report_count);
+      }
+
+      return Object.values(grouped)
+        .sort((a, b) => b.report_count - a.report_count)
+        .slice(0, limit);
+    }
+    return data || [];
+  } catch { return []; }
+};
+
+/** 搜尋商品（模糊搜尋） */
+export const searchProducts = async (query: string): Promise<ProductRanking[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('price_reports')
+      .select('translated_name, product_name, jan_code, normalized_key, price')
+      .or(`translated_name.ilike.%${query}%,product_name.ilike.%${query}%`)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error || !data) return [];
+
+    // Client-side aggregation
+    const grouped: Record<string, ProductRanking> = {};
+    for (const row of data) {
+      const key = row.jan_code || row.normalized_key;
+      if (!grouped[key]) {
+        grouped[key] = {
+          translated_name: row.translated_name,
+          product_name: row.product_name,
+          jan_code: row.jan_code,
+          normalized_key: row.normalized_key,
+          report_count: 0, min_price: row.price, max_price: row.price, avg_price: 0,
+        };
+      }
+      const g = grouped[key];
+      g.report_count++;
+      g.min_price = Math.min(g.min_price, row.price);
+      g.max_price = Math.max(g.max_price, row.price);
+      g.avg_price = Math.round(((g.avg_price * (g.report_count - 1)) + row.price) / g.report_count);
+    }
+
+    return Object.values(grouped).sort((a, b) => b.report_count - a.report_count);
+  } catch { return []; }
+};

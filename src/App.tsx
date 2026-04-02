@@ -15,6 +15,7 @@ import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate } from './services/LiveTranslate';
+import DrugstoreInfo from './components/DrugstoreInfo';
 import { initAnonymousAuth, trackScanEvent, getNickname, updateNickname, submitPriceReports } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
@@ -40,7 +41,7 @@ import RecommendCards from './components/RecommendCards';
 import BottomTabBar from './components/BottomTabBar';
 import { getRecommendations } from './services/affiliate';
 
-type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary' | 'chat';
+type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary' | 'chat' | 'drugstore';
 
 function AppInner() {
   const t = useT();
@@ -273,6 +274,7 @@ function AppInner() {
   if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;
   if (page === 'expenses') return <ExpenseBook onBack={() => setPage('home')} />;
   if (page === 'diary') return <Diary onBack={() => setPage('home')} />;
+  if (page === 'drugstore') return <DrugstoreInfo onBack={() => setPage('home')} />;
   if (page === 'chat') {
     const apiKey = getApiKey();
     return <ChatTranslator onBack={() => setPage('home')} apiKey={apiKey || ''} targetLanguage={settings.targetLanguage} />;
@@ -458,6 +460,20 @@ function AppInner() {
 
                 {/* Trip Summary */}
                 <TripSummary homeCurrency={settings.homeCurrency} />
+
+                {/* Drugstore Info */}
+                <button
+                  onClick={() => setPage('drugstore')}
+                  className="w-full bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl p-4 text-left text-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-base">💊 藥妝情報・比價搜尋</h3>
+                      <p className="text-sm text-white/70 mt-1">查看熱門商品排行、跨店比價</p>
+                    </div>
+                    <span className="text-2xl">📊</span>
+                  </div>
+                </button>
 
                 {/* Recommendations */}
                 <div>
