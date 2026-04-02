@@ -40,7 +40,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
     onImagesChange(images.filter((_, i) => i !== index));
   };
 
-  const currentMode = modeConfig[scanMode];
+  const currentMode = modeConfig[scanMode as keyof typeof modeConfig];
 
   return (
     <div className="space-y-4">
@@ -81,7 +81,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
         <button
           onClick={onAnalyze}
           disabled={isAnalyzing}
-          className={`w-full py-3 ${modeConfig[scanMode].color} disabled:opacity-50 text-white rounded-xl font-bold text-lg shadow-lg ${modeConfig[scanMode].shadow} transition-colors flex items-center justify-center gap-2`}
+          className={`w-full py-3 ${modeConfig[scanMode as keyof typeof modeConfig].color} disabled:opacity-50 text-white rounded-xl font-bold text-lg shadow-lg ${modeConfig[scanMode as keyof typeof modeConfig].shadow} transition-colors flex items-center justify-center gap-2`}
         >
           {isAnalyzing ? (
             <>
@@ -89,7 +89,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
               {t('camera.analyze')}
             </>
           ) : (
-            <>{modeConfig[scanMode].label} ({images.length} 張照片)</>
+            <>{modeConfig[scanMode as keyof typeof modeConfig].label} ({images.length} 張照片)</>
           )}
         </button>
       )}

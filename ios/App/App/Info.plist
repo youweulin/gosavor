@@ -2,7 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>NSMicrophoneUsageDescription</key>
+    <key>NSCameraUsageDescription</key>
+	<string>GoSavor needs camera access for Live Translate to recognize and translate text in real-time.</string>
+	<key>NSMicrophoneUsageDescription</key>
 	<string>GoSavor needs microphone access for speech recognition when communicating with restaurant staff.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>GoSavor uses speech recognition to understand Japanese speech and translate it for you.</string>

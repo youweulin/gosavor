@@ -58,7 +58,8 @@ export interface GeneralAnalysisResult {
 }
 
 // === Scan Mode ===
-export type ScanMode = 'menu' | 'receipt' | 'general';
+export type ScanMode = 'menu' | 'receipt' | 'general' | 'ar-translate';
+export type UIScanMode = 'menu' | 'receipt' | 'general'; // Modes with UI config
 
 // === Scan History ===
 export interface SavedScan {
@@ -74,6 +75,7 @@ export interface SavedScan {
   note?: string; // user diary note
   mood?: string; // emoji mood
   tags?: string[]; // category tags
+  arTranslateItems?: { original: string; translated: string }[]; // AR translate results
 }
 
 // === Order ===

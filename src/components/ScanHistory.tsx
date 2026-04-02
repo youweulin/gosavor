@@ -69,7 +69,7 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
       <div className="space-y-2">
         {filtered.slice(0, 8).map(scan => {
           const mode = scan.scanMode || 'menu';
-          const cfg = modeIcons[mode];
+          const cfg = modeIcons[mode as keyof typeof modeIcons] || modeIcons.general;
           const Icon = cfg.icon;
 
           return (

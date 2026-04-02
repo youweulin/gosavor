@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, ScanEye } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { startLiveTranslate } from '../services/LiveTranslate';
+import { saveScan } from '../services/storage';
 import { useT } from '../i18n/context';
 
 interface WeatherData {
@@ -136,11 +137,30 @@ const HomeCard = () => {
       {/* Live Translate button — iOS only */}
       {Capacitor.isNativePlatform() && (
         <button
-          onClick={() => startLiveTranslate().catch(e => console.warn('LiveTranslate:', e))}
+          onClick={async () => {
+            try {
+              const result = await startLiveTranslate();
+              if (result && result.items.length > 0) {
+                const imageDataUrl = result.imageBase64
+                  ? `data:image/jpeg;base64,${result.imageBase64}` : '';
+                await saveScan({
+                  id: crypto.randomUUID(),
+                  timestamp: result.timestamp,
+                  scanMode: 'ar-translate',
+                  restaurantName: 'AR翻譯',
+                  currency: '',
+                  items: [],
+                  images: imageDataUrl ? [imageDataUrl] : [],
+                  arTranslateItems: result.items,
+                });
+                console.log('[GoSavor] AR saved to diary:', result.items.length, 'items');
+              }
+            } catch (e) { console.warn('LiveTranslate:', e); }
+          }}
           className="mt-3 w-full py-2.5 bg-white/80 hover:bg-white rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-orange-600 border border-orange-200 transition-colors"
         >
           <ScanEye size={18} />
-          即時翻譯（對準即翻）
+          AR即時翻譯
         </button>
       )}
     </div>

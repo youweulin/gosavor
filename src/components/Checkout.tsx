@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import type { MenuItem, OrderItem, SplitInfo } from '../types';
 import { useT } from '../i18n/context';
 import { fetchRates, getCurrencyCode } from './CurrencyBar';
-import { speakText, translateJapanese } from '../services/NativeSpeech';
+import { speakText, translateJapanese, startListening, stopListening } from '../services/NativeSpeech';
 import { registerPlugin } from '@capacitor/core';
 const NativeSpeechPlugin = registerPlugin<any>('NativeSpeech');
 

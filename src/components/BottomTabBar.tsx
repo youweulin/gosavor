@@ -21,7 +21,7 @@ const MODE_CONFIG = {
 
 const BottomTabBar = ({ scanMode, onModeChange, onCameraPress, onDiaryPress, onChatPress, chatActive }: BottomTabBarProps) => {
   const t = useT();
-  const current = chatActive ? MODE_CONFIG.chat : MODE_CONFIG[scanMode];
+  const current = chatActive ? MODE_CONFIG.chat : MODE_CONFIG[scanMode as keyof typeof MODE_CONFIG] || MODE_CONFIG.general;
   const CenterIcon = current.icon;
 
   const sideTabs: { mode?: ScanMode; icon: any; label: string; activeColor: string; action?: () => void }[] = [

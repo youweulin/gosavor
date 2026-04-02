@@ -13,6 +13,7 @@ interface DiaryProps {
 const modeIcon = (mode?: string) => {
   if (mode === 'receipt') return '🧾';
   if (mode === 'general') return '🌐';
+  if (mode === 'ar-translate') return '📷';
   return '🍽';
 };
 
@@ -256,6 +257,7 @@ const Diary = ({ onBack }: DiaryProps) => {
                           <p className="text-xs text-gray-400">
                             {new Date(scan.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             {scan.items.length > 0 && ` · ${scan.items.length} 項`}
+                            {scan.scanMode === 'ar-translate' && scan.arTranslateItems && ` · ${scan.arTranslateItems.length} 段翻譯`}
                           </p>
                           {scan.mood && <span className="text-sm">{scan.mood}</span>}
                           {scan.note && (
@@ -280,6 +282,18 @@ const Diary = ({ onBack }: DiaryProps) => {
                             {scan.items.length > 5 && (
                               <p className="text-xs text-gray-300">+{scan.items.length - 5} 項...</p>
                             )}
+                          </div>
+                        )}
+
+                        {/* AR Translate results */}
+                        {scan.scanMode === 'ar-translate' && scan.arTranslateItems && scan.arTranslateItems.length > 0 && (
+                          <div className="mt-2 space-y-1.5">
+                            {scan.arTranslateItems.map((item, i) => (
+                              <div key={i} className="p-2 bg-gray-50 rounded-lg">
+                                <p className="text-sm text-gray-900">{item.translated}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">{item.original}</p>
+                              </div>
+                            ))}
                           </div>
                         )}
 

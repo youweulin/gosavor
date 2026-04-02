@@ -376,8 +376,10 @@ struct TranslationHostView: View {
     }
 }
 
-// MARK: - LiveTranslate Plugin (AR-like real-time translation)
+// MARK: - LiveTranslate Plugin (Photo capture → Vision OCR → Translate → Overlay)
 import VisionKit
+import Vision
+import PhotosUI
 
 @available(iOS 16.0, *)
 @objc(LiveTranslatePlugin)
@@ -387,183 +389,863 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getLastResult", returnType: CAPPluginReturnPromise)
     ]
 
     private var scannerVC: DataScannerViewController?
-    private var translationSession: Any? // TranslationSession (iOS 18+)
+    private var lastResultData: [String: String]? // Stored for JS to fetch
+    private var startCall: CAPPluginCall? // Held until user closes, then resolved with data
+    private var targetLang = "zh-Hant"
+    private var capturedImage: UIImage? // For save to diary
+
+    // Result view
+    private var resultOverlay: UIView?
+    private var translationContainer: UIView?
+    private var showingTranslation = true
 
     override public func load() {
         print("[GoSavor] ✅ LiveTranslatePlugin loaded!")
     }
 
     @objc func isSupported(_ call: CAPPluginCall) {
-        let supported = DataScannerViewController.isSupported && DataScannerViewController.isAvailable
-        call.resolve(["supported": supported])
+        DispatchQueue.main.async {
+            let supported = DataScannerViewController.isSupported && DataScannerViewController.isAvailable
+            call.resolve(["supported": supported])
+        }
     }
 
     @objc func start(_ call: CAPPluginCall) {
-        let targetLang = call.getString("targetLang") ?? "zh-Hant"
-
-        guard DataScannerViewController.isSupported && DataScannerViewController.isAvailable else {
-            call.reject("DataScanner not supported on this device")
-            return
-        }
+        self.targetLang = call.getString("targetLang") ?? "zh-Hant"
+        call.keepAlive = true // Don't auto-cleanup — we resolve later when user closes
+        self.startCall = call
 
         DispatchQueue.main.async {
-            let scanner = DataScannerViewController(
-                recognizedDataTypes: [.text()],
-                qualityLevel: .accurate,
-                recognizesMultipleItems: true,
-                isHighFrameRateTrackingEnabled: true,
-                isHighlightingEnabled: true
-            )
-
-            scanner.delegate = self
-
-            // Add close button overlay
-            let closeButton = UIButton(type: .system)
-            closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-            closeButton.tintColor = .white
-            closeButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-            closeButton.layer.cornerRadius = 22
-            closeButton.frame = CGRect(x: 20, y: 60, width: 44, height: 44)
-            closeButton.addTarget(self, action: #selector(self.closeScannerTapped), for: .touchUpInside)
-            scanner.view.addSubview(closeButton)
-
-            // Add "Live Translate" label
-            let label = UILabel()
-            label.text = "📷 即時翻譯"
-            label.textColor = .white
-            label.font = .boldSystemFont(ofSize: 16)
-            label.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-            label.layer.cornerRadius = 12
-            label.clipsToBounds = true
-            label.textAlignment = .center
-            label.frame = CGRect(x: (UIScreen.main.bounds.width - 140) / 2, y: 60, width: 140, height: 36)
-            scanner.view.addSubview(label)
-
-            // Add translation overlay label at bottom
-            let translationLabel = UILabel()
-            translationLabel.tag = 999
-            translationLabel.numberOfLines = 0
-            translationLabel.textColor = .white
-            translationLabel.font = .boldSystemFont(ofSize: 18)
-            translationLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
-            translationLabel.layer.cornerRadius = 16
-            translationLabel.clipsToBounds = true
-            translationLabel.textAlignment = .center
-            let bottomY = UIScreen.main.bounds.height - 200
-            translationLabel.frame = CGRect(x: 20, y: bottomY, width: UIScreen.main.bounds.width - 40, height: 120)
-            translationLabel.text = "對準文字自動翻譯..."
-            scanner.view.addSubview(translationLabel)
-
-            self.scannerVC = scanner
-
-            // Setup translation session for iOS 18+
-            if #available(iOS 18.0, *) {
-                self.setupTranslation(targetLang: targetLang)
+            guard DataScannerViewController.isSupported && DataScannerViewController.isAvailable else {
+                call.resolve(["hasData": false])
+                self.startCall = nil
+                return
             }
-
-            // Present scanner
-            if let rootVC = UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene })
-                .flatMap({ $0.windows })
-                .first(where: { $0.isKeyWindow })?.rootViewController {
-                rootVC.present(scanner, animated: true) {
-                    try? scanner.startScanning()
-                    print("[GoSavor] 📷 LiveTranslate started")
-                }
-            }
-
-            call.resolve(["success": true])
+            self.showCamera()
+            // NOT resolving here — will resolve in closeTapped() with result data
         }
+    }
+
+    @objc func getLastResult(_ call: CAPPluginCall) {
+        guard let data = lastResultData else {
+            call.resolve(["hasData": false])
+            return
+        }
+        call.resolve([
+            "hasData": true,
+            "imageBase64": data["imageBase64"] ?? "",
+            "itemsJSON": data["itemsJSON"] ?? "[]",
+            "timestamp": data["timestamp"] ?? ""
+        ])
     }
 
     @objc func stop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            self.scannerVC?.stopScanning()
-            self.scannerVC?.dismiss(animated: true)
-            self.scannerVC = nil
-            print("[GoSavor] 📷 LiveTranslate stopped")
+            self.dismissAll()
             call.resolve(["success": true])
         }
     }
 
-    @objc private func closeScannerTapped() {
-        scannerVC?.stopScanning()
-        scannerVC?.dismiss(animated: true)
-        scannerVC = nil
-        notifyListeners("liveTranslateClosed", data: [:])
+    // MARK: - Camera viewfinder
+
+    private func showCamera() {
+        resultOverlay?.removeFromSuperview()
+        resultOverlay = nil
+
+        Task { @MainActor in
+        let scanner = DataScannerViewController(
+            recognizedDataTypes: [.text()],
+            qualityLevel: .accurate,
+            recognizesMultipleItems: true,
+            isHighFrameRateTrackingEnabled: false,
+            isHighlightingEnabled: true // Show detected text areas as guide
+        )
+
+        let screenW = UIScreen.main.bounds.width
+        let screenH = UIScreen.main.bounds.height
+
+        // Close button (top-left)
+        let closeBtn = UIButton(type: .system)
+        closeBtn.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+        closeBtn.tintColor = .white
+        closeBtn.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        closeBtn.layer.cornerRadius = 22
+        closeBtn.frame = CGRect(x: 20, y: 60, width: 44, height: 44)
+        closeBtn.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        scanner.view.addSubview(closeBtn)
+
+        // Title (top-center)
+        let titleLabel = UILabel()
+        titleLabel.text = "📷 AR即時翻譯"
+        titleLabel.textColor = .white
+        titleLabel.font = .boldSystemFont(ofSize: 16)
+        titleLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        titleLabel.layer.cornerRadius = 12
+        titleLabel.clipsToBounds = true
+        titleLabel.textAlignment = .center
+        titleLabel.frame = CGRect(x: (screenW - 140) / 2, y: 60, width: 140, height: 36)
+        scanner.view.addSubview(titleLabel)
+
+        // Shutter button (bottom-center, camera style)
+        let shutterBtn = UIButton(type: .custom)
+        shutterBtn.frame = CGRect(x: (screenW - 72) / 2, y: screenH - 130, width: 72, height: 72)
+        shutterBtn.backgroundColor = .clear
+        shutterBtn.layer.cornerRadius = 36
+        shutterBtn.layer.borderWidth = 5
+        shutterBtn.layer.borderColor = UIColor.white.cgColor
+        let innerCircle = UIView(frame: CGRect(x: 7, y: 7, width: 58, height: 58))
+        innerCircle.backgroundColor = .white
+        innerCircle.layer.cornerRadius = 29
+        innerCircle.isUserInteractionEnabled = false
+        shutterBtn.addSubview(innerCircle)
+        shutterBtn.addTarget(self, action: #selector(shutterTapped), for: .touchUpInside)
+        scanner.view.addSubview(shutterBtn)
+
+        // Album button (left of shutter)
+        let albumBtn = UIButton(type: .system)
+        albumBtn.setImage(UIImage(systemName: "photo.on.rectangle"), for: .normal)
+        albumBtn.tintColor = .white
+        albumBtn.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        albumBtn.layer.cornerRadius = 25
+        albumBtn.frame = CGRect(x: (screenW / 2) - 36 - 60, y: screenH - 120, width: 50, height: 50)
+        albumBtn.addTarget(self, action: #selector(albumTapped), for: .touchUpInside)
+        scanner.view.addSubview(albumBtn)
+
+        // Hint
+        let hintLabel = UILabel()
+        hintLabel.text = "拍照或選相簿"
+        hintLabel.textColor = .white
+        hintLabel.font = .systemFont(ofSize: 14)
+        hintLabel.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        hintLabel.layer.cornerRadius = 10
+        hintLabel.clipsToBounds = true
+        hintLabel.textAlignment = .center
+        hintLabel.frame = CGRect(x: 40, y: screenH - 170, width: screenW - 80, height: 30)
+        scanner.view.addSubview(hintLabel)
+
+        self.scannerVC = scanner
+
+        if let rootVC = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap({ $0.windows })
+            .first(where: { $0.isKeyWindow })?.rootViewController {
+            rootVC.present(scanner, animated: true) {
+                try? scanner.startScanning()
+                print("[GoSavor] 📷 Photo Translate camera opened")
+            }
+        }
+        } // end Task @MainActor
+    }
+
+    // MARK: - Album picker
+
+    @objc private func albumTapped() {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 1
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = self
+        scannerVC?.present(picker, animated: true)
+    }
+
+    // MARK: - Capture → OCR → Translate → Overlay
+
+    @objc private func shutterTapped() {
+        guard let scanner = scannerVC else { return }
+
+        Task { @MainActor in
+            guard let image = try? await scanner.capturePhoto() else {
+                print("[GoSavor] 📷 Failed to capture photo")
+                return
+            }
+            scanner.stopScanning()
+            await processImage(image)
+        }
+    }
+
+    /// Shared processing: OCR → Translate → Show result (used by both camera & album)
+    @MainActor
+    private func processImage(_ image: UIImage) async {
+        guard let scanner = scannerVC else { return }
+        self.capturedImage = image
+
+        // Processing overlay
+        let processingView = UIView(frame: scanner.view.bounds)
+        processingView.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+
+        let spinner = UIActivityIndicatorView(style: .large)
+        spinner.color = .white
+        spinner.center = CGPoint(x: processingView.bounds.midX, y: processingView.bounds.midY - 20)
+        spinner.startAnimating()
+        processingView.addSubview(spinner)
+
+        let loadingLabel = UILabel()
+        loadingLabel.text = "辨識翻譯中..."
+        loadingLabel.textColor = .white
+        loadingLabel.font = .boldSystemFont(ofSize: 18)
+        loadingLabel.textAlignment = .center
+        loadingLabel.frame = CGRect(x: 0, y: processingView.bounds.midY + 20, width: processingView.bounds.width, height: 30)
+        processingView.addSubview(loadingLabel)
+
+        scanner.view.addSubview(processingView)
+
+        let ocrResults = await self.performOCR(on: image)
+        print("[GoSavor] 📷 OCR found \(ocrResults.count) text blocks")
+
+        if ocrResults.isEmpty {
+            processingView.removeFromSuperview()
+            let emptyLabel = UILabel()
+            emptyLabel.text = "未偵測到文字，請重試"
+            emptyLabel.textColor = .white
+            emptyLabel.font = .boldSystemFont(ofSize: 16)
+            emptyLabel.backgroundColor = UIColor.red.withAlphaComponent(0.6)
+            emptyLabel.layer.cornerRadius = 12
+            emptyLabel.clipsToBounds = true
+            emptyLabel.textAlignment = .center
+            emptyLabel.frame = CGRect(x: 40, y: scanner.view.bounds.midY - 20, width: scanner.view.bounds.width - 80, height: 40)
+            scanner.view.addSubview(emptyLabel)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                emptyLabel.removeFromSuperview()
+                try? scanner.startScanning()
+            }
+            return
+        }
+
+        let translations = await self.translateTexts(ocrResults.map { $0.0 })
+
+        processingView.removeFromSuperview()
+        self.showResult(on: scanner, image: image, ocrResults: ocrResults, translations: translations)
+
+        // Auto-save to diary
+        self.autoSaveToDiary()
+    }
+
+    // MARK: - Vision OCR (returns normalized rects 0-1, UIKit top-left origin)
+
+    private func performOCR(on image: UIImage) async -> [(String, CGRect)] {
+        guard let cgImage = image.cgImage else { return [] }
+
+        // Convert UIImage orientation to CGImagePropertyOrientation for Vision
+        let cgOrientation: CGImagePropertyOrientation
+        switch image.imageOrientation {
+        case .up: cgOrientation = .up
+        case .down: cgOrientation = .down
+        case .left: cgOrientation = .left
+        case .right: cgOrientation = .right
+        case .upMirrored: cgOrientation = .upMirrored
+        case .downMirrored: cgOrientation = .downMirrored
+        case .leftMirrored: cgOrientation = .leftMirrored
+        case .rightMirrored: cgOrientation = .rightMirrored
+        @unknown default: cgOrientation = .up
+        }
+
+        return await withCheckedContinuation { continuation in
+            let request = VNRecognizeTextRequest { request, error in
+                guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+
+                var results: [(String, CGRect)] = []
+
+                for obs in observations {
+                    guard let candidate = obs.topCandidates(1).first else { continue }
+                    let bb = obs.boundingBox
+                    // Vision: bottom-left origin, normalized → UIKit: top-left origin, still normalized
+                    let rect = CGRect(
+                        x: bb.origin.x,
+                        y: 1 - bb.origin.y - bb.height,
+                        width: bb.width,
+                        height: bb.height
+                    )
+                    results.append((candidate.string, rect))
+                }
+
+                continuation.resume(returning: results)
+            }
+
+            request.recognitionLanguages = ["ja", "en", "zh-Hant"]
+            request.recognitionLevel = .accurate
+
+            // Pass orientation so Vision maps coordinates correctly
+            let handler = VNImageRequestHandler(cgImage: cgImage, orientation: cgOrientation, options: [:])
+            DispatchQueue.global(qos: .userInitiated).async {
+                try? handler.perform([request])
+            }
+        }
+    }
+
+    // MARK: - Translation (Apple Translate, numbered batch)
+
+    private func translateTexts(_ texts: [String]) async -> [String] {
+        guard #available(iOS 18.0, *) else { return texts }
+        guard !texts.isEmpty else { return texts }
+
+        // Use numbered format: "【1】text\n【2】text\n..." — Apple Translate preserves these markers
+        var numbered = ""
+        for (i, text) in texts.enumerated() {
+            numbered += "【\(i+1)】\(text)\n"
+        }
+
+        let bridge = TranslationBridge()
+        do {
+            let result = try await bridge.translate(
+                text: numbered,
+                from: Locale.Language(identifier: "ja"),
+                to: Locale.Language(identifier: targetLang)
+            )
+
+            // Parse result by 【n】 markers
+            var parsed: [Int: String] = [:]
+            let lines = result.components(separatedBy: "\n")
+            var currentIdx = -1
+            var currentText = ""
+
+            for line in lines {
+                // Check if line starts with 【n】
+                if let range = line.range(of: "^【(\\d+)】", options: .regularExpression) {
+                    // Save previous
+                    if currentIdx > 0 {
+                        parsed[currentIdx] = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                    let numStr = line[range].replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: "")
+                    currentIdx = Int(numStr) ?? -1
+                    currentText = String(line[range.upperBound...])
+                } else {
+                    currentText += "\n" + line
+                }
+            }
+            // Save last
+            if currentIdx > 0 {
+                parsed[currentIdx] = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+
+            // Build result array in order
+            if parsed.count == texts.count {
+                var results: [String] = []
+                for i in 1...texts.count {
+                    results.append(parsed[i] ?? texts[i-1])
+                }
+                print("[GoSavor] 📷 Batch translated \(texts.count) items")
+                return results
+            }
+
+            // Fallback to individual if parsing failed
+            print("[GoSavor] 📷 Batch parse mismatch (\(parsed.count) vs \(texts.count)), translating individually")
+            return await translateIndividually(texts)
+        } catch {
+            print("[GoSavor] 📷 Batch translation error: \(error)")
+            return texts
+        }
     }
 
     @available(iOS 18.0, *)
-    private func setupTranslation(targetLang: String) {
-        // We'll use the TranslationBridge for translation
-        print("[GoSavor] Translation target: \(targetLang)")
+    private func translateIndividually(_ texts: [String]) async -> [String] {
+        var results: [String] = []
+        for text in texts {
+            let bridge = TranslationBridge()
+            do {
+                let result = try await bridge.translate(
+                    text: text,
+                    from: Locale.Language(identifier: "ja"),
+                    to: Locale.Language(identifier: targetLang)
+                )
+                results.append(result)
+            } catch {
+                results.append(text)
+            }
+        }
+        return results
     }
 
-    private func translateAndDisplay(text: String) {
-        guard !text.isEmpty else { return }
+    // MARK: - Result display (split screen: zoomable photo + text list)
 
-        if #available(iOS 18.0, *) {
-            Task { @MainActor in
-                let bridge = TranslationBridge()
-                do {
-                    let result = try await bridge.translate(
-                        text: text,
-                        from: Locale.Language(identifier: "ja"),
-                        to: Locale.Language(identifier: "zh-Hant")
-                    )
-                    // Update the overlay label
-                    if let label = self.scannerVC?.view.viewWithTag(999) as? UILabel {
-                        label.text = "\(text)\n→ \(result)"
-                    }
-                    print("[GoSavor] 📷 Live: \(text.prefix(20)) → \(result.prefix(20))")
-                } catch {
-                    print("[GoSavor] 📷 Translation error: \(error)")
-                    if let label = self.scannerVC?.view.viewWithTag(999) as? UILabel {
-                        label.text = text
-                    }
-                }
-            }
+    private var ocrOriginals: [String] = []
+    private var ocrTranslations: [String] = []
+    private var textListContainer: UIView?
+    private var textListScrollView: UIScrollView?
+    private var arOverlayLabels: [UILabel] = []
+    private var photoZoomScrollView: UIScrollView?
+    private var zoomContentView: UIView?
+
+    private func showResult(on scanner: DataScannerViewController, image: UIImage, ocrResults: [(String, CGRect)], translations: [String]) {
+        let screenW = UIScreen.main.bounds.width
+        let screenH = UIScreen.main.bounds.height
+        let safeTop: CGFloat = 54
+        let toggleH: CGFloat = 50
+        let photoH = (screenH - safeTop) * 0.5
+        let toggleY = safeTop + photoH
+        let textListY = toggleY + toggleH
+        let textListH = screenH - textListY
+
+        self.ocrOriginals = ocrResults.map { $0.0 }
+        self.ocrTranslations = translations
+        self.showingTranslation = true
+        self.arOverlayLabels = []
+
+        let resultView = UIView(frame: scanner.view.bounds)
+        resultView.backgroundColor = UIColor(red: 0.96, green: 0.96, blue: 0.96, alpha: 1)
+        self.resultOverlay = resultView
+
+        // ═══ TOP: Zoomable photo area ═══
+        let photoArea = UIView(frame: CGRect(x: 0, y: 0, width: screenW, height: safeTop + photoH))
+        photoArea.backgroundColor = .black
+        photoArea.clipsToBounds = true
+        resultView.addSubview(photoArea)
+
+        // Content view sized to FILL the scroll area (no black bars)
+        // Calculate fill dimensions: image scaled so it covers the entire view
+        let imgAspect = image.size.width / image.size.height
+        let viewAspect = screenW / photoH
+        let contentW: CGFloat, contentH: CGFloat
+        if imgAspect > viewAspect {
+            // Image wider than view → fit by height, width overflows
+            contentH = photoH
+            contentW = photoH * imgAspect
         } else {
-            // iOS < 18: just show original text
-            DispatchQueue.main.async {
-                if let label = self.scannerVC?.view.viewWithTag(999) as? UILabel {
-                    label.text = text
-                }
+            // Image taller than view → fit by width, height overflows
+            contentW = screenW
+            contentH = screenW / imgAspect
+        }
+
+        // Zoom scroll view
+        let zoomScroll = UIScrollView(frame: CGRect(x: 0, y: safeTop, width: screenW, height: photoH))
+        zoomScroll.contentSize = CGSize(width: contentW, height: contentH)
+        // Min zoom = fit entire image in view, default zoom = 1.0 = fill
+        let fitZoom = min(screenW / contentW, photoH / contentH)
+        zoomScroll.minimumZoomScale = fitZoom
+        zoomScroll.maximumZoomScale = 4.0
+        zoomScroll.zoomScale = 1.0
+        zoomScroll.showsHorizontalScrollIndicator = false
+        zoomScroll.showsVerticalScrollIndicator = false
+        zoomScroll.bouncesZoom = true
+        zoomScroll.delegate = self
+        zoomScroll.tag = 600
+        photoArea.addSubview(zoomScroll)
+        self.photoZoomScrollView = zoomScroll
+
+        // Content view matches fill dimensions
+        let contentView = UIView(frame: CGRect(x: 0, y: 0, width: contentW, height: contentH))
+        zoomScroll.addSubview(contentView)
+        self.zoomContentView = contentView
+
+        let imageView = UIImageView(image: image)
+        imageView.contentMode = .scaleAspectFit
+        imageView.frame = contentView.bounds
+        contentView.addSubview(imageView)
+
+        // Center scroll on image center
+        let offsetX = max(0, (contentW - screenW) / 2)
+        let offsetY = max(0, (contentH - photoH) / 2)
+        zoomScroll.setContentOffset(CGPoint(x: offsetX, y: offsetY), animated: false)
+
+        // AR overlays — displayRect = full contentView since it matches image aspect
+        let displayRect = CGRect(x: 0, y: 0, width: contentW, height: contentH)
+
+        let arContainer = UIView(frame: contentView.bounds)
+        arContainer.isUserInteractionEnabled = true
+        contentView.addSubview(arContainer)
+        self.translationContainer = arContainer
+
+        for i in 0..<ocrResults.count {
+            let (_, normRect) = ocrResults[i]
+            let translated = i < translations.count ? translations[i] : ocrResults[i].0
+
+            let viewRect = CGRect(
+                x: normRect.origin.x * displayRect.width,
+                y: normRect.origin.y * displayRect.height,
+                width: normRect.width * displayRect.width,
+                height: normRect.height * displayRect.height
+            )
+
+            let label = UILabel()
+            label.tag = 1000 + i
+            label.text = translated
+            label.numberOfLines = 0
+            label.textColor = .white
+            label.font = .boldSystemFont(ofSize: max(8, min(viewRect.height * 0.6, 20)))
+            label.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 0.55)
+            label.layer.cornerRadius = 3
+            label.layer.borderWidth = 0
+            label.layer.borderColor = UIColor.orange.cgColor
+            label.clipsToBounds = true
+            label.textAlignment = .center
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.3
+            label.isUserInteractionEnabled = true
+            label.frame = CGRect(
+                x: viewRect.origin.x - 2,
+                y: viewRect.origin.y - 1,
+                width: viewRect.width + 4,
+                height: viewRect.height + 2
+            )
+
+            let tap = UITapGestureRecognizer(target: self, action: #selector(arOverlayTapped(_:)))
+            label.addGestureRecognizer(tap)
+
+            arContainer.addSubview(label)
+            arOverlayLabels.append(label)
+        }
+
+        // Close button (floats over photo, not in scroll)
+        let closeBtn = UIButton(type: .system)
+        closeBtn.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+        closeBtn.tintColor = .white
+        closeBtn.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        closeBtn.layer.cornerRadius = 18
+        closeBtn.frame = CGRect(x: 16, y: safeTop + 8, width: 36, height: 36)
+        closeBtn.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        photoArea.addSubview(closeBtn)
+
+        let retakeBtn = UIButton(type: .system)
+        retakeBtn.setImage(UIImage(systemName: "camera.fill"), for: .normal)
+        retakeBtn.tintColor = .white
+        retakeBtn.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        retakeBtn.layer.cornerRadius = 18
+        retakeBtn.frame = CGRect(x: screenW - 52, y: safeTop + 8, width: 36, height: 36)
+        retakeBtn.addTarget(self, action: #selector(retakeTapped), for: .touchUpInside)
+        photoArea.addSubview(retakeBtn)
+
+        // Zoom hint
+        let zoomHint = UILabel()
+        zoomHint.text = "雙指縮放 · 拖動瀏覽"
+        zoomHint.textColor = UIColor.white.withAlphaComponent(0.7)
+        zoomHint.font = .systemFont(ofSize: 11)
+        zoomHint.textAlignment = .center
+        zoomHint.frame = CGRect(x: (screenW - 100) / 2, y: safeTop + photoH - 24, width: 100, height: 18)
+        photoArea.addSubview(zoomHint)
+        UIView.animate(withDuration: 0.5, delay: 2.5, options: [], animations: { zoomHint.alpha = 0 })
+
+        // ═══ MIDDLE: Toggle + Save bar ═══
+        let toggleBar = UIView(frame: CGRect(x: 0, y: toggleY, width: screenW, height: toggleH))
+        toggleBar.backgroundColor = UIColor(red: 0.95, green: 0.6, blue: 0.1, alpha: 1)
+        resultView.addSubview(toggleBar)
+
+        let toggleBtn = UIButton(type: .system)
+        toggleBtn.tag = 700
+        toggleBtn.setTitle("👁 顯示原文", for: .normal)
+        toggleBtn.titleLabel?.font = .boldSystemFont(ofSize: 15)
+        toggleBtn.tintColor = .white
+        toggleBtn.frame = CGRect(x: 16, y: 5, width: (screenW / 2) - 20, height: 40)
+        toggleBtn.addTarget(self, action: #selector(toggleTapped), for: .touchUpInside)
+        toggleBar.addSubview(toggleBtn)
+
+        let saveBtn = UIButton(type: .system)
+        saveBtn.tag = 710
+        saveBtn.setTitle("💾 存入日記中...", for: .normal)
+        saveBtn.titleLabel?.font = .boldSystemFont(ofSize: 15)
+        saveBtn.tintColor = .white
+        saveBtn.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        saveBtn.layer.cornerRadius = 16
+        saveBtn.frame = CGRect(x: (screenW / 2) + 4, y: 7, width: (screenW / 2) - 20, height: 36)
+        saveBtn.addTarget(self, action: #selector(saveToDiaryTapped), for: .touchUpInside)
+        toggleBar.addSubview(saveBtn)
+
+        // ═══ BOTTOM: Text list ═══
+        let listScroll = UIScrollView(frame: CGRect(x: 0, y: textListY, width: screenW, height: textListH))
+        listScroll.backgroundColor = .white
+        listScroll.showsVerticalScrollIndicator = true
+        resultView.addSubview(listScroll)
+        self.textListScrollView = listScroll
+
+        let textContainer = UIView()
+        listScroll.addSubview(textContainer)
+        self.textListContainer = textContainer
+
+        buildTextList(container: textContainer, width: screenW, showTranslated: true)
+
+        scanner.view.addSubview(resultView)
+        print("[GoSavor] 📷 Result displayed with \(ocrResults.count) blocks (zoomable)")
+    }
+
+    private func buildTextList(container: UIView, width: CGFloat, showTranslated: Bool) {
+        container.subviews.forEach { $0.removeFromSuperview() }
+
+        let padding: CGFloat = 16
+        var y: CGFloat = 8
+
+        for i in 0..<ocrOriginals.count {
+            let original = ocrOriginals[i]
+            let translated = i < ocrTranslations.count ? ocrTranslations[i] : original
+            let textW = width - padding * 2 - 16
+
+            let card = UIView()
+            card.tag = 2000 + i
+            card.backgroundColor = UIColor(red: 0.97, green: 0.97, blue: 0.97, alpha: 1)
+            card.layer.cornerRadius = 10
+            card.isUserInteractionEnabled = true
+
+            // Tap card → highlight AR overlay on photo
+            let tap = UITapGestureRecognizer(target: self, action: #selector(cardTapped(_:)))
+            card.addGestureRecognizer(tap)
+
+            // Main text
+            let mainLabel = UILabel()
+            mainLabel.text = showTranslated ? translated : original
+            mainLabel.numberOfLines = 0
+            mainLabel.font = .systemFont(ofSize: 15)
+            mainLabel.textColor = .black
+            let mainSize = mainLabel.sizeThatFits(CGSize(width: textW, height: .greatestFiniteMagnitude))
+            mainLabel.frame = CGRect(x: padding, y: 10, width: textW, height: max(mainSize.height, 18))
+            card.addSubview(mainLabel)
+
+            // Sub text (smaller, gray)
+            let subLabel = UILabel()
+            subLabel.text = showTranslated ? original : translated
+            subLabel.numberOfLines = 0
+            subLabel.font = .systemFont(ofSize: 12)
+            subLabel.textColor = .gray
+            let subSize = subLabel.sizeThatFits(CGSize(width: textW, height: .greatestFiniteMagnitude))
+            subLabel.frame = CGRect(x: padding, y: mainLabel.frame.maxY + 4, width: textW, height: max(subSize.height, 14))
+            card.addSubview(subLabel)
+
+            let cardH = subLabel.frame.maxY + 10
+            card.frame = CGRect(x: padding, y: y, width: width - padding * 2, height: cardH)
+            container.addSubview(card)
+
+            y = card.frame.maxY + 6
+        }
+
+        y += 30
+        container.frame = CGRect(x: 0, y: 0, width: width, height: y)
+        (container.superview as? UIScrollView)?.contentSize = CGSize(width: width, height: y)
+    }
+
+    // MARK: - Tap interactions
+
+    @objc private func arOverlayTapped(_ gesture: UITapGestureRecognizer) {
+        guard let label = gesture.view as? UILabel else { return }
+        let idx = label.tag - 1000
+        guard idx >= 0 && idx < ocrOriginals.count else { return }
+
+        // Highlight this overlay
+        flashHighlight(label)
+
+        // Scroll bottom list to the corresponding card
+        if let container = textListContainer,
+           let card = container.viewWithTag(2000 + idx),
+           let scroll = textListScrollView {
+            let targetY = max(0, card.frame.origin.y - 10)
+            scroll.setContentOffset(CGPoint(x: 0, y: targetY), animated: true)
+            flashHighlight(card)
+        }
+    }
+
+    @objc private func cardTapped(_ gesture: UITapGestureRecognizer) {
+        guard let card = gesture.view else { return }
+        let idx = card.tag - 2000
+        guard idx >= 0 && idx < arOverlayLabels.count else { return }
+
+        // Highlight the AR overlay on photo
+        let overlay = arOverlayLabels[idx]
+        flashHighlight(overlay)
+        flashHighlight(card)
+
+        // Zoom photo to show this overlay area
+        if let zoomScroll = photoZoomScrollView, let contentView = zoomContentView {
+            let overlayCenter = CGPoint(
+                x: overlay.frame.midX,
+                y: overlay.frame.midY
+            )
+            // Zoom to 2x centered on the overlay
+            let zoomScale: CGFloat = 2.0
+            let visibleW = zoomScroll.bounds.width / zoomScale
+            let visibleH = zoomScroll.bounds.height / zoomScale
+            let zoomRect = CGRect(
+                x: overlayCenter.x - visibleW / 2,
+                y: overlayCenter.y - visibleH / 2,
+                width: visibleW,
+                height: visibleH
+            )
+            zoomScroll.zoom(to: zoomRect, animated: true)
+        }
+    }
+
+    private func flashHighlight(_ view: UIView) {
+        let originalBorder = view.layer.borderWidth
+        let originalColor = view.layer.borderColor
+        view.layer.borderWidth = 2.5
+        view.layer.borderColor = UIColor.orange.cgColor
+        UIView.animate(withDuration: 0.3, delay: 1.0, options: [], animations: {
+            view.layer.borderWidth = originalBorder
+            view.layer.borderColor = originalColor
+        })
+    }
+
+    private func aspectFitRect(imageSize: CGSize, viewSize: CGSize) -> CGRect {
+        let imgAspect = imageSize.width / imageSize.height
+        let viewAspect = viewSize.width / viewSize.height
+        if imgAspect > viewAspect {
+            let w = viewSize.width
+            let h = w / imgAspect
+            return CGRect(x: 0, y: (viewSize.height - h) / 2, width: w, height: h)
+        } else {
+            let h = viewSize.height
+            let w = h * imgAspect
+            return CGRect(x: (viewSize.width - w) / 2, y: 0, width: w, height: h)
+        }
+    }
+
+    // MARK: - Actions
+
+    @objc private func closeTapped() {
+        DispatchQueue.main.async {
+            // Resolve the start() call with result data (JS is awaiting this)
+            if let data = self.lastResultData {
+                self.startCall?.resolve([
+                    "hasData": true,
+                    "imageBase64": data["imageBase64"] ?? "",
+                    "itemsJSON": data["itemsJSON"] ?? "[]",
+                    "timestamp": data["timestamp"] ?? ""
+                ])
+            } else {
+                self.startCall?.resolve(["hasData": false])
+            }
+            self.startCall = nil
+            self.dismissAll()
+        }
+    }
+
+    @objc private func retakeTapped() {
+        DispatchQueue.main.async {
+            self.resultOverlay?.removeFromSuperview()
+            self.resultOverlay = nil
+            self.translationContainer = nil
+            self.textListContainer = nil
+            self.textListScrollView = nil
+            self.arOverlayLabels = []
+            self.photoZoomScrollView = nil
+            self.zoomContentView = nil
+            try? self.scannerVC?.startScanning()
+        }
+    }
+
+    @objc private func toggleTapped() {
+        showingTranslation.toggle()
+        translationContainer?.isHidden = !showingTranslation
+
+        // Update toggle button text
+        if let btn = resultOverlay?.viewWithTag(700) as? UIButton {
+            btn.setTitle(showingTranslation ? "👁 顯示原文" : "🔄 顯示譯文", for: .normal)
+        }
+
+        // Rebuild text list
+        if let container = textListContainer {
+            buildTextList(container: container, width: UIScreen.main.bounds.width, showTranslated: showingTranslation)
+        }
+    }
+
+    private func autoSaveToDiary() {
+        guard let image = capturedImage else { return }
+
+        // Resize to max 800px for diary thumbnail (avoid huge base64 in event bridge)
+        let maxDim: CGFloat = 800
+        let scale = min(maxDim / image.size.width, maxDim / image.size.height, 1.0)
+        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let resized = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        guard let jpegData = (resized ?? image).jpegData(compressionQuality: 0.6) else { return }
+        let base64 = jpegData.base64EncodedString()
+        print("[GoSavor] 📷 Diary image size: \(jpegData.count / 1024)KB")
+
+        // Serialize items as JSON string
+        var itemsList: [[String: String]] = []
+        for i in 0..<ocrOriginals.count {
+            itemsList.append([
+                "original": ocrOriginals[i],
+                "translated": i < ocrTranslations.count ? ocrTranslations[i] : ocrOriginals[i]
+            ])
+        }
+        let itemsJSON: String
+        if let jsonData = try? JSONSerialization.data(withJSONObject: itemsList),
+           let jsonStr = String(data: jsonData, encoding: .utf8) {
+            itemsJSON = jsonStr
+        } else {
+            itemsJSON = "[]"
+        }
+
+        // Store data for JS to fetch via getLastResult()
+        self.lastResultData = [
+            "imageBase64": base64,
+            "itemsJSON": itemsJSON,
+            "timestamp": String(Int(Date().timeIntervalSince1970 * 1000))
+        ]
+
+        // Signal JS (lightweight event, no heavy data)
+        notifyListeners("arTranslateSaved", data: ["ready": true])
+        print("[GoSavor] 📷 AR translate ready for save (\(ocrOriginals.count) items, img \(jpegData.count/1024)KB)")
+
+        // Update button to show saved state
+        if let btn = resultOverlay?.viewWithTag(710) as? UIButton {
+            btn.setTitle("✅ 已存入日記", for: .normal)
+            btn.isEnabled = false
+            btn.backgroundColor = UIColor.green.withAlphaComponent(0.3)
+        }
+    }
+
+    @objc private func saveToDiaryTapped() {
+        // Already auto-saved, this is just visual feedback
+        if let btn = resultOverlay?.viewWithTag(710) as? UIButton {
+            btn.setTitle("✅ 已存入日記", for: .normal)
+            btn.isEnabled = false
+        }
+    }
+
+    private func dismissAll() {
+        resultOverlay?.removeFromSuperview()
+        resultOverlay = nil
+        translationContainer = nil
+        textListContainer = nil
+        textListScrollView = nil
+        arOverlayLabels = []
+        photoZoomScrollView = nil
+        zoomContentView = nil
+        ocrOriginals = []
+        ocrTranslations = []
+        capturedImage = nil
+        Task { @MainActor in
+            self.scannerVC?.stopScanning()
+            self.scannerVC?.dismiss(animated: true)
+            self.scannerVC = nil
+        }
+    }
+}
+
+// MARK: - PHPickerViewControllerDelegate (album photo selection)
+@available(iOS 16.0, *)
+extension LiveTranslatePlugin: PHPickerViewControllerDelegate {
+    public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+
+        guard let result = results.first else { return }
+        guard result.itemProvider.canLoadObject(ofClass: UIImage.self) else { return }
+
+        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+            guard let self = self, let image = object as? UIImage else { return }
+            Task { @MainActor in
+                self.scannerVC?.stopScanning()
+                await self.processImage(image)
             }
         }
     }
 }
 
+// MARK: - UIScrollViewDelegate (photo zoom)
 @available(iOS 16.0, *)
-extension LiveTranslatePlugin: DataScannerViewControllerDelegate {
-    public func dataScanner(_ dataScanner: DataScannerViewController, didAdd addedItems: [RecognizedItem], allItems: [RecognizedItem]) {
-        // Collect all text items
-        let texts = allItems.compactMap { item -> String? in
-            if case .text(let text) = item {
-                return text.transcript
-            }
-            return nil
+extension LiveTranslatePlugin: UIScrollViewDelegate {
+    public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+        // Only handle the photo zoom scroll (tag 600), not the text list
+        if scrollView.tag == 600 {
+            return zoomContentView
         }
-        let combined = texts.joined(separator: "\n")
-        if !combined.isEmpty {
-            translateAndDisplay(text: combined)
-        }
-    }
-
-    public func dataScanner(_ dataScanner: DataScannerViewController, didUpdate updatedItems: [RecognizedItem], allItems: [RecognizedItem]) {
-        let texts = allItems.compactMap { item -> String? in
-            if case .text(let text) = item {
-                return text.transcript
-            }
-            return nil
-        }
-        let combined = texts.joined(separator: "\n")
-        if !combined.isEmpty {
-            translateAndDisplay(text: combined)
-        }
+        return nil
     }
 }
