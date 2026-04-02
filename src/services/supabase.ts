@@ -50,6 +50,18 @@ export const initAnonymousAuth = async (): Promise<string | null> => {
 
 export const getCurrentUserId = () => currentUserId;
 
+/** 取得用戶完整資訊 */
+export const getUserProfile = async () => {
+  if (!currentUserId) return null;
+  try {
+    const { data } = await supabase.from('users')
+      .select('nickname, plan, credits, daily_usage, last_reset_date, total_scans, price_report_count')
+      .eq('anonymous_id', currentUserId)
+      .single();
+    return data;
+  } catch { return null; }
+};
+
 /** 取得暱稱 */
 export const getNickname = async (): Promise<string> => {
   if (!currentUserId) return '旅人';
@@ -109,6 +121,118 @@ const updateLastActive = async () => {
       .update({ last_active_at: new Date().toISOString() })
       .eq('anonymous_id', currentUserId);
   } catch { /* silent */ }
+};
+
+// =============================================
+// Redeem Code (兌換碼)
+// =============================================
+
+export interface RedeemResult {
+  success: boolean;
+  message: string;
+  plan?: string;
+  expiresAt?: string;
+}
+
+export const redeemCode = async (code: string): Promise<RedeemResult> => {
+  if (!currentUserId) return { success: false, message: '請先開啟 App' };
+
+  try {
+    // 1. Find code
+    const { data: codeData, error: codeErr } = await supabase
+      .from('redeem_codes')
+      .select('*')
+      .eq('code', code.trim().toUpperCase())
+      .eq('is_active', true)
+      .single();
+
+    if (codeErr || !codeData) return { success: false, message: '無效的兌換碼' };
+
+    // 2. Check usage limit
+    if (codeData.used_count >= codeData.max_uses) {
+      return { success: false, message: '此兌換碼已達使用上限' };
+    }
+
+    // 3. Get user
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, plan')
+      .eq('anonymous_id', currentUserId)
+      .single();
+
+    if (!user) return { success: false, message: '用戶不存在' };
+
+    // 4. Check if already redeemed
+    const { data: existing } = await supabase
+      .from('redeem_history')
+      .select('id')
+      .eq('code_id', codeData.id)
+      .eq('user_id', user.id);
+
+    if (existing && existing.length > 0) {
+      return { success: false, message: '你已經使用過此兌換碼' };
+    }
+
+    // 5. Calculate expiry
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + codeData.duration_days);
+
+    // 6. Record redemption
+    await supabase.from('redeem_history').insert({
+      code_id: codeData.id,
+      user_id: user.id,
+      expires_at: expiresAt.toISOString(),
+    });
+
+    // 7. Increment used count
+    await supabase.from('redeem_codes')
+      .update({ used_count: codeData.used_count + 1 })
+      .eq('id', codeData.id);
+
+    // 8. Update user
+    const userUpdates: any = {};
+
+    // Update plan if code has one
+    if (codeData.plan) {
+      userUpdates.plan = codeData.plan;
+      userUpdates.rental_expires = expiresAt.toISOString();
+    }
+
+    // Add bonus credits
+    if (codeData.bonus_credits > 0) {
+      // Get current credits first
+      const { data: currentUser } = await supabase.from('users')
+        .select('credits')
+        .eq('anonymous_id', currentUserId)
+        .single();
+      userUpdates.credits = (currentUser?.credits || 0) + codeData.bonus_credits;
+    }
+
+    if (Object.keys(userUpdates).length > 0) {
+      await supabase.from('users')
+        .update(userUpdates)
+        .eq('anonymous_id', currentUserId);
+    }
+
+    // Build success message
+    const parts: string[] = [];
+    if (codeData.plan) {
+      parts.push(`${codeData.plan === 'supporter' ? '贊助版' : '正式版'}開通（${codeData.duration_days}天）`);
+    }
+    if (codeData.bonus_credits > 0) {
+      parts.push(`獲得 ${codeData.bonus_credits} 點翻譯點數`);
+    }
+
+    return {
+      success: true,
+      message: `✨ ${parts.join(' + ')}`,
+      plan: codeData.plan || undefined,
+      expiresAt: codeData.plan ? expiresAt.toISOString() : undefined,
+    };
+  } catch (err) {
+    console.error('[GoSavor] Redeem error:', err);
+    return { success: false, message: '兌換失敗，請稍後再試' };
+  }
 };
 
 // =============================================

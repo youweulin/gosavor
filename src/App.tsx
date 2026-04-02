@@ -16,7 +16,7 @@ import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
-import { initAnonymousAuth, trackScanEvent, getNickname, updateNickname, submitPriceReports } from './services/supabase';
+import { initAnonymousAuth, trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
 import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult, OrderItem, SavedOrder, SavedScan, SplitInfo, ScanMode } from './types';
@@ -64,6 +64,8 @@ function AppInner() {
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
   const [profileNickname, setProfileNickname] = useState('旅人');
+  const [redeemCode, setRedeemCode] = useState('');
+  const [redeemStatus, setRedeemStatus] = useState('');
   const [menuResult, setMenuResult] = useState<MenuAnalysisResult | null>(null);
   const [receiptResult, setReceiptResult] = useState<ReceiptAnalysisResult | null>(null);
   const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
@@ -446,7 +448,7 @@ function AppInner() {
       ) : null}
 
       {/* Main */}
-      <main className="max-w-md mx-auto px-4 py-4 pb-24">
+      <main className="max-w-md mx-auto px-4 pt-2 pb-24">
         {error && (
           <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl">
             <p className="text-sm text-gray-800 leading-relaxed">{error}</p>
@@ -647,18 +649,113 @@ function AppInner() {
 
       {/* Profile Modal */}
       {showProfile && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6" onClick={() => setShowProfile(false)}>
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">👤 我的名稱</h3>
-            <input
-              autoFocus
-              value={profileNickname}
-              onChange={e => setProfileNickname(e.target.value)}
-              placeholder="輸入你的暱稱"
-              maxLength={20}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-orange-400 focus:outline-none"
-            />
-            <div className="flex gap-3 mt-5">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center" onClick={() => setShowProfile(false)}>
+          <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Handle bar */}
+            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4 sm:hidden" />
+
+            <h3 className="text-xl font-black text-gray-900 mb-5">👤 我的帳戶</h3>
+
+            {/* Nickname */}
+            <div className="mb-5">
+              <label className="text-xs font-medium text-gray-400 mb-1 block">暱稱</label>
+              <input
+                value={profileNickname}
+                onChange={e => setProfileNickname(e.target.value)}
+                placeholder="輸入你的暱稱"
+                maxLength={20}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base focus:border-orange-400 focus:outline-none"
+              />
+            </div>
+
+            {/* Plan & Usage */}
+            <div className="bg-gradient-to-br from-gray-50 to-orange-50 rounded-2xl p-4 mb-5 border border-orange-100">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🌱</span>
+                  <div>
+                    <p className="font-bold text-sm text-gray-900">免費體驗版</p>
+                    <p className="text-xs text-gray-400">公測期間</p>
+                  </div>
+                </div>
+                <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium">
+                  Beta
+                </span>
+              </div>
+
+              {/* Usage bar */}
+              <div className="mb-3">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-500">今日系統翻譯額度</span>
+                  <span className="font-bold text-gray-700">5 次/天</span>
+                </div>
+                <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-orange-500 h-full rounded-full" style={{ width: '0%' }} />
+                </div>
+              </div>
+
+              {/* Feature list */}
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">AR翻譯</span>
+                  <span className="text-green-600 font-medium">無限 ✅</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">對話翻譯</span>
+                  <span className="text-green-600 font-medium">無限 ✅</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">圖文/菜單/收據</span>
+                  <span className="text-gray-500">5 次/天</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">自帶 API Key</span>
+                  <span className="text-gray-400">🔒 需開通</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Redeem code */}
+            <div className="mb-4">
+              <label className="text-xs font-medium text-gray-400 mb-1 block">兌換碼</label>
+              <div className="flex gap-2">
+                <input
+                  value={redeemCode}
+                  onChange={e => setRedeemCode(e.target.value.toUpperCase())}
+                  placeholder="輸入兌換碼"
+                  maxLength={20}
+                  className="flex-1 px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-mono tracking-wider focus:border-orange-400 focus:outline-none"
+                />
+                <button
+                  onClick={async () => {
+                    if (!redeemCode.trim()) return;
+                    setRedeemStatus('⏳');
+                    const result = await submitRedeemCode(redeemCode.trim());
+                    setRedeemStatus(result.success ? `✅ ${result.message}` : `❌ ${result.message}`);
+                    if (result.success) setRedeemCode('');
+                  }}
+                  className="px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold shrink-0"
+                >
+                  兌換
+                </button>
+              </div>
+              {redeemStatus && (
+                <p className={`text-xs mt-1.5 ${redeemStatus.startsWith('✅') ? 'text-green-600' : redeemStatus.startsWith('❌') ? 'text-red-500' : 'text-gray-400'}`}>
+                  {redeemStatus}
+                </p>
+              )}
+            </div>
+
+            {/* Settings button */}
+            <button
+              onClick={() => { setShowProfile(false); setPage('settings'); }}
+              className="w-full py-3 bg-orange-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 mb-3"
+            >
+              ⚙️ 前往設定（API Key / 語言）
+            </button>
+
+            {/* Save & Close */}
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowProfile(false)}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 font-medium"
@@ -669,11 +766,12 @@ function AppInner() {
                 onClick={async () => {
                   const name = profileNickname.trim() || '旅人';
                   await updateNickname(name);
+                  setProfileNickname(name);
                   setShowProfile(false);
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white font-bold"
               >
-                儲存
+                儲存暱稱
               </button>
             </div>
           </div>
