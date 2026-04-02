@@ -10,9 +10,11 @@ interface SettingsProps {
   onUpdate: (partial: Partial<AppSettings>) => void;
   onReset: () => void;
   onBack: () => void;
+  userPlan?: string;
 }
 
-const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
+const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: SettingsProps) => {
+  const canUseApiKey = userPlan === 'supporter' || userPlan === 'pro';
   const t = useT();
   const [showKey, setShowKey] = useState(false);
   const [keyDraft, setKeyDraft] = useState(settings.geminiApiKey);
@@ -51,6 +53,8 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
             <Key size={14} /> {t('settings.apiKey')}
           </label>
+          {canUseApiKey ? (
+          <>
           <div className="relative">
             <input
               type={showKey ? 'text' : 'password'}
@@ -89,6 +93,27 @@ const Settings = ({ settings, onUpdate, onReset, onBack }: SettingsProps) => {
               {t('settings.getKey')}
             </a>
           </div>
+          </>
+          ) : (
+            <div className="bg-gray-800 rounded-xl p-4 text-center">
+              <p className="text-gray-400 text-sm mb-2">🔒 需要贊助開通才能使用自帶 API Key</p>
+              <p className="text-gray-500 text-xs mb-3">開通後可無限翻譯、不受地區限制</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={onBack}
+                  className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold"
+                >
+                  🔑 贊助開通 $199
+                </button>
+                <button
+                  onClick={onBack}
+                  className="flex-1 py-2 border border-gray-600 text-gray-300 rounded-lg text-sm font-bold"
+                >
+                  🎫 輸入兌換碼
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Language */}

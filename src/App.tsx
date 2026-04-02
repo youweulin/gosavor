@@ -52,6 +52,7 @@ function AppInner() {
   useEffect(() => {
     initAnonymousAuth().then(() => {
       getNickname().then(setProfileNickname);
+      getUserProfile().then(p => { if (p?.plan) setUserPlan(p.plan); });
     });
   }, []);
 
@@ -66,6 +67,7 @@ function AppInner() {
   const [profileNickname, setProfileNickname] = useState('旅人');
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemStatus, setRedeemStatus] = useState('');
+  const [userPlan, setUserPlan] = useState('free');
   const [menuResult, setMenuResult] = useState<MenuAnalysisResult | null>(null);
   const [receiptResult, setReceiptResult] = useState<ReceiptAnalysisResult | null>(null);
   const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
@@ -157,13 +159,13 @@ function AppInner() {
       const msg = err?.message || err?.toString?.() || String(err);
       console.error('[GoSavor] Analyze error:', msg);
       if (msg.includes('LIMIT')) {
-        setError('今日免費額度已用完。請到設定輸入自帶 API Key，或明天再試！');
+        setError('今日免費額度已用完。明天 00:00 重置，或贊助開通自帶 API Key 無限使用！也可輸入兌換碼獲得額度。');
       } else if (msg.includes('GPS') || msg.includes('日本')) {
-        setError('系統翻譯僅限日本境內使用。請到設定輸入自帶 API Key，不受地區限制！');
+        setError('系統翻譯僅限日本境內使用。到日本後即可免費體驗！或贊助開通自帶 API Key 不受限制，也可輸入兌換碼。');
       } else if (msg.includes('NO_KEY') || msg.includes('NO_AUTH')) {
-        setError('請到設定輸入 Gemini API Key');
+        setError('翻譯服務準備中，請稍後再試。');
       } else if (msg.includes('USE_OWN_KEY')) {
-        setError('你已開通自帶 Key 方案，請到設定輸入 API Key');
+        setError('請到設定輸入你的 API Key');
       } else {
         setError(t('error.failed'));
       }
@@ -296,6 +298,7 @@ function AppInner() {
         onUpdate={updateSettings}
         onReset={resetSettings}
         onBack={() => setPage('home')}
+        userPlan={userPlan}
       />
     );
   }
@@ -452,12 +455,20 @@ function AppInner() {
         {error && (
           <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl">
             <p className="text-sm text-gray-800 leading-relaxed">{error}</p>
-            <button
-              onClick={() => { setError(''); setPage('settings'); }}
-              className="mt-2 w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-bold"
-            >
-              前往設定
-            </button>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => { setError(''); setPage('settings'); }}
+                className="flex-1 py-2 bg-gray-900 text-white rounded-lg text-sm font-bold"
+              >
+                🔑 贊助開通
+              </button>
+              <button
+                onClick={() => { setError(''); setShowProfile(true); }}
+                className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold"
+              >
+                🎫 輸入兌換碼
+              </button>
+            </div>
           </div>
         )}
 
@@ -732,7 +743,10 @@ function AppInner() {
                     setRedeemStatus('⏳');
                     const result = await submitRedeemCode(redeemCode.trim());
                     setRedeemStatus(result.success ? `✅ ${result.message}` : `❌ ${result.message}`);
-                    if (result.success) setRedeemCode('');
+                    if (result.success) {
+                      setRedeemCode('');
+                      if (result.plan) setUserPlan(result.plan);
+                    }
                   }}
                   className="px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold shrink-0"
                 >
