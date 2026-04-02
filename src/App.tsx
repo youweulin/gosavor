@@ -354,15 +354,6 @@ function AppInner() {
             >
               <User size={20} />
             </button>
-            <button onClick={() => setPage('diary')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="日記">
-              <BookOpen size={20} />
-            </button>
-            <button onClick={() => setPage('expenses')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="記帳簿">
-              <WalletMinimal size={20} />
-            </button>
-            <button onClick={() => setPage('history')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="點餐紀錄">
-              <Clock size={20} />
-            </button>
             <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="設定">
               <SettingsIcon size={20} />
             </button>
@@ -483,7 +474,13 @@ function AppInner() {
             {images.length === 0 && !isAnalyzing && !showCamera ? (
               <div className="space-y-4">
                 {/* Welcome + Location + Weather */}
-                <HomeCard nickname={profileNickname} />
+                <HomeCard
+                  nickname={profileNickname}
+                  userPlan={userPlan}
+                  onDiary={() => setPage('diary')}
+                  onExpenses={() => setPage('expenses')}
+                  onHistory={() => setPage('history')}
+                />
 
                 {/* Trip Summary */}
                 <TripSummary homeCurrency={settings.homeCurrency} />
@@ -491,14 +488,14 @@ function AppInner() {
                 {/* Drugstore Info */}
                 <button
                   onClick={() => setPage('drugstore')}
-                  className="w-full bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl p-4 text-left text-white shadow-sm hover:shadow-md transition-shadow"
+                  className="w-full bg-blue-50/80 border border-blue-100 rounded-2xl p-4 text-left hover:bg-blue-100/60 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-base">💊 藥妝情報・比價搜尋</h3>
-                      <p className="text-sm text-white/70 mt-1">查看熱門商品排行、跨店比價</p>
+                      <h3 className="font-bold text-base text-slate-800">💊 藥妝情報・比價搜尋</h3>
+                      <p className="text-sm text-slate-500 mt-1">查看熱門商品排行、跨店比價</p>
                     </div>
-                    <span className="text-2xl">📊</span>
+                    <span className="text-2xl text-blue-400">📊</span>
                   </div>
                 </button>
 
@@ -854,8 +851,12 @@ function AppInner() {
       {/* Bottom Tab Bar */}
       {/* Floating photo picker (native camera / album) */}
       {showPhotoPicker && (
-        <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowPhotoPicker(false)}>
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-3" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]" onClick={() => setShowPhotoPicker(false)}>
+          <div
+            className="absolute left-1/2 -translate-x-1/2 flex items-center bg-white rounded-full shadow-2xl overflow-hidden"
+            style={{ bottom: '110px' }}
+            onClick={e => e.stopPropagation()}
+          >
             <button
               onClick={async () => {
                 setShowPhotoPicker(false);
@@ -866,10 +867,10 @@ function AppInner() {
                   setTimeout(() => setAutoAnalyze(true), 50);
                 }
               }}
-              className="flex flex-col items-center gap-1.5 w-20 py-3 bg-white rounded-2xl shadow-xl active:scale-95 transition-transform"
+              className="flex items-center gap-2 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors border-r border-gray-100"
             >
-              <span className="text-2xl">📷</span>
-              <span className="text-xs font-bold text-gray-700">拍照</span>
+              <span className="text-[22px]">📷</span>
+              <span className="text-[15px] font-bold text-gray-800 tracking-wide">拍照</span>
             </button>
             <button
               onClick={async () => {
@@ -881,10 +882,10 @@ function AppInner() {
                   setTimeout(() => setAutoAnalyze(true), 50);
                 }
               }}
-              className="flex flex-col items-center gap-1.5 w-20 py-3 bg-white rounded-2xl shadow-xl active:scale-95 transition-transform"
+              className="flex items-center gap-2 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              <span className="text-2xl">🖼</span>
-              <span className="text-xs font-bold text-gray-700">相簿</span>
+              <span className="text-[22px]">🖼</span>
+              <span className="text-[15px] font-bold text-gray-800 tracking-wide">相簿</span>
             </button>
           </div>
         </div>
@@ -929,6 +930,7 @@ function AppInner() {
         }}
         onChatPress={() => {
           setActiveTab('chat');
+          handleGoHome();
           setPage('chat');
         }}
         chatActive={activeTab === 'chat'}

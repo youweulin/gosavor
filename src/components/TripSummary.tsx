@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UtensilsCrossed, Receipt, Languages, MessageCircle, Wallet, Calendar, BarChart3 } from 'lucide-react';
+import { UtensilsCrossed, Receipt, Languages, MessageCircle, Wallet, Calendar, BarChart3, Scan } from 'lucide-react';
 import type { SavedScan, Expense } from '../types';
 import { getScanHistory, getExpenses, getActiveTrip } from '../services/storage';
 
@@ -28,7 +28,8 @@ const TripSummary = ({ homeCurrency }: TripSummaryProps) => {
 
   const menuScans = scans.filter(s => (s.scanMode || 'menu') === 'menu').length;
   const receiptScans = scans.filter(s => s.scanMode === 'receipt').length;
-  const generalScans = scans.filter(s => s.scanMode === 'general' || s.scanMode === 'ar-translate').length;
+  const generalScans = scans.filter(s => s.scanMode === 'general').length;
+  const arScans = scans.filter(s => s.scanMode === 'ar-translate').length;
   const chatCount = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
 
   // Trip duration
@@ -49,44 +50,47 @@ const TripSummary = ({ homeCurrency }: TripSummaryProps) => {
       ? `${currency}${formatted}` : `${formatted} ${currency}`;
   };
 
+  // 順序配合底部 BottomTabBar：萬用 → 菜單 → AR → 收據 → 對話
   const stats = [
-    { icon: Languages, value: generalScans, label: '圖文翻譯', color: 'text-slate-600', bg: 'bg-slate-50' },
-    { icon: UtensilsCrossed, value: menuScans, label: '菜單翻譯', color: 'text-orange-500', bg: 'bg-orange-50' },
-    { icon: Receipt, value: receiptScans, label: '收據翻譯', color: 'text-blue-500', bg: 'bg-blue-50' },
-    { icon: MessageCircle, value: chatCount, label: '對話翻譯', color: 'text-purple-500', bg: 'bg-purple-50' },
-    { icon: Calendar, value: tripDays, label: '天', color: 'text-green-500', bg: 'bg-green-50' },
+    { icon: Languages, value: generalScans, color: 'text-slate-600' },
+    { icon: UtensilsCrossed, value: menuScans, color: 'text-orange-500' },
+    { icon: Scan, value: arScans, color: 'text-zinc-500' },
+    { icon: Receipt, value: receiptScans, color: 'text-blue-500' },
+    { icon: MessageCircle, value: chatCount, color: 'text-purple-500' },
   ];
 
-  const title = showAll ? '📊 全部統計' : `🗾 ${activeTrip?.name || '旅遊日記'}`;
+  const tripName = showAll ? '全部統計' : (activeTrip?.name || '旅遊日記');
 
   return (
     <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+      {/* Header: trip name + days + toggle */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-bold text-gray-700">{title}</h3>
-        <button
-          onClick={() => setShowAll(!showAll)}
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-            showAll
-              ? 'bg-orange-100 text-orange-600'
-              : 'bg-gray-100 text-gray-500'
-          }`}
-        >
-          <BarChart3 size={12} />
-          {showAll ? '本趟旅程' : '全部統計'}
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-base">🇯🇵</span>
+          <h3 className="text-base font-bold text-gray-800">{tripName}</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-green-600">第 {tripDays} 天</span>
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+              showAll ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            <BarChart3 size={10} />
+            {showAll ? '本趟' : '全部'}
+          </button>
+        </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-5 gap-1.5 mb-3">
+      {/* Stats: icons + big numbers only */}
+      <div className="grid grid-cols-5 gap-1">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={i} className="text-center">
-              <div className={`w-10 h-10 mx-auto rounded-xl ${stat.bg} flex items-center justify-center mb-1`}>
-                <Icon size={18} className={stat.color} />
-              </div>
-              <p className="text-lg font-black text-gray-900">{stat.value}</p>
-              <p className="text-[10px] text-gray-400">{stat.label}</p>
+            <div key={i} className="flex items-center gap-2 justify-center">
+              <Icon size={16} className={stat.color} />
+              <span className="text-2xl font-black text-gray-900">{stat.value}</span>
             </div>
           );
         })}

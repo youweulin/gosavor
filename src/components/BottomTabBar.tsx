@@ -74,9 +74,7 @@ const BottomTabBar = ({ onModeChange, onCameraPress, onARPress, onChatPress, act
             >
               <Scan size={32} className="text-white" />
             </button>
-            <span className={`text-xs mt-auto mb-3 font-medium ${activeTab === 'ar' ? 'text-zinc-500' : 'text-gray-400'}`}>
-              AR翻譯
-            </span>
+            <span className="mt-auto mb-3">&nbsp;</span>
           </div>
 
           {/* Right tabs */}

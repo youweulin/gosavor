@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Mic, MicOff, Volume2, Send, Trash2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { speakText, startListening, stopListening } from '../services/NativeSpeech';
@@ -71,6 +71,11 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
   const scrollToBottom = () => {
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
+
+  // Auto-scroll to bottom on mount
+  useEffect(() => {
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'auto' }), 200);
+  }, []);
 
   // Translate: Apple first (free offline) → Gemini fallback
   const translateText = async (text: string, from: string, to: string): Promise<string> => {

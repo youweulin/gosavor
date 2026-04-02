@@ -15,11 +15,27 @@ const modeIcons = {
   'ar-translate': { icon: Scan, color: 'text-zinc-500', bg: 'bg-zinc-50', labelKey: 'history.translationType' as const },
 };
 
+const relativeTime = (ts: number): string => {
+  const now = Date.now();
+  const diff = now - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '剛剛';
+  if (mins < 60) return `${mins} 分鐘前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} 小時前`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return '昨天';
+  if (days < 7) return `${days} 天前`;
+  return new Date(ts).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }).replace('/', '月') + '日';
+};
+
 const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
   const t = useT();
   const [scans, setScans] = useState<SavedScan[]>([]);
 
   const [filter, setFilter] = useState<'all' | 'menu' | 'receipt' | 'general' | 'ar-translate'>('all');
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 4;
 
   useEffect(() => {
     getScanHistory().then(setScans);
@@ -58,7 +74,7 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
           ] as const).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setFilter(key)}
+              onClick={() => { setFilter(key); setPage(0); }}
               className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
                 filter === key ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'
               }`}
@@ -69,7 +85,7 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
         </div>
       </div>
       <div className="space-y-2">
-        {filtered.slice(0, 8).map(scan => {
+        {filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(scan => {
           const mode = scan.scanMode || 'menu';
           const cfg = modeIcons[mode as keyof typeof modeIcons] || modeIcons.general;
           const Icon = cfg.icon;
@@ -78,6 +94,7 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
             <button
               key={scan.id}
               onClick={() => onLoadScan(scan)}
+              onContextMenu={(e) => { e.preventDefault(); handleDelete(scan.id, e); }}
               className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 hover:border-orange-200 hover:bg-orange-50/30 transition-colors text-left"
             >
               {/* Thumbnail or mode icon */}
@@ -97,10 +114,9 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 text-sm truncate">{scan.restaurantName}</p>
                 <p className="text-xs text-gray-400">
-                  <span className={`${cfg.color} font-medium`}>{mode === 'ar-translate' ? 'AR翻譯' : t(cfg.labelKey)}</span> · {getSubtitle(scan)} · {new Date(scan.timestamp).toLocaleDateString()}
+                  <span className={`${cfg.color} font-medium`}>{mode === 'ar-translate' ? 'AR翻譯' : t(cfg.labelKey)}</span> · {getSubtitle(scan)} · {relativeTime(scan.timestamp)}
                 </p>
               </div>
-              {/* Actions */}
               <button
                 onClick={(e) => handleDelete(scan.id, e)}
                 className="shrink-0 p-1.5 rounded-full hover:bg-red-50 text-gray-300 hover:text-red-400"
@@ -112,6 +128,29 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
           );
         })}
       </div>
+
+      {/* Pagination */}
+      {filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-center gap-3 mt-3">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium disabled:text-gray-300 text-gray-500 hover:bg-gray-100"
+          >
+            ‹ 上一頁
+          </button>
+          <span className="text-xs text-gray-400">
+            {page + 1} / {Math.ceil(filtered.length / PAGE_SIZE)}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE) - 1, p + 1))}
+            disabled={(page + 1) * PAGE_SIZE >= filtered.length}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium disabled:text-gray-300 text-gray-500 hover:bg-gray-100"
+          >
+            下一頁 ›
+          </button>
+        </div>
+      )}
     </div>
   );
 };

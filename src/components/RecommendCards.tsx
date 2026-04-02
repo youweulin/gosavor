@@ -24,9 +24,9 @@ const RecommendCards = ({ loadProducts, context = 'result' }: RecommendCardsProp
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] text-gray-400 px-1 flex items-center gap-1">
-        {context === 'loading' ? '🔍 AI 分析中，看看附近推薦...' : '📍 合作推薦'}
-      </p>
+      {context === 'loading' && (
+        <p className="text-[10px] text-gray-400 px-1">🔍 AI 分析中，看看附近推薦...</p>
+      )}
       {!loaded ? (
         <div className="space-y-2">
           {[1, 2].map(i => (
