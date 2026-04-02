@@ -1,7 +1,13 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { Capacitor } from '@capacitor/core';
 import VisionOCR from './VisionOCR';
+import { callGeminiViaWorker, isWorkerAvailable, type UsageInfo } from './workerProxy';
 import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult } from '../types';
+
+// Track last usage info from Worker (for UI display)
+let _lastUsageInfo: UsageInfo | null = null;
+export const getLastUsageInfo = () => _lastUsageInfo;
+export const clearUsageInfo = () => { _lastUsageInfo = null; };
 
 // Shared: Run Apple Vision OCR on images, returns text blocks with bounding boxes
 const runNativeOCR = async (images: { base64: string; mimeType: string }[]): Promise<{
@@ -35,7 +41,52 @@ const runNativeOCR = async (images: { base64: string; mimeType: string }[]): Pro
   }
 };
 
-const getAI = (apiKey: string) => new GoogleGenAI({ apiKey });
+// Scan mode context for Worker routing
+let _currentScanMode = 'general';
+export const setScanMode = (mode: string) => { _currentScanMode = mode; };
+
+/**
+ * Smart AI client: has key → real SDK, no key → Worker proxy object.
+ * Returns same interface so all analyze functions work unchanged.
+ */
+const getAI = (apiKey: string) => {
+  // Has own key → use real SDK (direct, no limits)
+  if (apiKey) {
+    console.log('[GoSavor] Using own API key');
+    return new GoogleGenAI({ apiKey });
+  }
+
+  // No key → return proxy that routes through Worker
+  console.log('[GoSavor] No API key, using Worker proxy. Available:', isWorkerAvailable());
+  if (!isWorkerAvailable()) {
+    throw new Error('NO_KEY:請設定 API Key 或等待系統服務上線');
+  }
+
+  return {
+    models: {
+      generateContent: async (params: any) => {
+        const parts = params.contents?.parts || [];
+        const config = params.config || {};
+        const model = params.model || 'gemini-2.5-flash';
+
+        const geminiRequest: any = {
+          contents: [{ parts }],
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 0 }, // 不要花時間思考，直接回答
+          },
+        };
+        if (config.responseMimeType) geminiRequest.generationConfig.responseMimeType = config.responseMimeType;
+        if (config.responseSchema) geminiRequest.generationConfig.responseSchema = config.responseSchema;
+
+        const workerResult = await callGeminiViaWorker(geminiRequest, _currentScanMode, model);
+        _lastUsageInfo = workerResult.usage;
+
+        const text = workerResult.result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        return { text };
+      },
+    },
+  };
+};
 
 const safeParseJSON = <T>(text: string): T => {
   try {

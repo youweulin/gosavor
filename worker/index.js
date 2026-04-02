@@ -2,19 +2,16 @@
  * GoSavor Cloudflare Worker
  * - Gemini API proxy (protects system key)
  * - JWT verification (Supabase anonymous auth)
- * - Daily usage control per user
+ * - Plan-based daily usage control
  * - GPS Japan geofence check
  *
  * Environment variables (set in Cloudflare Dashboard):
- *   GEMINI_API_KEY     - System Gemini API key
- *   SUPABASE_URL       - https://xxxxx.supabase.co
- *   SUPABASE_ANON_KEY  - Supabase anon public key
- *   SUPABASE_JWT_SECRET - Supabase JWT secret (Settings → API → JWT Secret)
+ *   GEMINI_API_KEY      - System Gemini API key
+ *   SUPABASE_URL        - https://xxxxx.supabase.co
+ *   SUPABASE_ANON_KEY   - Supabase anon public key
+ *   SUPABASE_JWT_SECRET - Supabase JWT secret
  */
 
-// =============================================
-// CORS headers
-// =============================================
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -22,73 +19,109 @@ const CORS_HEADERS = {
 };
 
 // =============================================
-// Daily usage limits by scan mode
+// Plan-based daily limits (system API only)
+// supporter/pro use own key, don't hit Worker
 // =============================================
+const IS_BETA_PERIOD = true; // flip to false when 正式版 launches
+
 const DAILY_LIMITS = {
-  receipt: 5,    // 收據：5張/天（免費，收集資料用）
-  menu: 10,      // 菜單：10次/天
-  general: 10,   // 萬用：10次/天
+  free:    IS_BETA_PERIOD ? 5 : 2,    // 免費：公測5次，正式2次
+  rental:  50,                         // 旅遊包：50次/天 硬上限
+  // 點數包：無日上限，用完點數就沒了
 };
 
 // =============================================
 // Japan GPS geofence
 // =============================================
 const JAPAN_BOUNDS = {
-  latMin: 24.0,   // 沖繩南端
-  latMax: 46.0,   // 北海道北端
-  lonMin: 122.0,  // 與那國島
-  lonMax: 154.0,  // 南鳥島
+  latMin: 24.0, latMax: 46.0,
+  lonMin: 122.0, lonMax: 154.0,
 };
 
 function isInJapan(lat, lon) {
-  if (lat === null || lon === null || lat === undefined || lon === undefined) {
-    return false;
-  }
+  if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) return false;
   return lat >= JAPAN_BOUNDS.latMin && lat <= JAPAN_BOUNDS.latMax &&
          lon >= JAPAN_BOUNDS.lonMin && lon <= JAPAN_BOUNDS.lonMax;
 }
 
 // =============================================
-// JWT verification (Supabase)
+// JWT verification (via Supabase JWKS)
+// Supports both ECC P-256 (ES256) and HS256
 // =============================================
-async function verifyJWT(token, secret) {
+let _jwksCache = null;
+let _jwksCacheTime = 0;
+const JWKS_CACHE_TTL = 3600000; // 1 hour
+
+async function getJWKS(supabaseUrl) {
+  const now = Date.now();
+  if (_jwksCache && (now - _jwksCacheTime) < JWKS_CACHE_TTL) return _jwksCache;
+
+  const res = await fetch(`${supabaseUrl}/auth/v1/.well-known/jwks.json`);
+  if (!res.ok) return null;
+  _jwksCache = await res.json();
+  _jwksCacheTime = now;
+  return _jwksCache;
+}
+
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return Uint8Array.from(atob(str), c => c.charCodeAt(0));
+}
+
+async function verifyJWT(token, secret, supabaseUrl) {
   try {
-    // Decode JWT parts
     const parts = token.split('.');
     if (parts.length !== 3) return null;
 
-    const header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const headerStr = new TextDecoder().decode(base64UrlDecode(parts[0]));
+    const payloadStr = new TextDecoder().decode(base64UrlDecode(parts[1]));
+    const header = JSON.parse(headerStr);
+    const payload = JSON.parse(payloadStr);
 
     // Check expiration
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      console.log('JWT expired');
-      return null;
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    // Check issuer (Supabase format: "https://xxx.supabase.co/auth/v1" or "supabase")
+    if (!payload.iss || (!payload.iss.includes('supabase') && payload.iss !== 'supabase')) return null;
+    // Check has user id
+    if (!payload.sub) return null;
+
+    const signatureBytes = base64UrlDecode(parts[2]);
+    const signedInput = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+
+    if (header.alg === 'ES256') {
+      // ECC P-256 verification via JWKS
+      const jwks = await getJWKS(supabaseUrl);
+      if (!jwks?.keys) return null;
+
+      const headerKid = (header.kid || '').toLowerCase();
+      const jwk = jwks.keys.find(k => (k.kid || '').toLowerCase() === headerKid) || jwks.keys[0];
+      if (!jwk) return null;
+
+      const key = await crypto.subtle.importKey(
+        'jwk', jwk,
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false, ['verify']
+      );
+
+      const valid = await crypto.subtle.verify(
+        { name: 'ECDSA', hash: 'SHA-256' },
+        key, signatureBytes, signedInput
+      );
+      return valid ? payload : null;
+
+    } else if (header.alg === 'HS256') {
+      // HMAC-SHA256 verification (legacy)
+      const key = await crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false, ['verify']
+      );
+      const valid = await crypto.subtle.verify('HMAC', key, signatureBytes, signedInput);
+      return valid ? payload : null;
     }
 
-    // Verify signature using HMAC-SHA256
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
-
-    const signatureInput = encoder.encode(`${parts[0]}.${parts[1]}`);
-    const signature = Uint8Array.from(
-      atob(parts[2].replace(/-/g, '+').replace(/_/g, '/')),
-      c => c.charCodeAt(0)
-    );
-
-    const valid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
-    if (!valid) {
-      console.log('JWT signature invalid');
-      return null;
-    }
-
-    return payload;
+    return null;
   } catch (err) {
     console.error('JWT verify error:', err);
     return null;
@@ -98,78 +131,89 @@ async function verifyJWT(token, secret) {
 // =============================================
 // Supabase helpers
 // =============================================
-async function getDailyUsage(supabaseUrl, supabaseKey, userId) {
-  const today = new Date().toISOString().split('T')[0];
-  const res = await fetch(`${supabaseUrl}/rest/v1/users?anonymous_id=eq.${userId}&select=daily_usage,last_reset_date`, {
+async function getUser(supabaseUrl, supabaseKey, userId) {
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/users?anonymous_id=eq.${userId}&select=plan,credits,daily_usage,last_reset_date,rental_expires`,
+    { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
+  );
+  const data = await res.json();
+  return data?.[0] || null;
+}
+
+async function updateUser(supabaseUrl, supabaseKey, userId, updates) {
+  await fetch(`${supabaseUrl}/rest/v1/users?anonymous_id=eq.${userId}`, {
+    method: 'PATCH',
     headers: {
       'apikey': supabaseKey,
       'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
     },
+    body: JSON.stringify(updates),
   });
-  const data = await res.json();
-  if (!data || data.length === 0) return { usage: 0, needsReset: false };
-
-  const user = data[0];
-  const needsReset = user.last_reset_date !== today;
-  return {
-    usage: needsReset ? 0 : (user.daily_usage || 0),
-    needsReset,
-  };
 }
 
-async function incrementUsage(supabaseUrl, supabaseKey, userId, scanMode) {
-  const today = new Date().toISOString().split('T')[0];
+// =============================================
+// Usage control logic
+// =============================================
+function getUserLimit(user) {
+  const plan = user?.plan || 'free';
 
-  // Reset if new day, then increment
-  const { needsReset } = await getDailyUsage(supabaseUrl, supabaseKey, userId);
-
-  const updateBody = needsReset
-    ? { daily_usage: 1, last_reset_date: today, last_active_at: new Date().toISOString() }
-    : { daily_usage: undefined, last_active_at: new Date().toISOString() }; // will use RPC
-
-  if (needsReset) {
-    await fetch(`${supabaseUrl}/rest/v1/users?anonymous_id=eq.${userId}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify(updateBody),
-    });
-  } else {
-    // Atomic increment
-    await fetch(`${supabaseUrl}/rest/v1/rpc/increment_daily_usage`, {
-      method: 'POST',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ user_anonymous_id: userId }),
-    });
+  // supporter/pro should use own key, not system API
+  // but if they somehow hit Worker, give them free-tier limit
+  if (plan === 'supporter' || plan === 'pro') {
+    return DAILY_LIMITS.free;
   }
+
+  // rental (旅遊包): check expiry
+  if (plan === 'rental') {
+    const expires = user.rental_expires ? new Date(user.rental_expires) : null;
+    if (expires && expires > new Date()) {
+      return DAILY_LIMITS.rental; // 50次/天
+    }
+    // expired → fall back to free
+    return DAILY_LIMITS.free;
+  }
+
+  // has credits (點數包): no daily limit, just deduct credits
+  if ((user?.credits || 0) > 0) {
+    return 9999; // 無日上限，靠點數餘額控制
+  }
+
+  // free
+  return DAILY_LIMITS.free;
+}
+
+function getDailyUsage(user) {
+  const today = new Date().toISOString().split('T')[0];
+  if (user?.last_reset_date !== today) return 0; // new day = reset
+  return user?.daily_usage || 0;
 }
 
 // =============================================
 // Gemini API proxy
 // =============================================
-async function callGemini(apiKey, requestBody, model = 'gemini-2.5-flash') {
+async function callGemini(apiKey, requestBody, model) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 55000); // 55s timeout
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Gemini API error: ${res.status} ${error}`);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Gemini error ${res.status}: ${errText.substring(0, 200)}`);
+    }
+    return await res.json();
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return await res.json();
 }
 
 // =============================================
@@ -177,94 +221,113 @@ async function callGemini(apiKey, requestBody, model = 'gemini-2.5-flash') {
 // =============================================
 export default {
   async fetch(request, env) {
-    // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS });
     }
-
     if (request.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
+      return json({ error: 'Method not allowed' }, 405);
     }
 
     try {
-      // 1. Extract JWT from Authorization header
-      const authHeader = request.headers.get('Authorization') || '';
-      const token = authHeader.replace('Bearer ', '');
-      if (!token) {
-        return jsonResponse({ error: 'Missing authorization token' }, 401);
-      }
+      // 1. Verify JWT
+      const token = (request.headers.get('Authorization') || '').replace('Bearer ', '');
+      if (!token) return json({ error: 'Missing token' }, 401);
 
-      // 2. Verify JWT
-      const payload = await verifyJWT(token, env.SUPABASE_JWT_SECRET);
+      const payload = await verifyJWT(token, env.SUPABASE_JWT_SECRET, env.SUPABASE_URL);
       if (!payload) {
-        return jsonResponse({ error: 'Invalid or expired token' }, 401);
+        // Debug: decode without verify to see what's wrong
+        try {
+          const debugPayload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          const debugHeader = JSON.parse(atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/')));
+          return json({ error: 'Invalid token', debug: { alg: debugHeader.alg, kid: debugHeader.kid, iss: debugPayload.iss, sub: debugPayload.sub?.substring(0, 8), exp: debugPayload.exp } }, 401);
+        } catch {}
+        return json({ error: 'Invalid token' }, 401);
       }
-      const userId = payload.sub; // Supabase auth user ID
 
-      // 3. Get scan mode and check GPS
-      const scanMode = request.headers.get('X-Scan-Mode') || 'general';
-      const lat = parseFloat(request.headers.get('X-Latitude') || '');
-      const lon = parseFloat(request.headers.get('X-Longitude') || '');
+      const userId = payload.sub;
 
-      // GPS check (only for system key usage)
-      if (!isInJapan(lat, lon) && !isNaN(lat)) {
-        return jsonResponse({
-          error: 'GPS_NOT_JAPAN',
-          message: '系統翻譯僅限日本境內使用。請使用自帶 API Key。',
+      // 2. Get user from Supabase
+      const user = await getUser(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, userId);
+      const plan = user?.plan || 'free';
+
+      // 3. If supporter/pro → they should use own key
+      if (plan === 'supporter' || plan === 'pro') {
+        return json({
+          error: 'USE_OWN_KEY',
+          message: '請使用自帶 API Key（設定 → API Key）',
+          plan,
         }, 403);
       }
 
-      // 4. Check daily usage
-      const limit = DAILY_LIMITS[scanMode] || DAILY_LIMITS.general;
-      const { usage } = await getDailyUsage(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, userId);
+      // 4. GPS check (system API = Japan only)
+      const lat = parseFloat(request.headers.get('X-Latitude') || '');
+      const lon = parseFloat(request.headers.get('X-Longitude') || '');
+      if (!isNaN(lat) && !isNaN(lon) && !isInJapan(lat, lon)) {
+        return json({
+          error: 'GPS_NOT_JAPAN',
+          message: '系統翻譯僅限日本境內使用',
+        }, 403);
+      }
+
+      // 5. Check daily usage
+      const limit = getUserLimit(user);
+      const usage = getDailyUsage(user);
 
       if (usage >= limit) {
-        return jsonResponse({
-          error: 'DAILY_LIMIT_REACHED',
-          message: `今日${scanMode === 'receipt' ? '收據' : scanMode === 'menu' ? '菜單' : '翻譯'}額度已用完（${limit}次/天）`,
-          usage,
-          limit,
-          resetAt: '明天 00:00',
+        return json({
+          error: 'DAILY_LIMIT',
+          message: `今日額度已用完（${limit}次/天）`,
+          usage, limit,
+          plan,
+          hasCredits: (user?.credits || 0) > 0,
         }, 429);
       }
 
-      // 5. Proxy to Gemini
+      // 6. Proxy to Gemini
       const body = await request.json();
-      const model = body.model || 'gemini-2.5-flash';
-      const geminiRequest = body.geminiRequest;
+      const result = await callGemini(
+        env.GEMINI_API_KEY,
+        body.geminiRequest,
+        body.model || 'gemini-2.5-flash'
+      );
 
-      if (!geminiRequest) {
-        return jsonResponse({ error: 'Missing geminiRequest in body' }, 400);
+      // 7. Update usage
+      const today = new Date().toISOString().split('T')[0];
+      const isNewDay = user?.last_reset_date !== today;
+      const updates = {
+        daily_usage: isNewDay ? 1 : (user?.daily_usage || 0) + 1,
+        last_reset_date: today,
+        last_active_at: new Date().toISOString(),
+      };
+
+      // Deduct credit if using credits
+      if (plan === 'free' && (user?.credits || 0) > 0) {
+        updates.credits = Math.max(0, (user.credits || 0) - 1);
       }
 
-      const result = await callGemini(env.GEMINI_API_KEY, geminiRequest, model);
+      await updateUser(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, userId, updates);
 
-      // 6. Increment usage
-      await incrementUsage(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, userId, scanMode);
-
-      // 7. Return result with usage info
-      return jsonResponse({
+      // 8. Return result
+      return json({
         result,
         usage: {
-          used: usage + 1,
+          used: (isNewDay ? 0 : usage) + 1,
           limit,
-          remaining: limit - usage - 1,
+          remaining: limit - (isNewDay ? 0 : usage) - 1,
+          plan,
+          credits: updates.credits ?? user?.credits ?? 0,
         },
       });
 
     } catch (err) {
-      console.error('Worker error:', err);
-      return jsonResponse({ error: 'Internal server error', details: err.message }, 500);
+      return json({ error: 'Server error', details: err.message }, 500);
     }
   },
 };
 
-function jsonResponse(data, status = 200) {
+function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...CORS_HEADERS,
-    },
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
   });
 }

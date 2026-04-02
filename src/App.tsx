@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
-import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
+import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode as setGeminiScanMode } from './services/gemini';
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
@@ -89,11 +89,8 @@ function AppInner() {
   const targetLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
 
   const handleAnalyze = async () => {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError(t('error.noKey'));
-      return;
-    }
+    const apiKey = getApiKey() || ''; // empty = use Worker proxy
+    setGeminiScanMode(scanMode);
     setIsAnalyzing(true);
     setError('');
     try {
@@ -154,9 +151,20 @@ function AppInner() {
         });
         trackScanEvent('general', result.items[0]?.category);
       }
-    } catch (err) {
-      console.error(err);
-      setError(t('error.failed'));
+    } catch (err: any) {
+      const msg = err?.message || err?.toString?.() || String(err);
+      console.error('[GoSavor] Analyze error:', msg);
+      if (msg.includes('LIMIT')) {
+        setError('今日免費額度已用完。請到設定輸入自帶 API Key，或明天再試！');
+      } else if (msg.includes('GPS') || msg.includes('日本')) {
+        setError('系統翻譯僅限日本境內使用。請到設定輸入自帶 API Key，不受地區限制！');
+      } else if (msg.includes('NO_KEY') || msg.includes('NO_AUTH')) {
+        setError('請到設定輸入 Gemini API Key');
+      } else if (msg.includes('USE_OWN_KEY')) {
+        setError('你已開通自帶 Key 方案，請到設定輸入 API Key');
+      } else {
+        setError(t('error.failed'));
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -440,13 +448,14 @@ function AppInner() {
       {/* Main */}
       <main className="max-w-md mx-auto px-4 py-4 pb-24">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-            {error}
-            {!hasApiKey && (
-              <button onClick={() => setPage('settings')} className="ml-2 underline font-medium">
-                {t('error.goSettings')}
-              </button>
-            )}
+          <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+            <p className="text-sm text-gray-800 leading-relaxed">{error}</p>
+            <button
+              onClick={() => { setError(''); setPage('settings'); }}
+              className="mt-2 w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-bold"
+            >
+              前往設定
+            </button>
           </div>
         )}
 

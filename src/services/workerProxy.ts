@@ -74,6 +74,8 @@ export const callGeminiViaWorker = async (
     headers['X-Longitude'] = String(pos.lon);
   }
 
+  console.log('[GoSavor Worker] Calling:', WORKER_URL, 'mode:', scanMode, 'GPS:', pos);
+
   const response = await fetch(WORKER_URL, {
     method: 'POST',
     headers,
@@ -81,14 +83,18 @@ export const callGeminiViaWorker = async (
   });
 
   const data = await response.json();
+  console.log('[GoSavor Worker] Response:', response.status, JSON.stringify(data).substring(0, 200));
 
   if (!response.ok) {
     // Handle specific errors
-    if (data.error === 'DAILY_LIMIT_REACHED') {
+    if (data.error === 'DAILY_LIMIT' || data.error === 'DAILY_LIMIT_REACHED') {
       throw new Error(`LIMIT:${data.message}|${data.usage}|${data.limit}`);
     }
     if (data.error === 'GPS_NOT_JAPAN') {
       throw new Error(`GPS:${data.message}`);
+    }
+    if (data.error === 'USE_OWN_KEY') {
+      throw new Error(`USE_OWN_KEY:${data.message}`);
     }
     throw new Error(data.error || 'Worker request failed');
   }
