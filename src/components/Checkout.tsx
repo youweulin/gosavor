@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, PlayCircle, Users, Minus, Plus, Check, Mic, MicOff, MessageCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, PlayCircle, Users, Minus, Plus, Check } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { MenuItem, OrderItem, SplitInfo } from '../types';
 import { useT } from '../i18n/context';
 import { fetchRates, getCurrencyCode } from './CurrencyBar';
-import { speakText, translateJapanese, startListening, stopListening } from '../services/NativeSpeech';
+import { speakText } from '../services/NativeSpeech';
 import { registerPlugin } from '@capacitor/core';
 const NativeSpeechPlugin = registerPlugin<any>('NativeSpeech');
 
@@ -60,28 +60,16 @@ const Checkout = ({
   };
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [staffSaid, setStaffSaid] = useState('');
-  const [staffTranslated, setStaffTranslated] = useState('');
   const [chatLog, setChatLog] = useState<{ role: 'you' | 'staff'; ja: string; translated: string }[]>([]);
   const [miniTranslateInput, setMiniTranslateInput] = useState('');
   const [miniTranslateResult, setMiniTranslateResult] = useState<{ original: string; ja: string } | null>(null);
   const [isMiniTranslating, setIsMiniTranslating] = useState(false);
-  const isNative = Capacitor.isNativePlatform();
-  const [isSpeakingToStaff, setIsSpeakingToStaff] = useState(false);
-  const lastHeardRef = useRef('');
-  const userHeardRef = useRef('');
-  const [userSaid, setUserSaid] = useState('');
 
   const handleClose = () => {
     setMode('review');
     setOrderConfirmed(false);
     setIsSpeaking(false);
-    setIsListening(false);
-    setStaffSaid('');
-    setStaffTranslated('');
     setChatLog([]);
-    setIsSpeakingToStaff(false);
     onClose();
   };
 
@@ -136,19 +124,6 @@ const Checkout = ({
     setTimeout(() => setIsSpeaking(false), 1500);
   };
 
-  // Translate: Apple first (instant offline) → Gemini fallback
-  const translateText = async (jaText: string): Promise<string> => {
-    if (!jaText.trim()) return '';
-    // Map target language to Apple locale code
-    const langMap: Record<string, string> = {
-      '繁體中文': 'zh-Hant', '简体中文': 'zh-Hans', 'English': 'en',
-      '한국어': 'ko', 'ภาษาไทย': 'th', 'Tiếng Việt': 'vi',
-      'Français': 'fr', 'Español': 'es', 'Deutsch': 'de',
-    };
-    const targetCode = langMap[targetLanguage] || 'zh-Hant';
-    return translateJapanese(jaText, targetCode, apiKey);
-  };
-
   // Mini translator: auto-detect → translate
   const handleMiniTranslate = async () => {
     const text = miniTranslateInput.trim();
@@ -156,7 +131,6 @@ const Checkout = ({
     setIsMiniTranslating(true);
     try {
       // Detect if input is Japanese (has hiragana/katakana/kanji)
-      const isJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text) && !/[\u4e00-\u9fff]{2,}/.test(text.replace(/[\u3040-\u309F\u30A0-\u30FF]/g, ''));
       const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
 
       let translated = '';
@@ -200,87 +174,6 @@ const Checkout = ({
   };
 
   // Listen to staff speaking Japanese
-
-  const toggleListening = async () => {
-    if (isListening) {
-      await stopListening();
-      setIsListening(false);
-      // Translate the last heard text
-      const finalText = lastHeardRef.current;
-      if (finalText.trim()) {
-        const translated = await translateText(finalText);
-        setStaffTranslated(translated);
-        setChatLog(prev => [...prev, { role: 'staff' as const, ja: finalText, translated }]);
-        // Increment chat count for trip stats
-        const count = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
-        localStorage.setItem('gosavor_chat_count', String(count + 1));
-      }
-      return;
-    }
-    setStaffSaid('');
-    setStaffTranslated('');
-    lastHeardRef.current = '';
-    setIsListening(true);
-    try {
-      await startListening('ja-JP', (text, _isFinal) => {
-        if (text.trim()) {
-          setStaffSaid(text);
-          lastHeardRef.current = text;
-        }
-      });
-    } catch {
-      setIsListening(false);
-    }
-  };
-
-  // "I want to say" — listen user's language, translate to Japanese, speak
-  const userLangMap: Record<string, string> = {
-    '繁體中文': 'zh-TW', '简体中文': 'zh-CN', 'English': 'en-US',
-    '한국어': 'ko-KR', 'ภาษาไทย': 'th-TH', 'Tiếng Việt': 'vi-VN',
-    'Français': 'fr-FR', 'Español': 'es-ES', 'Deutsch': 'de-DE',
-  };
-  const userLangCode = userLangMap[targetLanguage] || 'zh-TW';
-
-  const handleSpeakToStaff = async () => {
-    if (isSpeakingToStaff) {
-      await stopListening();
-      setIsSpeakingToStaff(false);
-      const text = userHeardRef.current.trim();
-      if (text && apiKey) {
-        setUserSaid(text);
-        // Translate to Japanese using Gemini
-        try {
-          const { GoogleGenAI } = await import('@google/genai');
-          const ai = new GoogleGenAI({ apiKey });
-          const res = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `Translate to natural Japanese. Return ONLY Japanese:\n${text}`,
-            config: { thinkingConfig: { thinkingBudget: 0 } },
-          });
-          const translated = res.text?.trim() || '';
-          if (translated) {
-            await speakText(translated, 'ja-JP', 0.45);
-            setChatLog(prev => [...prev, { role: 'you', ja: translated, translated: text }]);
-            setStaffSaid(''); // clear old staff message
-            setStaffTranslated('');
-          }
-        } catch { /* ignore */ }
-      }
-      userHeardRef.current = '';
-      return;
-    }
-    userHeardRef.current = '';
-    setUserSaid('');
-    setIsSpeakingToStaff(true);
-    try {
-      await startListening(userLangCode, (text) => {
-        userHeardRef.current = text;
-        setUserSaid(text);
-      });
-    } catch {
-      setIsSpeakingToStaff(false);
-    }
-  };
 
   const handleConfirm = () => {
     const split: SplitInfo | undefined = mode === 'split' && splitPersons > 1

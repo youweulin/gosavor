@@ -1,14 +1,12 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Share2,
   X,
   Settings as SettingsIcon,
   User,
-  UtensilsCrossed,
   ShoppingCart,
-  WalletMinimal,
-  Clock,
-  BookOpen
+  Camera,
+  Image
 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
@@ -16,6 +14,7 @@ import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
+import ShareButton from './components/ShareButton';
 import { initAnonymousAuth, trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
@@ -45,8 +44,8 @@ type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary' | 'chat' | 'd
 
 function AppInner() {
   const t = useT();
-  const { settings, updateSettings, resetSettings, hasApiKey } = useSettings();
-  const { user, userData, login, register, logout, isRentalActive, isLifetime } = useAuth();
+  const { settings, updateSettings, resetSettings } = useSettings();
+  const { login, register, isRentalActive, isLifetime } = useAuth();
 
   // Supabase anonymous auth (silent, user unaware)
   useEffect(() => {
@@ -64,8 +63,6 @@ function AppInner() {
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const albumInputRef = useRef<HTMLInputElement>(null);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
   const [profileNickname, setProfileNickname] = useState('旅人');
@@ -338,9 +335,7 @@ function AppInner() {
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3.5">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <button onClick={handleGoHome} className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
-            <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
-              <UtensilsCrossed size={20} className="text-white" />
-            </div>
+            <img src="/goose-logo.png" alt="GoSavor" className="w-9 h-9 rounded-lg" />
             <span className="font-bold text-lg text-gray-900">GoSavor</span>
           </button>
           <div className="flex items-center gap-1">
@@ -564,20 +559,25 @@ function AppInner() {
                 </button>
               </div>
             </div>
-            <MenuResults
-              items={menuResult.items}
-              currency={menuResult.currency}
-              quantities={quantities}
-              onUpdateQuantity={handleUpdateQuantity}
-              userAllergens={settings.allergens}
-              onLocate={(idx) => {
-                const itemImageIdx = menuResult?.items[idx]?.imageIndex ?? 0;
-                if (itemImageIdx !== activeImageIdx) setActiveImageIdx(itemImageIdx);
-                setHighlightIndex(idx);
-                setTimeout(() => setHighlightIndex(null), 2000);
-              }}
-              onCategoryChange={setActiveCategory}
-            />
+            <div id="share-result">
+              <MenuResults
+                items={menuResult.items}
+                currency={menuResult.currency}
+                quantities={quantities}
+                onUpdateQuantity={handleUpdateQuantity}
+                userAllergens={settings.allergens}
+                onLocate={(idx) => {
+                  const itemImageIdx = menuResult?.items[idx]?.imageIndex ?? 0;
+                  if (itemImageIdx !== activeImageIdx) setActiveImageIdx(itemImageIdx);
+                  setHighlightIndex(idx);
+                  setTimeout(() => setHighlightIndex(null), 2000);
+                }}
+                onCategoryChange={setActiveCategory}
+              />
+            </div>
+            <div className="flex justify-center mt-3">
+              <ShareButton targetId="share-result" title={menuResult.restaurantName || '菜單翻譯'} />
+            </div>
             {/* Affiliate recommendations */}
             <div className="mt-4">
               <RecommendCards loadProducts={() => getRecommendations('menu', menuResult.restaurantName)} />
@@ -598,7 +598,12 @@ function AppInner() {
                 {t('result.newScan')}
               </button>
             </div>
-            <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} homeCurrency={settings.homeCurrency} />
+            <div id="share-result">
+              <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} homeCurrency={settings.homeCurrency} />
+            </div>
+            <div className="flex justify-center mt-3">
+              <ShareButton targetId="share-result" title={receiptResult.merchantName || '收據翻譯'} />
+            </div>
             <div className="mt-4">
               <RecommendCards loadProducts={() => getRecommendations('receipt', receiptResult.merchantName)} />
             </div>
@@ -618,7 +623,12 @@ function AppInner() {
                 {t('result.newScan')}
               </button>
             </div>
-            <GeneralView data={generalResult} />
+            <div id="share-result">
+              <GeneralView data={generalResult} />
+            </div>
+            <div className="flex justify-center mt-3">
+              <ShareButton targetId="share-result" title={generalResult.locationGuess || '翻譯結果'} />
+            </div>
             <div className="mt-4">
               <RecommendCards loadProducts={() => getRecommendations('general', undefined, generalResult.locationGuess)} />
             </div>
@@ -867,10 +877,10 @@ function AppInner() {
                   setTimeout(() => setAutoAnalyze(true), 50);
                 }
               }}
-              className="flex items-center gap-2 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors border-r border-gray-100"
+              className="flex flex-col items-center gap-1 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors border-r border-gray-100"
             >
-              <span className="text-[22px]">📷</span>
-              <span className="text-[15px] font-bold text-gray-800 tracking-wide">拍照</span>
+              <Camera size={24} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
+              <span className="text-[13px] font-bold text-gray-800 tracking-wide">拍照</span>
             </button>
             <button
               onClick={async () => {
@@ -882,10 +892,10 @@ function AppInner() {
                   setTimeout(() => setAutoAnalyze(true), 50);
                 }
               }}
-              className="flex items-center gap-2 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              className="flex flex-col items-center gap-1 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              <span className="text-[22px]">🖼</span>
-              <span className="text-[15px] font-bold text-gray-800 tracking-wide">相簿</span>
+              <Image size={24} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
+              <span className="text-[13px] font-bold text-gray-800 tracking-wide">相簿</span>
             </button>
           </div>
         </div>

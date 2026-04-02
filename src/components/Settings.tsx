@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins } from 'lucide-react';
+import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, MessageCircle, Shield, Info, Bug, Send } from 'lucide-react';
+import FeedbackModal from './FeedbackModal';
 import { TARGET_LANGUAGES, COMMON_ALLERGEN_IDS, HOME_CURRENCIES } from '../types';
 import { fetchRates } from './CurrencyBar';
 import type { AppSettings } from '../types';
@@ -22,6 +23,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
   const keyChanged = keyDraft !== settings.geminiApiKey;
   const [rate, setRate] = useState<number | null>(null);
   const [rateTime, setRateTime] = useState<string>('');
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
     const homeCode = settings.homeCurrency.toLowerCase();
@@ -202,6 +204,70 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
           </div>
         </div>
 
+        {/* Bug Report / Feedback */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+            <Bug size={14} /> 封測回報 / 意見回饋
+          </label>
+          <div className="space-y-2">
+            {/* In-app feedback form */}
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="w-full flex items-center gap-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl hover:bg-orange-500/20 transition-colors"
+            >
+              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
+                <Send size={18} className="text-white" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-white">回報問題 / 建議功能</p>
+                <p className="text-xs text-gray-400">可附截圖，自動帶入裝置資訊</p>
+              </div>
+            </button>
+            {/* LINE group */}
+            <a
+              href="https://line.me/ti/g2/hS8WkPywa7QRd9_BX5cY-IS6KzY1MvO7k-U-gQ?utm_source=invitation&utm_medium=link_copy&utm_campaign=default"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 bg-[#06C755]/10 border border-[#06C755]/30 rounded-xl hover:bg-[#06C755]/20 transition-colors"
+            >
+              <div className="w-10 h-10 bg-[#06C755] rounded-xl flex items-center justify-center">
+                <MessageCircle size={20} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">加入封測 LINE 群組</p>
+                <p className="text-xs text-gray-400">即時討論、搶先體驗新功能</p>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        {/* Privacy Policy */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+            <Shield size={14} /> 隱私權與條款
+          </label>
+          <div className="space-y-2">
+            <a
+              href="https://gosavor.zeabur.app/privacy.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 bg-gray-900 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
+            >
+              <Shield size={16} className="text-gray-400" />
+              <span className="text-sm text-gray-300">隱私權政策</span>
+            </a>
+            <a
+              href="https://gosavor.zeabur.app/terms.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 bg-gray-900 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
+            >
+              <Info size={16} className="text-gray-400" />
+              <span className="text-sm text-gray-300">使用條款</span>
+            </a>
+          </div>
+        </div>
+
         {/* Actions */}
         <div className="pt-4 space-y-3">
           <button
@@ -211,7 +277,16 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
             <RotateCcw size={16} /> {t('settings.reset')}
           </button>
         </div>
+
+        {/* Version */}
+        <div className="text-center pb-6">
+          <p className="text-xs text-gray-600">GoSavor v0.8.1 Beta</p>
+          <p className="text-[10px] text-gray-700 mt-1">Made with 🪿 in Taiwan</p>
+        </div>
       </div>
+
+      {/* Feedback Modal */}
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
     </div>
   );
 };

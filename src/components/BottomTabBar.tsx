@@ -20,7 +20,7 @@ const TABS = [
   { id: 'chat', icon: MessageCircle, color: 'text-purple-500', bg: 'bg-purple-500', shadow: 'shadow-purple-200' },
 ];
 
-const BottomTabBar = ({ onModeChange, onCameraPress, onARPress, onChatPress, activeTab }: BottomTabBarProps) => {
+const BottomTabBar = ({ onModeChange, onARPress, onChatPress, activeTab }: BottomTabBarProps) => {
   const t = useT();
 
   const labels: Record<string, string> = {

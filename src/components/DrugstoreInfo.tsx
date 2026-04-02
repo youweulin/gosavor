@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Search, TrendingUp, Package, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, TrendingUp, ChevronRight } from 'lucide-react';
 import { getPopularProducts, searchProducts, type ProductRanking } from '../services/supabase';
 import PriceCompare from './PriceCompare';
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UtensilsCrossed, Receipt, Languages, MessageCircle, Wallet, Calendar, BarChart3, Scan } from 'lucide-react';
+import { UtensilsCrossed, Receipt, Languages, MessageCircle, Wallet, BarChart3, Scan } from 'lucide-react';
 import type { SavedScan, Expense } from '../types';
 import { getScanHistory, getExpenses, getActiveTrip } from '../services/storage';
 
@@ -7,7 +7,7 @@ interface TripSummaryProps {
   homeCurrency: string;
 }
 
-const TripSummary = ({ homeCurrency }: TripSummaryProps) => {
+const TripSummary = ({}: TripSummaryProps) => {
   const [allScans, setAllScans] = useState<SavedScan[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [showAll, setShowAll] = useState(false);

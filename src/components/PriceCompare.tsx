@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, TrendingDown, Store, Calendar, Tag, Search } from 'lucide-react';
-import { comparePrices, getProductSummary, searchProducts, type PriceCompareResult, type ProductRanking } from '../services/supabase';
+import { ArrowLeft, TrendingDown, Store, Calendar } from 'lucide-react';
+import { comparePrices, getProductSummary, type PriceCompareResult } from '../services/supabase';
 
 interface PriceCompareProps {
   janCode?: string;
@@ -28,7 +28,7 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
         const result = await getProductSummary(janCode);
         if (result) {
           setSummary(result);
-          setStores(result.stores);
+          setStores(result.stores.map(s => ({ ...s, jan_code: janCode ?? null })));
         }
       } else {
         const results = await comparePrices(undefined, productName);

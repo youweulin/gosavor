@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Info, Volume2, MapPin, Pill, Droplets, AlertTriangle, Clock, Tag } from 'lucide-react';
+import { Sparkles, Info, Volume2, MapPin } from 'lucide-react';
 import type { GeneralAnalysisResult } from '../types';
 import { useT } from '../i18n/context';
 

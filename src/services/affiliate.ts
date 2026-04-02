@@ -1,5 +1,3 @@
-import Fuse from 'fuse.js';
-import klookProducts from '../data/klook_products.json';
 import kkdayProducts from '../data/kkday_products.json';
 
 const KLOOK_AID = '30600';
@@ -16,12 +14,6 @@ export interface Product {
   region: string;
   emoji: string;
   reason: string; // why we're recommending this
-}
-
-interface KlookProduct {
-  id: string;
-  name: string;
-  region: string;
 }
 
 // === City Detection ===
@@ -106,11 +98,6 @@ interface KKDayProduct {
   category: string;
   region: string;
 }
-const fuseKKday = new Fuse(kkdayProducts as KKDayProduct[], {
-  keys: ['title', 'region'],
-  threshold: 0.4,
-});
-
 // Search KKDay products by region + category
 const searchKKDay = (region: string | null, category: Product['category'], limit = 2): Product[] => {
   // Map our category to KKDay categories
@@ -293,30 +280,6 @@ const TIME_BOOST: Record<string, Product['category'][]> = {
   afternoon: ['ticket'],    // 下午推門票（即買即用）
   evening: ['food'],        // 傍晚推美食體驗（居酒屋）
   night: ['tour', 'ticket'], // 晚上推明天的行程
-};
-
-// === Offline fallback: Fuse.js search ===
-const fuse = new Fuse(klookProducts as KlookProduct[], {
-  keys: ['name'],
-  threshold: 0.4,
-});
-
-const searchOffline = (query: string, region: string | null, limit = 3): Product[] => {
-  let results = fuse.search(query).map(r => r.item);
-  if (region) {
-    const filtered = results.filter(p => p.region === region);
-    if (filtered.length >= limit) results = filtered;
-  }
-  return results.slice(0, limit).map(p => ({
-    id: p.id,
-    platform: 'klook' as const,
-    title: p.name.length > 35 ? p.name.substring(0, 35) + '...' : p.name,
-    url: `https://www.klook.com/zh-TW/activity/${p.id}/?aid=${KLOOK_AID}`,
-    category: 'ticket' as const,
-    region: p.region,
-    emoji: '🎫',
-    reason: '',
-  }));
 };
 
 // === Try API, fallback to offline ===

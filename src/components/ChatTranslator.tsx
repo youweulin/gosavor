@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Mic, MicOff, Volume2, Send, Trash2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { speakText, startListening, stopListening } from '../services/NativeSpeech';
-import { useT } from '../i18n/context';
+
 
 interface ChatTranslatorProps {
   onBack: () => void;
@@ -32,7 +32,6 @@ const QUICK_PHRASES = [
 ];
 
 const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps) => {
-  const t = useT();
   const CHAT_HISTORY_KEY = 'gosavor_chat_history';
 
   // Load saved messages

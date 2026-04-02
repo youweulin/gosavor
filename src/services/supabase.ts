@@ -96,10 +96,10 @@ const createUserRecord = async (anonymousId: string) => {
     const { data: authData } = await supabase.auth.getUser();
     console.log('[GoSavor] Auth uid:', authData?.user?.id?.substring(0, 8), 'anonymous_id:', anonymousId.substring(0, 8));
 
-    const { data, error } = await supabase.from('users').upsert({
+    const { error } = await supabase.from('users').upsert({
       anonymous_id: anonymousId,
       platform: 'ios',
-      app_version: '1.0.0',
+      app_version: '0.8.1',
       created_at: new Date().toISOString(),
       last_active_at: new Date().toISOString(),
     }, { onConflict: 'anonymous_id' });
