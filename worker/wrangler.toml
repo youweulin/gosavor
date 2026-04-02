@@ -1,0 +1,9 @@
+name = "gosavor-api"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# Environment variables (set via Cloudflare Dashboard or `wrangler secret put`)
+# GEMINI_API_KEY = "your-gemini-key"
+# SUPABASE_URL = "https://pwexugipwqmucomqusyu.supabase.co"
+# SUPABASE_ANON_KEY = "your-supabase-anon-key"
+# SUPABASE_JWT_SECRET = "your-jwt-secret"
