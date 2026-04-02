@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Share2,
   X,
@@ -14,7 +14,7 @@ import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode as setGeminiScanMode } from './services/gemini';
 import { saveOrder, saveScan } from './services/storage';
-import { startLiveTranslate } from './services/LiveTranslate';
+import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
 import { initAnonymousAuth, trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
@@ -62,6 +62,10 @@ function AppInner() {
   const [scanMode, setScanMode] = useState<ScanMode>('menu');
   const [activeTab, setActiveTab] = useState('menu');
   const [autoAnalyze, setAutoAnalyze] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const albumInputRef = useRef<HTMLInputElement>(null);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
   const [profileNickname, setProfileNickname] = useState('旅人');
@@ -244,6 +248,7 @@ function AppInner() {
     setActiveCategory(null);
     setActiveImageIdx(0);
     setError('');
+    setShowCamera(false);
   };
 
   // Load a saved scan — restore correct mode and data
@@ -475,7 +480,7 @@ function AppInner() {
         {!menuResult && !receiptResult && !generalResult ? (
           <div className="flex flex-col">
             {/* Home screen content when no photos/results */}
-            {images.length === 0 && !isAnalyzing ? (
+            {images.length === 0 && !isAnalyzing && !showCamera ? (
               <div className="space-y-4">
                 {/* Welcome + Location + Weather */}
                 <HomeCard nickname={profileNickname} />
@@ -510,7 +515,10 @@ function AppInner() {
               <div>
                 <CameraCapture
                   images={images}
-                  onImagesChange={setImages}
+                  onImagesChange={(imgs) => {
+                    setImages(imgs);
+                    if (imgs.length > 0) setTimeout(() => setAutoAnalyze(true), 50);
+                  }}
                   onAnalyze={handleAnalyze}
                   isAnalyzing={isAnalyzing}
                   scanMode={scanMode}
@@ -844,12 +852,51 @@ function AppInner() {
       )}
 
       {/* Bottom Tab Bar */}
+      {/* Floating photo picker (native camera / album) */}
+      {showPhotoPicker && (
+        <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowPhotoPicker(false)}>
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-3" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={async () => {
+                setShowPhotoPicker(false);
+                const base64 = await pickNativeImage('camera');
+                if (base64) {
+                  setImages([`data:image/jpeg;base64,${base64}`]);
+                  setShowCamera(true);
+                  setTimeout(() => setAutoAnalyze(true), 50);
+                }
+              }}
+              className="flex flex-col items-center gap-1.5 w-20 py-3 bg-white rounded-2xl shadow-xl active:scale-95 transition-transform"
+            >
+              <span className="text-2xl">📷</span>
+              <span className="text-xs font-bold text-gray-700">拍照</span>
+            </button>
+            <button
+              onClick={async () => {
+                setShowPhotoPicker(false);
+                const base64 = await pickNativeImage('album');
+                if (base64) {
+                  setImages([`data:image/jpeg;base64,${base64}`]);
+                  setShowCamera(true);
+                  setTimeout(() => setAutoAnalyze(true), 50);
+                }
+              }}
+              className="flex flex-col items-center gap-1.5 w-20 py-3 bg-white rounded-2xl shadow-xl active:scale-95 transition-transform"
+            >
+              <span className="text-2xl">🖼</span>
+              <span className="text-xs font-bold text-gray-700">相簿</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       <BottomTabBar
         scanMode={scanMode}
         activeTab={activeTab}
         onModeChange={(mode) => {
           setScanMode(mode);
           setActiveTab(mode);
+          setShowPhotoPicker(true);
           if (menuResult || receiptResult || generalResult) {
             handleGoHome();
           }

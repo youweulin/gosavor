@@ -38,8 +38,6 @@ const BottomTabBar = ({ onModeChange, onCameraPress, onARPress, onChatPress, act
       onChatPress();
     } else {
       onModeChange(id as ScanMode);
-      // Delay camera trigger slightly so mode state update completes first
-      setTimeout(() => onCameraPress(), 50);
     }
   };
 

@@ -383,19 +383,21 @@ import PhotosUI
 
 @available(iOS 16.0, *)
 @objc(LiveTranslatePlugin)
-public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin {
+public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     public let identifier = "LiveTranslatePlugin"
     public let jsName = "LiveTranslate"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getLastResult", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getLastResult", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pickImage", returnType: CAPPluginReturnPromise)
     ]
 
     private var scannerVC: DataScannerViewController?
     private var lastResultData: [String: String]? // Stored for JS to fetch
     private var startCall: CAPPluginCall? // Held until user closes, then resolved with data
+    private var pickImageCall: CAPPluginCall? // For pickImage
     private var targetLang = "zh-Hant"
     private var capturedImage: UIImage? // For save to diary
 
@@ -449,6 +451,43 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin {
             "itemsJSON": data["itemsJSON"] ?? "[]",
             "timestamp": data["timestamp"] ?? ""
         ])
+    }
+
+    // MARK: - Pick Image (camera or album, native UI)
+
+    @objc func pickImage(_ call: CAPPluginCall) {
+        let source = call.getString("source") ?? "album" // "camera" or "album"
+        call.keepAlive = true
+        self.pickImageCall = call
+
+        DispatchQueue.main.async {
+            if source == "camera" {
+                guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+                    call.resolve(["cancelled": true])
+                    self.pickImageCall = nil
+                    return
+                }
+                let picker = UIImagePickerController()
+                picker.sourceType = .camera
+                picker.delegate = self
+                self.getRootVC()?.present(picker, animated: true)
+            } else {
+                // Album via PHPicker (clean, no permission needed)
+                var config = PHPickerConfiguration()
+                config.filter = .images
+                config.selectionLimit = 1
+                let picker = PHPickerViewController(configuration: config)
+                picker.delegate = self
+                self.getRootVC()?.present(picker, animated: true)
+            }
+        }
+    }
+
+    private func getRootVC() -> UIViewController? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?.rootViewController
     }
 
     @objc func stop(_ call: CAPPluginCall) {
@@ -1232,16 +1271,63 @@ extension LiveTranslatePlugin: PHPickerViewControllerDelegate {
     public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         picker.dismiss(animated: true)
 
-        guard let result = results.first else { return }
+        guard let result = results.first else {
+            // Cancelled — check if from pickImage
+            pickImageCall?.resolve(["cancelled": true])
+            pickImageCall = nil
+            return
+        }
         guard result.itemProvider.canLoadObject(ofClass: UIImage.self) else { return }
 
         result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
             guard let self = self, let image = object as? UIImage else { return }
+
+            // If from pickImage call → return base64
+            if let call = self.pickImageCall {
+                guard let jpegData = image.jpegData(compressionQuality: 0.8) else {
+                    call.resolve(["cancelled": true])
+                    self.pickImageCall = nil
+                    return
+                }
+                call.resolve([
+                    "cancelled": false,
+                    "base64": jpegData.base64EncodedString(),
+                ])
+                self.pickImageCall = nil
+                return
+            }
+
+            // Otherwise from AR translate flow
             Task { @MainActor in
                 self.scannerVC?.stopScanning()
                 await self.processImage(image)
             }
         }
+    }
+}
+
+// MARK: - UIImagePickerControllerDelegate (camera for pickImage)
+@available(iOS 16.0, *)
+extension LiveTranslatePlugin {
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+        picker.dismiss(animated: true)
+        guard let image = info[.originalImage] as? UIImage,
+              let jpegData = image.jpegData(compressionQuality: 0.8) else {
+            pickImageCall?.resolve(["cancelled": true])
+            pickImageCall = nil
+            return
+        }
+        pickImageCall?.resolve([
+            "cancelled": false,
+            "base64": jpegData.base64EncodedString(),
+        ])
+        pickImageCall = nil
+    }
+
+    public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+        pickImageCall?.resolve(["cancelled": true])
+        pickImageCall = nil
     }
 }
 

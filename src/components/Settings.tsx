@@ -95,23 +95,9 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
           </div>
           </>
           ) : (
-            <div className="bg-gray-800 rounded-xl p-4 text-center">
-              <p className="text-gray-400 text-sm mb-2">🔒 需要贊助開通才能使用自帶 API Key</p>
-              <p className="text-gray-500 text-xs mb-3">開通後可無限翻譯、不受地區限制</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={onBack}
-                  className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold"
-                >
-                  🔑 贊助開通 $199
-                </button>
-                <button
-                  onClick={onBack}
-                  className="flex-1 py-2 border border-gray-600 text-gray-300 rounded-lg text-sm font-bold"
-                >
-                  🎫 輸入兌換碼
-                </button>
-              </div>
+            <div className="bg-gray-800/50 rounded-xl p-3 flex items-center gap-3">
+              <span className="text-2xl">🔒</span>
+              <p className="text-gray-400 text-xs flex-1">贊助開通或輸入兌換碼後即可使用自帶 API Key</p>
             </div>
           )}
         </div>

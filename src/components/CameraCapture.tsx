@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ImagePlus, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
 import { useT } from '../i18n/context';
 import type { ScanMode } from '../types';
 
@@ -13,13 +13,16 @@ interface CameraCaptureProps {
 
 const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode }: CameraCaptureProps) => {
   const t = useT();
-  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const albumInputRef = useRef<HTMLInputElement>(null);
 
   const modeConfig = {
     menu: { icon: UtensilsCrossed, label: t('mode.menu'), desc: t('mode.menu.desc'), color: 'bg-orange-500', colorLight: 'bg-orange-100 text-orange-600', shadow: 'shadow-orange-200', iconColor: 'text-orange-500' },
     receipt: { icon: Receipt, label: t('mode.receipt'), desc: t('mode.receipt.desc'), color: 'bg-blue-500', colorLight: 'bg-blue-100 text-blue-600', shadow: 'shadow-blue-200', iconColor: 'text-blue-500' },
     general: { icon: Languages, label: t('mode.general'), desc: t('mode.general.desc'), color: 'bg-slate-700', colorLight: 'bg-slate-100 text-slate-600', shadow: 'shadow-slate-300', iconColor: 'text-slate-600' },
   };
+
+  const currentMode = modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -40,55 +43,55 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
     onImagesChange(images.filter((_, i) => i !== index));
   };
 
-  const currentMode = modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general;
-
   return (
     <div className="space-y-4">
-      {/* Hint when no images */}
-      {images.length === 0 && (
-        <div className="text-center py-4">
-          <p className="text-gray-400 text-sm">{currentMode.desc}</p>
+      {/* No images: show camera/album buttons */}
+      {images.length === 0 && !isAnalyzing && (
+        <div className="flex gap-3 justify-center py-6">
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            className="flex flex-col items-center gap-2 w-32 py-5 bg-white border-2 border-gray-200 rounded-2xl hover:border-orange-300 hover:bg-orange-50 transition-colors"
+          >
+            <Camera size={32} className="text-orange-500" />
+            <span className="text-sm font-bold text-gray-700">拍照</span>
+          </button>
+          <button
+            onClick={() => albumInputRef.current?.click()}
+            className="flex flex-col items-center gap-2 w-32 py-5 bg-white border-2 border-gray-200 rounded-2xl hover:border-orange-300 hover:bg-orange-50 transition-colors"
+          >
+            <ImageIcon size={32} className="text-blue-500" />
+            <span className="text-sm font-bold text-gray-700">相簿</span>
+          </button>
         </div>
       )}
 
-      {/* Image Preview */}
+      {/* Has image */}
       {images.length > 0 && (
         isAnalyzing ? (
-          /* Analyzing: show large image, no controls */
           <div className="rounded-xl overflow-hidden">
             <img src={images[0]} alt="" className="w-full object-cover max-h-[35vh]" />
           </div>
         ) : (
-          /* Not analyzing: show thumbnails with controls */
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {images.map((img, i) => (
-              <div key={i} className="relative shrink-0 w-32 h-32 rounded-xl overflow-hidden border-2 border-orange-200">
-                <img src={img} alt="" className="w-full h-full object-cover" />
-                <button
-                  onClick={() => removeImage(i)}
-                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
-                >
-                  <X size={12} className="text-white" />
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => uploadInputRef.current?.click()}
-              className="shrink-0 w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
-            >
-              <ImagePlus size={24} />
-            </button>
+          <div className="flex justify-center pb-2">
+            <div className="relative shrink-0 w-32 h-32 rounded-xl overflow-hidden border-2 border-orange-200">
+              <img src={images[0]} alt="" className="w-full h-full object-cover" />
+              <button
+                onClick={() => removeImage(0)}
+                className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
+              >
+                <X size={12} className="text-white" />
+              </button>
+            </div>
           </div>
         )
       )}
-
 
       {/* Analyze button */}
       {images.length > 0 && (
         <button
           onClick={onAnalyze}
           disabled={isAnalyzing}
-          className={`w-full py-3 ${(modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general).color} disabled:opacity-50 text-white rounded-xl font-bold text-lg shadow-lg ${(modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general).shadow} transition-colors flex items-center justify-center gap-2`}
+          className={`w-full py-3 ${currentMode.color} disabled:opacity-50 text-white rounded-xl font-bold text-lg shadow-lg ${currentMode.shadow} transition-colors flex items-center justify-center gap-2`}
         >
           {isAnalyzing ? (
             <>
@@ -96,17 +99,24 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
               {t('camera.analyze')}
             </>
           ) : (
-            <>{(modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general).label} ({images.length} 張照片)</>
+            <>{currentMode.label} ({images.length} 張照片)</>
           )}
         </button>
       )}
 
-      {/* Single input — iOS shows "Take Photo or Choose from Library" */}
+      {/* Hidden inputs */}
       <input
-        ref={uploadInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
-        multiple
+        capture="environment"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      <input
+        ref={albumInputRef}
+        type="file"
+        accept="image/*"
         onChange={handleFileSelect}
         className="hidden"
       />

@@ -17,6 +17,7 @@ interface LiveTranslatePlugin {
   start(options: { targetLang?: string }): Promise<ARTranslateResult>;
   stop(): Promise<{ success: boolean }>;
   isSupported(): Promise<{ supported: boolean }>;
+  pickImage(options: { source: 'camera' | 'album' }): Promise<{ cancelled: boolean; base64?: string }>;
 }
 
 const LiveTranslate = registerPlugin<LiveTranslatePlugin>('LiveTranslate');
@@ -57,6 +58,14 @@ export const startLiveTranslate = async (targetLang = 'zh-Hant'): Promise<{
 
 export const stopLiveTranslate = async () => {
   return LiveTranslate.stop();
+};
+
+/** Native image picker (camera or album) — returns base64 or null if cancelled */
+export const pickNativeImage = async (source: 'camera' | 'album'): Promise<string | null> => {
+  if (!Capacitor.isNativePlatform()) return null;
+  const result = await LiveTranslate.pickImage({ source });
+  if (result.cancelled || !result.base64) return null;
+  return result.base64;
 };
 
 export default LiveTranslate;
