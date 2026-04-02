@@ -146,7 +146,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
             <div className="mt-2 p-3 bg-gray-800/50 rounded-lg font-mono text-sm text-gray-300">
               {(() => {
                 const converted = 1000 * rate;
-                const smallUnit = ['USD', 'EUR', 'GBP', 'SGD', 'AUD', 'MYR', 'HKD'].includes(settings.homeCurrency);
+                const smallUnit = ['USD', 'EUR', 'GBP', 'SGD', 'AUD', 'MYR', 'HKD', 'TWD', 'CNY', 'KRW', 'THB', 'VND', 'PHP'].includes(settings.homeCurrency);
                 const c = settings.homeCurrency;
                 // Use consistent precision: show rate × 1000 result, then derive single rate from it
                 const bulkFormatted = smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();

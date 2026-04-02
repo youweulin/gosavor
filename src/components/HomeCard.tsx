@@ -90,25 +90,21 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
           </span>
         </div>
 
-        {/* Location + Weather + Usage */}
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          {locationText && (
+        {/* Location + Weather (fixed height to prevent layout shift) */}
+        <div className="flex items-center gap-2 mt-1.5 h-5">
+          {locationText ? (
             <div className="flex items-center gap-1 text-sm text-gray-600">
               <MapPin size={13} className="text-orange-500" />
               <span>{locationText}</span>
             </div>
-          )}
+          ) : loading ? (
+            <span className="text-xs text-gray-400">📍 定位中...</span>
+          ) : null}
           {weather && (
             <div className="flex items-center gap-1 text-sm text-gray-600">
               <WeatherIcon icon={weather.icon} />
               <span className="font-medium">{weather.temp}</span>
               <span className="text-xs text-gray-400">{weather.desc}</span>
-            </div>
-          )}
-          {loading && !location && !weather && (
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <div className="w-3 h-3 border border-gray-300 border-t-orange-400 rounded-full animate-spin" />
-              定位中...
             </div>
           )}
         </div>
