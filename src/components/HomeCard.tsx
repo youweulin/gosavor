@@ -32,11 +32,12 @@ const getGreeting = (t: (key: string) => string): string => {
   return '🌙 晚安';
 };
 
-const HomeCard = () => {
+const HomeCard = ({ nickname }: { nickname?: string }) => {
   const t = useT();
   const [location, setLocation] = useState<LocationData | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -106,7 +107,7 @@ const HomeCard = () => {
   return (
     <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-4 border border-orange-100">
       {/* Greeting */}
-      <h2 className="text-xl font-bold text-gray-900">{greeting}，旅人！</h2>
+      <h2 className="text-xl font-bold text-gray-900">{greeting}，{nickname}！</h2>
 
       {/* Location + Weather */}
       <div className="flex items-center gap-3 mt-2">

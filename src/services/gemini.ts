@@ -371,6 +371,7 @@ Parse this receipt:
   - translatedName: translated to ${targetLanguage} (NOT English)
   - quantity: number of items (e.g. "4")
   - price: LINE TOTAL price (quantity × unit price). Example: if unit price is ¥5,980 and qty is 4, price should be "23920" NOT "5980"
+  - janCode: the barcode number (JAN/EAN code, usually 13 digits starting with 49 or 45) found below/near each product name. Example: "4987123145428". If not found, leave empty string.
   - sourceIds: [block_id(s)] — OCR block IDs for this item
 IMPORTANT: price = total for that line, NOT unit price. Check the receipt carefully for ¥XX,XXX非 amounts.`;
 
@@ -400,6 +401,7 @@ IMPORTANT: price = total for that line, NOT unit price. Check the receipt carefu
                   translatedName: { type: Type.STRING },
                   quantity: { type: Type.STRING },
                   price: { type: Type.STRING },
+                  janCode: { type: Type.STRING },
                   sourceIds: { type: Type.ARRAY, items: { type: Type.INTEGER } },
                 },
                 required: ['originalName', 'translatedName', 'price'],
@@ -447,6 +449,7 @@ For each item:
 - translatedName: MUST translate to ${targetLanguage}. Example: "アリナミンEXプラス" → "合利他命EX Plus" (not English).
 - quantity: number of items (e.g. "4")
 - price: LINE TOTAL (qty × unit price). If ¥5,980 × 4, price="23920" NOT "5980"
+- janCode: barcode number (JAN/EAN, 13 digits, starts with 49/45) found near each product. Empty string if not found.
 - boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 coords
 Also extract: merchantName (keep original, INCLUDE branch name), date, currency (use ¥ for JPY), totalAmount, tax, serviceCharge, isTaxFree, totalQuantity.`;
 
@@ -477,6 +480,7 @@ Also extract: merchantName (keep original, INCLUDE branch name), date, currency 
                 translatedName: { type: Type.STRING },
                 quantity: { type: Type.STRING },
                 price: { type: Type.STRING },
+                janCode: { type: Type.STRING },
                 boundingBox: { type: Type.ARRAY, items: { type: Type.NUMBER } },
               },
               required: ['originalName', 'translatedName', 'price'],

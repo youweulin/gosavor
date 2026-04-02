@@ -29,6 +29,7 @@ export interface ReceiptItem {
   translatedName: string;
   quantity: string;
   price: string;
+  janCode?: string;
   boundingBox?: number[];
 }
 

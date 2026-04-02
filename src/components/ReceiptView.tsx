@@ -173,7 +173,10 @@ const ReceiptView = ({ data, imageSrc, layout, onLayoutChange, highlightIdx, onH
                       )}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-400">{item.originalName}</div>
+                  <div className="text-xs text-gray-400">
+                    {item.originalName}
+                    {item.janCode && <span className="ml-1 text-gray-300">({item.janCode})</span>}
+                  </div>
                   <div className="text-xs font-medium text-gray-600">
                     {formatPrice(unitPrice, data.currency)} × {qty}
                     {showConversion && rate && (

@@ -15,6 +15,7 @@ import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate } from './services/LiveTranslate';
+import { initAnonymousAuth, trackScanEvent, getNickname, updateNickname, submitPriceReports } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
 import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult, OrderItem, SavedOrder, SavedScan, SplitInfo, ScanMode } from './types';
@@ -46,6 +47,13 @@ function AppInner() {
   const { settings, updateSettings, resetSettings, hasApiKey } = useSettings();
   const { user, userData, login, register, logout, isRentalActive, isLifetime } = useAuth();
 
+  // Supabase anonymous auth (silent, user unaware)
+  useEffect(() => {
+    initAnonymousAuth().then(() => {
+      getNickname().then(setProfileNickname);
+    });
+  }, []);
+
   const [page, setPage] = useState<Page>('home');
   const [images, setImages] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -53,6 +61,8 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState('menu');
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileNickname, setProfileNickname] = useState('旅人');
   const [menuResult, setMenuResult] = useState<MenuAnalysisResult | null>(null);
   const [receiptResult, setReceiptResult] = useState<ReceiptAnalysisResult | null>(null);
   const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
@@ -100,6 +110,7 @@ function AppInner() {
           restaurantName: result.restaurantName || 'Menu',
           currency: result.currency, items: result.items, images,
         });
+        trackScanEvent('menu');
       } else if (scanMode === 'receipt') {
         const result = await analyzeReceiptImage(imageData, targetLangLabel, apiKey);
         setReceiptResult(result);
@@ -109,6 +120,28 @@ function AppInner() {
           currency: result.currency, items: [], images,
           receiptData: result,
         });
+        trackScanEvent('receipt');
+        // Auto-submit price reports to Supabase (核心資產收集)
+        if (result.items && result.items.length > 0) {
+          submitPriceReports(
+            result.items
+              .filter(item => item.originalName && item.price)
+              .map(item => {
+                const totalPrice = parseFloat(item.price.replace(/,/g, '')) || 0;
+                const qty = parseInt(item.quantity) || 1;
+                return {
+                  productName: item.originalName,
+                  translatedName: item.translatedName || '',
+                  price: Math.round(totalPrice / qty),
+                  currency: result.currency || 'JPY',
+                  isTaxFree: result.isTaxFree || false,
+                  category: 'Receipt',
+                  janCode: item.janCode || '',
+                };
+              }),
+            result.merchantName,
+          );
+        }
       } else {
         const result = await analyzeGeneralImage(imageData, targetLangLabel, apiKey);
         setGeneralResult(result);
@@ -118,6 +151,7 @@ function AppInner() {
           currency: '', items: [], images,
           generalData: result,
         });
+        trackScanEvent('general', result.items[0]?.category);
       }
     } catch (err) {
       console.error(err);
@@ -290,15 +324,16 @@ function AppInner() {
             <span className="font-bold text-lg text-gray-900">GoSavor</span>
           </button>
           <div className="flex items-center gap-1">
-            {user ? (
-              <button onClick={logout} className="px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
-                {userData?.plan === 'lifetime' ? 'PRO' : userData?.plan === 'rental' ? 'RENTAL' : 'FREE'} · {t('nav.logout')}
-              </button>
-            ) : (
-              <button onClick={() => setShowAuth(true)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
-                <User size={20} />
-              </button>
-            )}
+            <button
+              onClick={async () => {
+                const name = await getNickname();
+                setProfileNickname(name);
+                setShowProfile(true);
+              }}
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+            >
+              <User size={20} />
+            </button>
             <button onClick={() => setPage('diary')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="日記">
               <BookOpen size={20} />
             </button>
@@ -419,7 +454,7 @@ function AppInner() {
             {images.length === 0 && !isAnalyzing ? (
               <div className="space-y-4">
                 {/* Welcome + Location + Weather */}
-                <HomeCard />
+                <HomeCard nickname={profileNickname} />
 
                 {/* Trip Summary */}
                 <TripSummary homeCurrency={settings.homeCurrency} />
@@ -585,6 +620,41 @@ function AppInner() {
         </div>
       )}
 
+      {/* Profile Modal */}
+      {showProfile && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6" onClick={() => setShowProfile(false)}>
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">👤 我的名稱</h3>
+            <input
+              autoFocus
+              value={profileNickname}
+              onChange={e => setProfileNickname(e.target.value)}
+              placeholder="輸入你的暱稱"
+              maxLength={20}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-orange-400 focus:outline-none"
+            />
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setShowProfile(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 font-medium"
+              >
+                取消
+              </button>
+              <button
+                onClick={async () => {
+                  const name = profileNickname.trim() || '旅人';
+                  await updateNickname(name);
+                  setShowProfile(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white font-bold"
+              >
+                儲存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modals */}
       <Checkout
         isVisible={showCheckout}
@@ -668,6 +738,7 @@ function AppInner() {
                 arTranslateItems: result.items,
               });
               console.log('[GoSavor] AR saved to diary:', result.items.length, 'items');
+              trackScanEvent('ar-translate');
               setScanRefreshKey(k => k + 1);
             }
           } catch (e) { console.error('[GoSavor] AR Translate error:', e); }
