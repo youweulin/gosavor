@@ -417,8 +417,15 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func start(_ call: CAPPluginCall) {
         self.targetLang = call.getString("targetLang") ?? "zh-Hant"
+
+        // Clean up any previous pending call
+        if let prev = self.startCall {
+            prev.resolve(["hasData": false])
+        }
+
         call.keepAlive = true // Don't auto-cleanup — we resolve later when user closes
         self.startCall = call
+        self.lastResultData = nil
 
         DispatchQueue.main.async {
             guard DataScannerViewController.isSupported && DataScannerViewController.isAvailable else {
@@ -427,7 +434,7 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             self.showCamera()
-            // NOT resolving here — will resolve in closeTapped() with result data
+            print("[GoSavor] 📷 AR start() called, waiting for close to resolve")
         }
     }
 

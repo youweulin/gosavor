@@ -1,4 +1,4 @@
-import { UtensilsCrossed, Receipt, Languages, BookOpen, MessageCircle } from 'lucide-react';
+import { UtensilsCrossed, Receipt, Languages, MessageCircle, Scan } from 'lucide-react';
 import type { ScanMode } from '../types';
 import { useT } from '../i18n/context';
 
@@ -6,81 +6,98 @@ interface BottomTabBarProps {
   scanMode: ScanMode;
   onModeChange: (mode: ScanMode) => void;
   onCameraPress: () => void;
-  onDiaryPress: () => void;
+  onARPress: () => void;
   onChatPress: () => void;
   chatActive: boolean;
-  hasResults: boolean;
+  activeTab: string;
 }
 
-const MODE_CONFIG = {
-  menu: { icon: UtensilsCrossed, bg: 'bg-orange-500', shadow: 'shadow-orange-200', label: 'mode.menu' },
-  receipt: { icon: Receipt, bg: 'bg-blue-500', shadow: 'shadow-blue-200', label: 'mode.receipt' },
-  general: { icon: Languages, bg: 'bg-slate-700', shadow: 'shadow-slate-300', label: 'mode.general' },
-  chat: { icon: MessageCircle, bg: 'bg-purple-500', shadow: 'shadow-purple-200', label: '對話翻譯' },
-};
+const TABS = [
+  { id: 'general', icon: Languages, color: 'text-slate-600', bg: 'bg-slate-600', shadow: 'shadow-slate-300' },
+  { id: 'menu', icon: UtensilsCrossed, color: 'text-orange-500', bg: 'bg-orange-500', shadow: 'shadow-orange-200' },
+  { id: 'ar', icon: Scan, color: 'text-zinc-500', bg: 'bg-zinc-500', shadow: 'shadow-zinc-200' },
+  { id: 'receipt', icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-200' },
+  { id: 'chat', icon: MessageCircle, color: 'text-purple-500', bg: 'bg-purple-500', shadow: 'shadow-purple-200' },
+];
 
-const BottomTabBar = ({ scanMode, onModeChange, onCameraPress, onDiaryPress, onChatPress, chatActive }: BottomTabBarProps) => {
+const BottomTabBar = ({ onModeChange, onCameraPress, onARPress, onChatPress, activeTab }: BottomTabBarProps) => {
   const t = useT();
-  const current = chatActive ? MODE_CONFIG.chat : MODE_CONFIG[scanMode as keyof typeof MODE_CONFIG] || MODE_CONFIG.general;
-  const CenterIcon = current.icon;
 
-  const sideTabs: { mode?: ScanMode; icon: any; label: string; activeColor: string; action?: () => void }[] = [
-    { mode: 'general', icon: Languages, label: t('mode.general'), activeColor: 'text-slate-600' },
-    { mode: 'menu', icon: UtensilsCrossed, label: t('mode.menu'), activeColor: 'text-orange-500' },
-    // center is rendered separately
-    { mode: 'receipt', icon: Receipt, label: t('mode.receipt'), activeColor: 'text-blue-500' },
-    { icon: MessageCircle, label: '對話', activeColor: 'text-purple-500', action: onChatPress },
-  ];
+  const labels: Record<string, string> = {
+    general: t('mode.general'),
+    menu: t('mode.menu'),
+    ar: 'AR翻譯',
+    receipt: t('mode.receipt'),
+    chat: '對話',
+  };
+
+  const handleTabPress = (id: string) => {
+    if (id === 'ar') {
+      onARPress();
+    } else if (id === 'chat') {
+      onChatPress();
+    } else {
+      onModeChange(id as ScanMode);
+      // Delay camera trigger slightly so mode state update completes first
+      setTimeout(() => onCameraPress(), 50);
+    }
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-30">
       <div className="bg-white/95 backdrop-blur-md border-t border-gray-200 pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-md mx-auto flex items-end justify-around px-2 pt-1">
+        <div className="max-w-md mx-auto flex items-end justify-around px-0">
           {/* Left tabs */}
-          {sideTabs.slice(0, 2).map((tab, i) => {
+          {TABS.slice(0, 2).map((tab) => {
             const Icon = tab.icon;
-            const active = tab.mode === scanMode;
+            const isActive = activeTab === tab.id;
             return (
               <button
-                key={i}
-                onClick={() => tab.mode && onModeChange(tab.mode)}
-                className={`flex-1 flex flex-col items-center py-2 transition-colors ${
-                  active ? tab.activeColor : 'text-gray-400'
+                key={tab.id}
+                onClick={() => handleTabPress(tab.id)}
+                className={`flex-1 flex flex-col items-center py-3 min-h-[64px] justify-center transition-colors ${
+                  isActive ? tab.color : 'text-gray-400'
                 }`}
               >
-                <Icon size={20} />
-                <span className="text-[10px] mt-0.5 font-medium">{tab.label}</span>
+                <div className={`w-2 h-2 rounded-full mb-1 transition-all ${
+                  isActive ? tab.bg : 'bg-transparent'
+                }`} />
+                <Icon size={26} strokeWidth={isActive ? 2.5 : 1.8} />
+                <span className="text-xs mt-1 font-medium">{labels[tab.id]}</span>
               </button>
             );
           })}
 
-          {/* Center button — changes icon/color based on current mode or chat */}
-          <div className="flex-1 flex justify-center relative">
+          {/* Center — AR翻譯 (科技灰) */}
+          <div className="flex-1 flex justify-center relative min-h-[64px]">
             <button
-              onClick={chatActive ? onChatPress : onCameraPress}
-              className={`absolute -top-7 w-16 h-16 rounded-full ${current.bg} shadow-xl ${current.shadow} flex items-center justify-center active:scale-90 transition-all`}
+              onClick={() => handleTabPress('ar')}
+              className="absolute -top-8 w-[72px] h-[72px] rounded-full bg-zinc-500 shadow-xl shadow-zinc-300/50 flex items-center justify-center active:scale-90 transition-all ring-4 ring-white"
             >
-              <CenterIcon size={28} className="text-white" />
+              <Scan size={32} className="text-white" />
             </button>
-            <span className="text-[10px] mt-2 text-gray-400 font-medium pt-5">
-              {chatActive ? '對話翻譯' : typeof current.label === 'string' && current.label.startsWith('mode.') ? t(current.label) : current.label}
+            <span className={`text-xs mt-auto mb-3 font-medium ${activeTab === 'ar' ? 'text-zinc-500' : 'text-gray-400'}`}>
+              AR翻譯
             </span>
           </div>
 
           {/* Right tabs */}
-          {sideTabs.slice(2).map((tab, i) => {
+          {TABS.slice(3).map((tab) => {
             const Icon = tab.icon;
-            const active = tab.mode === scanMode;
+            const isActive = activeTab === tab.id;
             return (
               <button
-                key={i + 2}
-                onClick={() => tab.mode ? onModeChange(tab.mode) : tab.action?.()}
-                className={`flex-1 flex flex-col items-center py-2 transition-colors ${
-                  tab.mode ? (active ? tab.activeColor : 'text-gray-400') : 'text-gray-400'
+                key={tab.id}
+                onClick={() => handleTabPress(tab.id)}
+                className={`flex-1 flex flex-col items-center py-3 min-h-[64px] justify-center transition-colors ${
+                  isActive ? tab.color : 'text-gray-400'
                 }`}
               >
-                <Icon size={20} />
-                <span className="text-[10px] mt-0.5 font-medium">{tab.label}</span>
+                <div className={`w-2 h-2 rounded-full mb-1 transition-all ${
+                  isActive ? tab.bg : 'bg-transparent'
+                }`} />
+                <Icon size={26} strokeWidth={isActive ? 2.5 : 1.8} />
+                <span className="text-xs mt-1 font-medium">{labels[tab.id]}</span>
               </button>
             );
           })}

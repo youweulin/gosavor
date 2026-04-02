@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, PenLine, Check, Plane, PlaneLanding } from 'lucide-react';
+import { ArrowLeft, PenLine, Check, Plane, PlaneLanding, Trash2 } from 'lucide-react';
 import type { SavedScan, Trip } from '../types';
-import { getScanHistory, updateScan, getActiveTrip, startTrip, finishTrip, getTrips } from '../services/storage';
+import { getScanHistory, updateScan, deleteScan, getActiveTrip, startTrip, finishTrip, getTrips } from '../services/storage';
 import { useT } from '../i18n/context';
 
 const MOODS = ['😋', '😍', '🤤', '😊', '🥹', '😎', '🤩', '⛩️', '🍜', '🛍️'];
@@ -241,27 +241,27 @@ const Diary = ({ onBack }: DiaryProps) => {
                     {/* Main card — tap to expand */}
                     <button
                       onClick={() => !isEditing && setExpandedId(isExpanded ? null : scan.id)}
-                      className="w-full text-left p-3"
+                      className="w-full text-left p-4"
                     >
                       <div className="flex gap-3">
                         {scan.images[0] && (
-                          <img src={scan.images[0]} alt="" className="w-16 h-16 rounded-xl object-cover bg-gray-100 shrink-0" />
+                          <img src={scan.images[0]} alt="" className="w-20 h-20 rounded-xl object-cover bg-gray-100 shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-sm">{modeIcon(scan.scanMode)}</span>
-                            <h3 className="font-bold text-sm text-gray-900 truncate">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-base">{modeIcon(scan.scanMode)}</span>
+                            <h3 className="font-bold text-base text-gray-900 truncate">
                               {String(scan.restaurantName || '掃描紀錄').replace(/\[Native\]\s?|\[Cloud\]\s?/g, '')}
                             </h3>
                           </div>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-sm text-gray-400">
                             {new Date(scan.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             {scan.items.length > 0 && ` · ${scan.items.length} 項`}
                             {scan.scanMode === 'ar-translate' && scan.arTranslateItems && ` · ${scan.arTranslateItems.length} 段翻譯`}
                           </p>
-                          {scan.mood && <span className="text-sm">{scan.mood}</span>}
+                          {scan.mood && <span className="text-base">{scan.mood}</span>}
                           {scan.note && (
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">{String(scan.note)}</p>
+                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{String(scan.note)}</p>
                           )}
                         </div>
                       </div>
@@ -272,26 +272,26 @@ const Diary = ({ onBack }: DiaryProps) => {
                       <div className="px-3 pb-3 border-t border-gray-50">
                         {/* Items preview */}
                         {scan.items.length > 0 && (
-                          <div className="mt-2 space-y-1">
+                          <div className="mt-3 space-y-1.5">
                             {scan.items.slice(0, 5).map((item, i) => (
-                              <div key={i} className="flex justify-between text-xs">
-                                <span className="text-gray-600 truncate">{item.translatedName}</span>
+                              <div key={i} className="flex justify-between text-sm">
+                                <span className="text-gray-700 truncate">{item.translatedName}</span>
                                 <span className="text-gray-400 shrink-0 ml-2">{item.price ? `¥${item.price}` : ''}</span>
                               </div>
                             ))}
                             {scan.items.length > 5 && (
-                              <p className="text-xs text-gray-300">+{scan.items.length - 5} 項...</p>
+                              <p className="text-sm text-gray-300">+{scan.items.length - 5} 項...</p>
                             )}
                           </div>
                         )}
 
                         {/* AR Translate results */}
                         {scan.scanMode === 'ar-translate' && scan.arTranslateItems && scan.arTranslateItems.length > 0 && (
-                          <div className="mt-2 space-y-1.5">
+                          <div className="mt-3 space-y-2">
                             {scan.arTranslateItems.map((item, i) => (
-                              <div key={i} className="p-2 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-gray-900">{item.translated}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">{item.original}</p>
+                              <div key={i} className="p-3 bg-gray-50 rounded-xl">
+                                <p className="text-base text-gray-900 font-medium">{item.translated}</p>
+                                <p className="text-sm text-gray-400 mt-1">{item.original}</p>
                               </div>
                             ))}
                           </div>
@@ -305,17 +305,32 @@ const Diary = ({ onBack }: DiaryProps) => {
                         )}
 
                         {/* Edit button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingId(scan.id);
-                            setDraftNote(scan.note || '');
-                            setDraftMood(scan.mood || '');
-                          }}
-                          className="mt-2 flex items-center gap-1 text-xs text-orange-500 font-medium"
-                        >
-                          <PenLine size={12} /> 寫筆記
-                        </button>
+                        <div className="mt-3 flex items-center justify-between">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingId(scan.id);
+                              setDraftNote(scan.note || '');
+                              setDraftMood(scan.mood || '');
+                            }}
+                            className="flex items-center gap-1 text-sm text-orange-500 font-medium"
+                          >
+                            <PenLine size={14} /> 寫筆記
+                          </button>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (confirm('確定要刪除這筆紀錄嗎？')) {
+                                await deleteScan(scan.id);
+                                setScans(prev => prev.filter(s => s.id !== scan.id));
+                                setExpandedId(null);
+                              }
+                            }}
+                            className="flex items-center gap-1 text-sm text-red-400 hover:text-red-600 font-medium"
+                          >
+                            <Trash2 size={14} /> 刪除
+                          </button>
+                        </div>
                       </div>
                     )}
 

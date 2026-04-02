@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Trash2, ChevronRight, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
+import { Clock, Trash2, ChevronRight, UtensilsCrossed, Receipt, Languages, Scan } from 'lucide-react';
 import type { SavedScan } from '../types';
 import { getScanHistory, deleteScan } from '../services/storage';
 import { useT } from '../i18n/context';
@@ -12,13 +12,14 @@ const modeIcons = {
   menu: { icon: UtensilsCrossed, color: 'text-orange-500', bg: 'bg-orange-50', labelKey: 'history.menuType' as const },
   receipt: { icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', labelKey: 'history.receiptType' as const },
   general: { icon: Languages, color: 'text-slate-600', bg: 'bg-slate-100', labelKey: 'history.translationType' as const },
+  'ar-translate': { icon: Scan, color: 'text-zinc-500', bg: 'bg-zinc-50', labelKey: 'history.translationType' as const },
 };
 
 const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
   const t = useT();
   const [scans, setScans] = useState<SavedScan[]>([]);
 
-  const [filter, setFilter] = useState<'all' | 'menu' | 'receipt' | 'general'>('all');
+  const [filter, setFilter] = useState<'all' | 'menu' | 'receipt' | 'general' | 'ar-translate'>('all');
 
   useEffect(() => {
     getScanHistory().then(setScans);
@@ -36,6 +37,7 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
     if (mode === 'menu') return `${scan.items.length} dishes`;
     if (mode === 'receipt') return scan.receiptData ? `${scan.receiptData.items.length} items · ${scan.receiptData.totalAmount}` : 'Receipt';
     if (mode === 'general') return scan.generalData ? `${scan.generalData.items.length} items` : 'Translation';
+    if (mode === 'ar-translate') return scan.arTranslateItems ? `${scan.arTranslateItems.length} 段` : 'AR';
     return '';
   };
 
@@ -95,7 +97,7 @@ const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 text-sm truncate">{scan.restaurantName}</p>
                 <p className="text-xs text-gray-400">
-                  <span className={`${cfg.color} font-medium`}>{t(cfg.labelKey)}</span> · {getSubtitle(scan)} · {new Date(scan.timestamp).toLocaleDateString()}
+                  <span className={`${cfg.color} font-medium`}>{mode === 'ar-translate' ? 'AR翻譯' : t(cfg.labelKey)}</span> · {getSubtitle(scan)} · {new Date(scan.timestamp).toLocaleDateString()}
                 </p>
               </div>
               {/* Actions */}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Share2,
   X,
@@ -14,6 +14,7 @@ import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage } from './services/gemini';
 import { saveOrder, saveScan } from './services/storage';
+import { startLiveTranslate } from './services/LiveTranslate';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
 import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult, OrderItem, SavedOrder, SavedScan, SplitInfo, ScanMode } from './types';
@@ -49,6 +50,9 @@ function AppInner() {
   const [images, setImages] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>('menu');
+  const [activeTab, setActiveTab] = useState('menu');
+  const [autoAnalyze, setAutoAnalyze] = useState(false);
+  const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [menuResult, setMenuResult] = useState<MenuAnalysisResult | null>(null);
   const [receiptResult, setReceiptResult] = useState<ReceiptAnalysisResult | null>(null);
   const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
@@ -122,6 +126,14 @@ function AppInner() {
       setIsAnalyzing(false);
     }
   };
+
+  // Auto-analyze when photo is selected from bottom bar
+  useEffect(() => {
+    if (autoAnalyze && images.length > 0 && !isAnalyzing) {
+      setAutoAnalyze(false);
+      handleAnalyze();
+    }
+  }, [autoAnalyze, images, isAnalyzing]);
 
   const handleUpdateQuantity = (index: number, delta: number) => {
     setQuantities(prev => {
@@ -204,6 +216,18 @@ function AppInner() {
       setReceiptResult(scan.receiptData);
     } else if (mode === 'general' && scan.generalData) {
       setGeneralResult(scan.generalData);
+    } else if (mode === 'ar-translate' && scan.arTranslateItems) {
+      // Display AR translate items as general result
+      setScanMode('general');
+      setGeneralResult({
+        locationGuess: scan.restaurantName || 'AR翻譯',
+        items: scan.arTranslateItems.map(item => ({
+          originalText: item.original,
+          translatedText: item.translated,
+          explanation: '',
+          category: 'AR',
+        })),
+      });
     }
   };
 
@@ -237,51 +261,55 @@ function AppInner() {
 
   const handleBottomBarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          setImages(prev => [...prev, ev.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    if (!files || files.length === 0) return;
+    // Read first image and auto-analyze
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) {
+        const imgData = ev.target.result as string;
+        setImages([imgData]);
+        // Auto-trigger analysis after a tick (so state updates)
+        // Trigger auto-analyze after image state updates
+        setTimeout(() => setAutoAnalyze(true), 50);
+      }
+    };
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Simplified Top Bar */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3.5">
         <div className="max-w-md mx-auto flex items-center justify-between">
-          <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-              <UtensilsCrossed size={18} className="text-white" />
+          <button onClick={handleGoHome} className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
+            <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
+              <UtensilsCrossed size={20} className="text-white" />
             </div>
-            <span className="font-bold text-gray-900">GoSavor</span>
+            <span className="font-bold text-lg text-gray-900">GoSavor</span>
           </button>
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             {user ? (
-              <button onClick={logout} className="px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
+              <button onClick={logout} className="px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
                 {userData?.plan === 'lifetime' ? 'PRO' : userData?.plan === 'rental' ? 'RENTAL' : 'FREE'} · {t('nav.logout')}
               </button>
             ) : (
-              <button onClick={() => setShowAuth(true)} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500">
-                <User size={16} />
+              <button onClick={() => setShowAuth(true)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
+                <User size={20} />
               </button>
             )}
-            <button onClick={() => setPage('diary')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="日記">
-              <BookOpen size={16} />
+            <button onClick={() => setPage('diary')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="日記">
+              <BookOpen size={20} />
             </button>
-            <button onClick={() => setPage('expenses')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="記帳簿">
-              <WalletMinimal size={16} />
+            <button onClick={() => setPage('expenses')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="記帳簿">
+              <WalletMinimal size={20} />
             </button>
-            <button onClick={() => setPage('history')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="點餐紀錄">
-              <Clock size={16} />
+            <button onClick={() => setPage('history')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="點餐紀錄">
+              <Clock size={20} />
             </button>
-            <button onClick={() => setPage('settings')} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500" title="設定">
-              <SettingsIcon size={16} />
+            <button onClick={() => setPage('settings')} className="p-2 rounded-full hover:bg-gray-100 text-gray-500" title="設定">
+              <SettingsIcon size={20} />
             </button>
           </div>
         </div>
@@ -337,10 +365,8 @@ function AppInner() {
         </div>
       ) : generalResult && images.length > 0 ? (
         <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
-          <div className="max-w-md mx-auto px-2 py-1">
-            <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-              <img src={images[0]} alt="Photo" className="block mx-auto max-h-[40vh] w-auto" />
-            </div>
+          <div className="max-w-md mx-auto">
+            <img src={images[0]} alt="Photo" className="w-full object-cover max-h-[35vh]" />
           </div>
         </div>
       ) : menuResult && images.length > 0 ? (
@@ -404,7 +430,7 @@ function AppInner() {
                 </div>
 
                 {/* Recent Scans */}
-                <ScanHistory onLoadScan={handleLoadScan} />
+                <ScanHistory key={scanRefreshKey} onLoadScan={handleLoadScan} />
               </div>
             ) : (
               /* Camera capture + analyzing state */
@@ -613,17 +639,44 @@ function AppInner() {
       {/* Bottom Tab Bar */}
       <BottomTabBar
         scanMode={scanMode}
+        activeTab={activeTab}
         onModeChange={(mode) => {
           setScanMode(mode);
+          setActiveTab(mode);
           if (menuResult || receiptResult || generalResult) {
             handleGoHome();
           }
         }}
-        onCameraPress={handleFileFromBottomBar}
-        onDiaryPress={() => setPage('diary')}
-        onChatPress={() => setPage('chat')}
-        chatActive={false}
-        hasResults={!!(menuResult || receiptResult || generalResult)}
+        onCameraPress={() => {
+          handleFileFromBottomBar();
+        }}
+        onARPress={async () => {
+          setActiveTab('ar');
+          try {
+            const result = await startLiveTranslate();
+            if (result && result.items.length > 0) {
+              const imageDataUrl = result.imageBase64
+                ? `data:image/jpeg;base64,${result.imageBase64}` : '';
+              await saveScan({
+                id: crypto.randomUUID(),
+                timestamp: result.timestamp,
+                scanMode: 'ar-translate',
+                restaurantName: result.items[0]?.translated?.substring(0, 20) || 'AR翻譯',
+                currency: '',
+                items: [],
+                images: imageDataUrl ? [imageDataUrl] : [],
+                arTranslateItems: result.items,
+              });
+              console.log('[GoSavor] AR saved to diary:', result.items.length, 'items');
+              setScanRefreshKey(k => k + 1);
+            }
+          } catch (e) { console.error('[GoSavor] AR Translate error:', e); }
+        }}
+        onChatPress={() => {
+          setActiveTab('chat');
+          setPage('chat');
+        }}
+        chatActive={activeTab === 'chat'}
       />
     </div>
   );

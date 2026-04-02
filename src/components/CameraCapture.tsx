@@ -40,7 +40,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
     onImagesChange(images.filter((_, i) => i !== index));
   };
 
-  const currentMode = modeConfig[scanMode as keyof typeof modeConfig];
+  const currentMode = modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general;
 
   return (
     <div className="space-y-4">
@@ -53,26 +53,33 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
 
       {/* Image Preview */}
       {images.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {images.map((img, i) => (
-            <div key={i} className="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 border-orange-200">
-              <img src={img} alt="" className="w-full h-full object-cover" />
-              <button
-                onClick={() => removeImage(i)}
-                className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
-              >
-                <X size={12} className="text-white" />
-              </button>
-            </div>
-          ))}
-          {/* Add more */}
-          <button
-            onClick={() => uploadInputRef.current?.click()}
-            className="shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
-          >
-            <ImagePlus size={24} />
-          </button>
-        </div>
+        isAnalyzing ? (
+          /* Analyzing: show large image, no controls */
+          <div className="rounded-xl overflow-hidden">
+            <img src={images[0]} alt="" className="w-full object-cover max-h-[35vh]" />
+          </div>
+        ) : (
+          /* Not analyzing: show thumbnails with controls */
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {images.map((img, i) => (
+              <div key={i} className="relative shrink-0 w-32 h-32 rounded-xl overflow-hidden border-2 border-orange-200">
+                <img src={img} alt="" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => removeImage(i)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
+                >
+                  <X size={12} className="text-white" />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => uploadInputRef.current?.click()}
+              className="shrink-0 w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
+            >
+              <ImagePlus size={24} />
+            </button>
+          </div>
+        )
       )}
 
 
@@ -81,7 +88,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
         <button
           onClick={onAnalyze}
           disabled={isAnalyzing}
-          className={`w-full py-3 ${modeConfig[scanMode as keyof typeof modeConfig].color} disabled:opacity-50 text-white rounded-xl font-bold text-lg shadow-lg ${modeConfig[scanMode as keyof typeof modeConfig].shadow} transition-colors flex items-center justify-center gap-2`}
+          className={`w-full py-3 ${(modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general).color} disabled:opacity-50 text-white rounded-xl font-bold text-lg shadow-lg ${(modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general).shadow} transition-colors flex items-center justify-center gap-2`}
         >
           {isAnalyzing ? (
             <>
@@ -89,7 +96,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
               {t('camera.analyze')}
             </>
           ) : (
-            <>{modeConfig[scanMode as keyof typeof modeConfig].label} ({images.length} 張照片)</>
+            <>{(modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general).label} ({images.length} 張照片)</>
           )}
         </button>
       )}

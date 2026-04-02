@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Sparkles, Info, Volume2, MapPin } from 'lucide-react';
+import { Sparkles, Info, Volume2, MapPin, Pill, Droplets, AlertTriangle, Clock, Tag } from 'lucide-react';
 import type { GeneralAnalysisResult } from '../types';
 import { useT } from '../i18n/context';
 
 interface GeneralViewProps {
   data: GeneralAnalysisResult;
 }
+
+const isMedicineOrBeauty = (category?: string) =>
+  ['Medicine', 'Beauty', 'Snack'].includes(category || '');
 
 const GeneralView = ({ data }: GeneralViewProps) => {
   const speakText = (text: string) => {
@@ -24,9 +27,148 @@ const GeneralView = ({ data }: GeneralViewProps) => {
       {data.items.map((item, idx) =>
         item.category === 'Fortune' ? (
           <FortuneCard key={idx} item={item} />
+        ) : isMedicineOrBeauty(item.category) ? (
+          <MedicineCard key={idx} item={item} onSpeak={speakText} />
         ) : (
           <GeneralCard key={idx} item={item} onSpeak={speakText} />
         )
+      )}
+    </div>
+  );
+};
+
+// === Parse structured explanation into sections ===
+function parseSections(explanation: string): { title: string; content: string; icon: string }[] {
+  const sections: { title: string; content: string; icon: string }[] = [];
+  const lines = explanation.split('\n');
+  let currentTitle = '';
+  let currentContent: string[] = [];
+  let currentIcon = '💊';
+
+  const iconMap: Record<string, string> = {
+    '主要功效': '💊', '功效': '💊',
+    '主要成分': '🧪', '成分': '🧪',
+    '用法用量': '⏰', '使用方式': '⏰',
+    '注意事項': '⚠️', '警告': '⚠️',
+    '類別': '🏷️', '產品類型': '🏷️',
+    '適合膚質': '✨',
+    '口味': '🍬', '風味': '🍬',
+    '過敏原': '⚠️', '保存方式': '📦',
+    '營養': '📊',
+  };
+
+  const flush = () => {
+    if (currentTitle && currentContent.length > 0) {
+      sections.push({
+        title: currentTitle,
+        content: currentContent.join('\n').trim(),
+        icon: currentIcon,
+      });
+    }
+    currentContent = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Match **title：** or **title:**
+    const match = trimmed.match(/^\*\*(.+?)[：:]\s*\*\*\s*(.*)/);
+    if (match) {
+      flush();
+      currentTitle = match[1].trim();
+      currentIcon = iconMap[currentTitle] || '📋';
+      if (match[2].trim()) currentContent.push(match[2].trim());
+    } else if (trimmed.startsWith('💊') || trimmed.startsWith('💄') || trimmed.startsWith('🍬')) {
+      // Skip the emoji product name line (already shown as title)
+      continue;
+    } else if (trimmed) {
+      // Strip markdown bold markers: **text** → text, * **text:** → text:
+      const cleaned = trimmed
+        .replace(/^\*\s*/, '')        // leading "* "
+        .replace(/\*\*/g, '')         // all **
+        .trim();
+      if (cleaned) currentContent.push(cleaned);
+    }
+  }
+  flush();
+  return sections;
+}
+
+// === Medicine / Beauty / Snack — Kuli Kuli style card ===
+const MedicineCard = ({ item, onSpeak }: { item: GeneralAnalysisResult['items'][0]; onSpeak: (text: string) => void }) => {
+  const t = useT();
+  const sections = parseSections(item.explanation || '');
+
+  const categoryConfig: Record<string, { color: string; bg: string; border: string; headerBg: string }> = {
+    Medicine: { color: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200', headerBg: 'bg-gradient-to-r from-sky-500 to-sky-600' },
+    Beauty: { color: 'text-pink-700', bg: 'bg-pink-50', border: 'border-pink-200', headerBg: 'bg-gradient-to-r from-pink-500 to-pink-600' },
+    Snack: { color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', headerBg: 'bg-gradient-to-r from-amber-500 to-amber-600' },
+  };
+  const cfg = categoryConfig[item.category] || categoryConfig.Medicine;
+
+  const categoryLabel: Record<string, string> = {
+    Medicine: '產品介紹',
+    Beauty: '美妝介紹',
+    Snack: '零食介紹',
+  };
+
+  return (
+    <div className={`rounded-2xl overflow-hidden border ${cfg.border} shadow-lg bg-white`}>
+      {/* Header */}
+      <div className={`${cfg.headerBg} px-5 py-3`}>
+        <div className="flex items-center justify-between">
+          <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
+            {categoryLabel[item.category] || '產品介紹'}
+          </p>
+          <span className="text-white/60 text-xs">
+            {item.category}
+          </span>
+        </div>
+      </div>
+
+      {/* Product name */}
+      <div className="px-5 py-4 border-b border-gray-100">
+        <h2 className="text-xl font-black text-gray-900 mb-1">
+          {item.translatedText}
+        </h2>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-gray-400 border-l-2 border-gray-200 pl-2">
+            {item.originalText}
+          </p>
+          <button
+            onClick={() => onSpeak(item.originalText)}
+            className="text-gray-300 hover:text-gray-600 p-1"
+          >
+            <Volume2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Structured sections */}
+      <div className="divide-y divide-gray-100">
+        {sections.map((section, i) => (
+          <div key={i} className="px-5 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-base">{section.icon}</span>
+              <h4 className={`text-sm font-bold ${cfg.color}`}>{section.title}</h4>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line pl-7">
+              {section.content}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Fallback if no sections parsed */}
+      {sections.length === 0 && item.explanation && (
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={16} className={cfg.color} />
+            <h4 className={`text-sm font-bold ${cfg.color}`}>{t('general.aiExplain')}</h4>
+          </div>
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+            {item.explanation}
+          </p>
+        </div>
       )}
     </div>
   );
@@ -38,18 +180,13 @@ const FortuneCard = ({ item }: { item: GeneralAnalysisResult['items'][0] }) => {
 
   return (
     <div className="rounded-2xl overflow-hidden border border-amber-200 shadow-lg bg-gradient-to-b from-amber-50 to-white">
-      {/* Header */}
       <div className="bg-gradient-to-r from-red-700 to-red-800 px-5 py-4 text-center">
         <p className="text-amber-200 text-xs tracking-widest uppercase mb-1">御神籤 · OMIKUJI</p>
         <h2 className="text-2xl font-black text-white">{item.translatedText}</h2>
       </div>
-
-      {/* Original text */}
       <div className="px-5 py-4 border-b border-amber-100">
         <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap font-serif">{item.originalText}</p>
       </div>
-
-      {/* AI Interpretation */}
       {item.explanation && (
         <div className="px-5 py-4">
           <div className="flex items-center gap-2 mb-3">
