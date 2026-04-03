@@ -941,6 +941,20 @@ function AppInner() {
               console.log('[GoSavor] AR saved to diary:', result.items.length, 'items');
               trackScanEvent('ar-translate');
               setScanRefreshKey(k => k + 1);
+
+              // Show AR results immediately as general translation
+              setScanMode('general');
+              if (imageDataUrl) setImages([imageDataUrl]);
+              setGeneralResult({
+                locationGuess: 'AR翻譯',
+                items: result.items.map(item => ({
+                  originalText: item.original,
+                  translatedText: item.translated,
+                  explanation: '',
+                  category: 'AR',
+                })),
+              });
+              setShowCamera(true);
             }
           } catch (e) { console.error('[GoSavor] AR Translate error:', e); }
         }}
