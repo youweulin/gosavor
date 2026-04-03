@@ -100,7 +100,7 @@ const OrderHistory = ({ onBack }: OrderHistoryProps) => {
                 </span>
                 <button
                   onClick={() => navigateTo(order)}
-                  className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full text-sm flex items-center gap-2"
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full text-sm flex items-center gap-2"
                 >
                   <Navigation size={14} /> {t('history.navigate')}
                 </button>
