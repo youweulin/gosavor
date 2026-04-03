@@ -432,6 +432,31 @@ Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]")
 
   if (!response.text) throw new Error('No response from AI');
   const result = safeParseJSON<MenuAnalysisResult>(response.text);
+
+  // Auto-fix bounding box scale: if all values < 100, assume 0-100 scale → multiply by 10
+  if (result.items?.length > 0) {
+    const allBoxes = result.items.filter((it: any) => it.boundingBox?.length === 4).map((it: any) => it.boundingBox);
+    if (allBoxes.length > 0) {
+      const maxVal = Math.max(...allBoxes.flat());
+      console.log('[GoSavor] PWA boundingBox max value:', maxVal, 'sample:', allBoxes[0]);
+      if (maxVal <= 100) {
+        // Scale 0-100 → 0-1000
+        console.log('[GoSavor] Auto-scaling boundingBox from 0-100 to 0-1000');
+        result.items = result.items.map((it: any) => ({
+          ...it,
+          boundingBox: it.boundingBox?.map((v: number) => v * 10),
+        }));
+      } else if (maxVal <= 1) {
+        // Scale 0-1 → 0-1000
+        console.log('[GoSavor] Auto-scaling boundingBox from 0-1 to 0-1000');
+        result.items = result.items.map((it: any) => ({
+          ...it,
+          boundingBox: it.boundingBox?.map((v: number) => Math.round(v * 1000)),
+        }));
+      }
+    }
+  }
+
   return {
     ...result,
     ocrDebug: {
