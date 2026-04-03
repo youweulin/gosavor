@@ -18,8 +18,25 @@ const InlineImageMap = ({
 }: InlineImageMapProps) => {
   const [showMarkers, setShowMarkers] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
   const touchStartX = useRef(0);
   const touchDelta = useRef(0);
+
+  // Track actual rendered image size for accurate marker positioning
+  const updateImgSize = useCallback(() => {
+    const el = imgRef.current;
+    if (el && el.clientWidth > 0) {
+      setImgSize({ w: el.clientWidth, h: el.clientHeight });
+    }
+  }, []);
+
+  // Update on resize / orientation change
+  useEffect(() => {
+    const observer = new ResizeObserver(updateImgSize);
+    if (imgRef.current) observer.observe(imgRef.current);
+    return () => observer.disconnect();
+  }, [updateImgSize, activeImageIndex]);
 
   const normalize = (box: number[]): number[] => {
     if (box.some(v => v > 1)) return box.map(v => v / 1000);
@@ -129,12 +146,17 @@ const InlineImageMap = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* inline-block so container matches image size EXACTLY — critical for % positioning */}
-        <div className="relative inline-block">
+        {/* Container sized exactly to rendered image for accurate marker positioning */}
+        <div
+          className="relative inline-block"
+          style={imgSize.w > 0 ? { width: imgSize.w, height: imgSize.h } : undefined}
+        >
         <img
+          ref={imgRef}
           src={images[activeImageIndex]}
           alt={`Menu page ${activeImageIndex + 1}`}
           className="block max-w-full max-h-[45vh]"
+          onLoad={updateImgSize}
         />
 
         {/* Numbered markers */}
