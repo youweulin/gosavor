@@ -116,23 +116,29 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
           </span>
         </div>
 
-        {/* Location + Weather (fixed height to prevent layout shift) */}
-        <div className="flex items-center gap-2 mt-1.5 h-5">
-          {locationText ? (
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <MapPin size={13} className="text-orange-500" />
-              <span>{locationText}</span>
-            </div>
-          ) : loading ? (
-            <span className="text-xs text-gray-400">📍 定位中...</span>
-          ) : null}
-          {weather && (
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <WeatherIcon icon={weather.icon} />
-              <span className="font-medium">{weather.temp}</span>
-              <span className="text-xs text-gray-400">{weather.desc}</span>
-            </div>
+        {/* Trip name + Location + Weather — centered */}
+        <div className="text-center mt-3 space-y-0.5">
+          {tripName && (
+            <p className="text-sm font-medium text-gray-700">{tripName} · 第 {tripDays} 天</p>
           )}
+          <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+            {locationText ? (
+              <>
+                <MapPin size={12} className="text-orange-400" />
+                <span>{locationText}</span>
+              </>
+            ) : loading ? (
+              <span>📍 定位中...</span>
+            ) : null}
+            {weather && (
+              <>
+                {locationText && <span>·</span>}
+                <WeatherIcon icon={weather.icon} />
+                <span>{weather.temp}</span>
+                <span>{weather.desc}</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -156,13 +162,6 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
           {totalMeals > 0 && <span className="text-[10px] text-gray-400">{totalMeals} 餐</span>}
         </button>
       </div>
-
-      {/* Trip name — centered below buttons */}
-      {tripName && (
-        <div className="py-2 border-t border-orange-100/60 text-center">
-          <span className="text-xs text-gray-500">{tripName} · 第 {tripDays} 天</span>
-        </div>
-      )}
     </div>
   );
 };
