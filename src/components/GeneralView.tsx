@@ -80,6 +80,7 @@ const ARImageOverlay = ({ imageSrc, items, onSpeak }: {
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
   const [tappedIdx, setTappedIdx] = useState<number | null>(null);
+  const [showOverlay, setShowOverlay] = useState(true);
 
   const updateSize = useCallback(() => {
     const el = imgRef.current;
@@ -96,7 +97,19 @@ const ARImageOverlay = ({ imageSrc, items, onSpeak }: {
     box.some(v => v > 1) ? box.map(v => v / 1000) : box;
 
   return (
-    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative">
+      {/* Toggle overlay button */}
+      <button
+        onClick={() => setShowOverlay(!showOverlay)}
+        className={`absolute top-2 right-2 z-20 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-md ${
+          showOverlay
+            ? 'bg-orange-500 text-white'
+            : 'bg-white/90 text-gray-700 border border-gray-300'
+        }`}
+      >
+        {showOverlay ? '隱藏翻譯' : '顯示翻譯'}
+      </button>
+
       <div
         className="relative inline-block w-full"
         style={imgSize.w > 0 ? { width: imgSize.w, height: imgSize.h } : undefined}
@@ -109,7 +122,7 @@ const ARImageOverlay = ({ imageSrc, items, onSpeak }: {
           onLoad={updateSize}
         />
         {/* Overlay translated text boxes */}
-        {items.map((item, idx) => {
+        {showOverlay && items.map((item, idx) => {
           if (!item.boundingBox || item.boundingBox.length < 4) return null;
           const [ymin, xmin, ymax, xmax] = normalize(item.boundingBox);
           const isTapped = tappedIdx === idx;
