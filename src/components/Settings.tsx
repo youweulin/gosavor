@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, MessageCircle, Shield, Info, Bug, Send, LogOut, Mail, User } from 'lucide-react';
+import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, MessageCircle, Shield, Info, Bug, Send, LogOut, Mail } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 import { TARGET_LANGUAGES, COMMON_ALLERGEN_IDS, HOME_CURRENCIES } from '../types';
 import { fetchRates } from './CurrencyBar';
