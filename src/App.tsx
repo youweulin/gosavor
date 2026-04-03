@@ -707,45 +707,60 @@ function AppInner() {
             </div>
 
             {/* Plan & Usage */}
-            <div className="bg-gradient-to-br from-gray-50 to-orange-50 rounded-2xl p-4 mb-5 border border-orange-100">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🌱</span>
-                  <div>
-                    <p className="font-bold text-sm text-gray-900">免費體驗版</p>
-                    <p className="text-xs text-gray-400">封測期間</p>
+            {(() => {
+              const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+              return (
+              <div className="bg-gradient-to-br from-gray-50 to-orange-50 rounded-2xl p-4 mb-5 border border-orange-100">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{isNative ? '🍎' : '🌐'}</span>
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">免費體驗版</p>
+                      <p className="text-xs text-gray-400">{isNative ? 'iOS 版' : 'PWA 網頁版'}・封測期間</p>
+                    </div>
+                  </div>
+                  <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium">
+                    Beta
+                  </span>
+                </div>
+
+                {/* Feature list */}
+                <div className="space-y-1.5 text-sm">
+                  {isNative && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">AR翻譯</span>
+                        <span className="text-green-600 font-medium">無限 ✅</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">對話翻譯</span>
+                        <span className="text-green-600 font-medium">無限 ✅</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">AI 翻譯（菜單/收據/萬用）</span>
+                    <span className={isNative ? 'text-orange-500 font-medium' : 'text-green-600 font-medium'}>
+                      {isNative ? '1 次/天' : '20 次/天（7/1 前免費）'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">自帶 API Key</span>
+                    <span className="text-gray-400">🔒 需開通</span>
                   </div>
                 </div>
-                <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium">
-                  Beta
-                </span>
-              </div>
 
-              {/* Feature list */}
-              <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">AR翻譯</span>
-                  <span className="text-green-600 font-medium">無限 ✅</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">對話翻譯</span>
-                  <span className="text-green-600 font-medium">無限 ✅</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">AI 翻譯（菜單/收據/萬用）</span>
-                  <span className="text-orange-500 font-medium">1 次/天</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">自帶 API Key</span>
-                  <span className="text-gray-400">🔒 需開通</span>
+                {/* Upgrade hint */}
+                <div className="mt-3 pt-3 border-t border-orange-100">
+                  {isNative ? (
+                    <p className="text-xs text-gray-500">開通贊助版 $299（7/1 前限定）→ 自帶 API Key 無限翻譯</p>
+                  ) : (
+                    <p className="text-xs text-gray-500">7/1 後需開通：PWA 版 $199 ｜ iOS 全功能版 $299</p>
+                  )}
                 </div>
               </div>
-
-              {/* Upgrade hint */}
-              <div className="mt-3 pt-3 border-t border-orange-100">
-                <p className="text-xs text-gray-500">開通贊助版 $299（7/1 前限定）→ 自帶 API Key 無限翻譯</p>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Redeem code */}
             <div className="mb-4">
