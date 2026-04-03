@@ -94,10 +94,33 @@ function AppInner() {
 
   const targetLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
 
+  const DAILY_LIMIT = 50;
+  const checkDailyLimit = (): boolean => {
+    const today = new Date().toDateString();
+    const stored = localStorage.getItem('gosavor_daily_usage');
+    const data = stored ? JSON.parse(stored) : { date: '', count: 0 };
+    if (data.date !== today) return true; // new day
+    return data.count < DAILY_LIMIT;
+  };
+  const incrementDailyUsage = () => {
+    const today = new Date().toDateString();
+    const stored = localStorage.getItem('gosavor_daily_usage');
+    const data = stored ? JSON.parse(stored) : { date: '', count: 0 };
+    if (data.date !== today) {
+      localStorage.setItem('gosavor_daily_usage', JSON.stringify({ date: today, count: 1 }));
+    } else {
+      localStorage.setItem('gosavor_daily_usage', JSON.stringify({ date: today, count: data.count + 1 }));
+    }
+  };
+
   const handleAnalyze = async () => {
     const apiKey = getApiKey();
     if (!apiKey) {
       setError('請先到設定輸入你的 Gemini API Key。贊助版用戶可使用「如何取得免費 API Key？」教學取得。');
+      return;
+    }
+    if (!checkDailyLimit()) {
+      setError(`今日已達 ${DAILY_LIMIT} 次翻譯上限，明天 00:00 重置。封測期間每日限 ${DAILY_LIMIT} 次，感謝配合！`);
       return;
     }
     setGeminiScanMode(scanMode);
@@ -164,6 +187,7 @@ function AppInner() {
         });
         trackScanEvent('general', result.items[0]?.category);
       }
+      incrementDailyUsage();
     } catch (err: any) {
       const msg = err?.message || err?.toString?.() || String(err);
       console.error('[GoSavor] Analyze error:', msg);
