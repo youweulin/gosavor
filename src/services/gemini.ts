@@ -355,14 +355,22 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
     }))
   );
   const imageCount = pwaResized.length;
-  const prompt = `Menu translator. Analyze ${imageCount} menu image(s). Output ${targetLanguage}.
-For each item: ... (Same bounding box logic as before) ...
-- originalName: item name in original language
+  const prompt = `You are a precise menu translator. Analyze ${imageCount} menu image(s). Output in ${targetLanguage}.
+
+For EACH menu item found, return:
+- originalName: item name in original language (exactly as written)
 - translatedName: natural translation in ${targetLanguage}
 - description: 1 sentence explaining the dish in ${targetLanguage}. MUST NOT be empty.
-- price: number only (e.g. "630")
+- price: number only (e.g. "630"), no currency symbol
 - category: in ${targetLanguage}
-- boundingBox: [ymin,xmin,ymax,xmax] in 0-1000 scale. IMPORTANT: the box must cover the item's name and price on the image. Each item must have a UNIQUE position — do NOT cluster boxes together. Spread them to match where each item actually appears on the menu photo.
+- boundingBox: [ymin, xmin, ymax, xmax] in 0-1000 scale.
+  CRITICAL RULES for boundingBox:
+  1. Each box MUST precisely cover ONLY that item's text (name + price) on the image
+  2. Each item MUST have a DIFFERENT position — NO overlapping or clustered boxes
+  3. ymin < ymax, xmin < xmax (top-left to bottom-right)
+  4. Items at the TOP of menu → small ymin (~0-200). Items at BOTTOM → large ymin (~700-1000)
+  5. Items on LEFT side → small xmin (~0-300). Items on RIGHT → large xmin (~600-1000)
+  6. Box height should be ~30-80 (tight around text), NOT covering the entire menu
 - imageIndex: which image (0-based) this item appears in.${allergenPart}
 Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]").`;
 
