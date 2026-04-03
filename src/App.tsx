@@ -1056,7 +1056,7 @@ function AppInner() {
               </button>
             </div>
           ) : (
-            /* PWA: single button → iOS Safari shows native camera/album/browse menu */
+            /* PWA: single button */
             <div
               className="absolute left-1/2 -translate-x-1/2 bg-white rounded-full shadow-2xl overflow-hidden"
               style={{ bottom: '110px' }}
@@ -1065,24 +1065,32 @@ function AppInner() {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'image/*';
+                if (scanMode === 'menu') input.multiple = true;
                 input.onchange = () => {
-                  const file = input.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const base64 = (reader.result as string).split(',')[1];
-                    setImages([`data:image/jpeg;base64,${base64}`]);
-                    setShowCamera(true);
-                    setTimeout(() => setAutoAnalyze(true), 50);
-                  };
-                  reader.readAsDataURL(file);
+                  const files = input.files;
+                  if (!files || files.length === 0) return;
+                  const readFile = (file: File): Promise<string> => new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.readAsDataURL(file);
+                  });
+                  Promise.all(Array.from(files).slice(0, 4).map(readFile)).then(results => {
+                    if (scanMode === 'menu') {
+                      setImages(prev => [...prev, ...results].slice(0, 4));
+                      setShowCamera(true);
+                    } else {
+                      setImages([results[0]]);
+                      setShowCamera(true);
+                      setTimeout(() => setAutoAnalyze(true), 50);
+                    }
+                  });
                 };
                 input.click();
               }}
             >
               <div className="flex flex-col items-center gap-1 px-8 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors">
                 <Camera size={28} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
-                <span className="text-[13px] font-bold text-gray-800 tracking-wide">拍照 / 相簿</span>
+                <span className="text-[13px] font-bold text-gray-800 tracking-wide">{scanMode === 'menu' ? '選擇菜單(可多選)' : '拍照 / 相簿'}</span>
               </div>
             </div>
           )}
