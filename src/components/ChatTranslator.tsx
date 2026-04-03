@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Mic, MicOff, Volume2, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Volume2, Send, Trash2, BookMarked } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { speakText, startListening, stopListening } from '../services/NativeSpeech';
+import { saveScan } from '../services/storage';
 
 
 interface ChatTranslatorProps {
@@ -248,13 +249,34 @@ const ChatTranslator = ({ onBack, onBackToCheckout, apiKey, targetLanguage }: Ch
             <p className="text-xs text-gray-400">即時翻譯，跟日本人溝通</p>
           </div>
           {messages.length > 0 && (
-            <button
-              onClick={() => { updateMessages(() => []); }}
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-400"
-              title="清除對話"
-            >
-              <Trash2 size={16} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={async () => {
+                  await saveScan({
+                    id: crypto.randomUUID(),
+                    timestamp: Date.now(),
+                    scanMode: 'chat',
+                    restaurantName: '對話翻譯',
+                    currency: '',
+                    items: [],
+                    images: [],
+                    chatMessages: messages.map(m => ({ role: m.role, original: m.original, translated: m.translated })),
+                  });
+                  alert('已儲存到旅遊日記！');
+                }}
+                className="p-2 rounded-full hover:bg-gray-100 text-orange-400"
+                title="儲存到日記"
+              >
+                <BookMarked size={16} />
+              </button>
+              <button
+                onClick={() => { updateMessages(() => []); }}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-400"
+                title="清除對話"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           )}
         </div>
       </div>

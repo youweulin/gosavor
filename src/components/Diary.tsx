@@ -10,11 +10,14 @@ interface DiaryProps {
   onBack: () => void;
 }
 
-const modeIcon = (mode?: string) => {
-  if (mode === 'receipt') return '🧾';
-  if (mode === 'general') return '🌐';
-  if (mode === 'ar-translate') return '📷';
-  return '🍽';
+const modeConfig = (mode?: string) => {
+  switch (mode) {
+    case 'receipt': return { icon: '🛍️', label: '購物', color: 'bg-pink-500' };
+    case 'general': return { icon: '⛩️', label: '翻譯', color: 'bg-blue-500' };
+    case 'ar-translate': return { icon: '📷', label: 'AR', color: 'bg-purple-500' };
+    case 'chat': return { icon: '💬', label: '對話', color: 'bg-green-500' };
+    default: return { icon: '🍜', label: '美食', color: 'bg-orange-500' };
+  }
 };
 
 const Diary = ({ onBack }: DiaryProps) => {
@@ -216,174 +219,239 @@ const Diary = ({ onBack }: DiaryProps) => {
           </div>
         )}
 
-        {/* Diary entries */}
-        {Object.entries(grouped).map(([date, items]) => (
-          <div key={date} className="mb-6">
-            {/* Date header */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-orange-400" />
-              <span className="text-xs font-bold text-gray-400">{date}</span>
-              <div className="h-px flex-1 bg-gray-200" />
+        {/* Diary timeline */}
+        {Object.entries(grouped).map(([date, items]) => {
+          // Day stats
+          const menuCount = items.filter(s => (s.scanMode || 'menu') === 'menu').length;
+          const receiptCount = items.filter(s => s.scanMode === 'receipt').length;
+          const chatCount = items.filter(s => s.scanMode === 'chat').length;
+          const totalSpent = items
+            .filter(s => s.scanMode === 'receipt' && s.receiptData?.totalAmount)
+            .reduce((sum, s) => sum + (parseFloat(String(s.receiptData?.totalAmount || 0)) || 0), 0);
+
+          return (
+          <div key={date} className="mb-8">
+            {/* Date header + stats */}
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-gray-800">{date}</h3>
+              <div className="flex gap-2 mt-1 text-xs text-gray-400 flex-wrap">
+                {menuCount > 0 && <span>🍜 {menuCount}餐</span>}
+                {receiptCount > 0 && <span>🛍️ {receiptCount}購物</span>}
+                {chatCount > 0 && <span>💬 {chatCount}對話</span>}
+                {items.length - menuCount - receiptCount - chatCount > 0 && <span>📸 {items.length - menuCount - receiptCount - chatCount}翻譯</span>}
+                {totalSpent > 0 && <span>· ¥{Math.round(totalSpent).toLocaleString()}</span>}
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {items.map(scan => {
-                const isEditing = editingId === scan.id;
-                const isExpanded = expandedId === scan.id;
+            {/* Timeline entries */}
+            <div className="relative pl-6">
+              {/* Vertical line */}
+              <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-orange-200" />
 
-                return (
-                  <div
-                    key={scan.id}
-                    className={`bg-white rounded-2xl overflow-hidden border transition-all ${
-                      isEditing ? 'border-orange-300 shadow-lg' : 'border-gray-100 shadow-sm'
-                    }`}
-                  >
-                    {/* Main card — tap to expand */}
-                    <button
-                      onClick={() => !isEditing && setExpandedId(isExpanded ? null : scan.id)}
-                      className="w-full text-left p-4"
-                    >
-                      <div className="flex gap-3">
-                        {scan.images[0] && (
-                          <img src={scan.images[0]} alt="" className="w-20 h-20 rounded-xl object-cover bg-gray-100 shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-base">{modeIcon(scan.scanMode)}</span>
-                            <h3 className="font-bold text-base text-gray-900 truncate">
-                              {String(scan.restaurantName || '掃描紀錄').replace(/\[Native\]\s?|\[Cloud\]\s?/g, '')}
-                            </h3>
-                          </div>
-                          <p className="text-sm text-gray-400">
-                            {new Date(scan.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            {scan.items.length > 0 && ` · ${scan.items.length} 項`}
-                            {scan.scanMode === 'ar-translate' && scan.arTranslateItems && ` · ${scan.arTranslateItems.length} 段翻譯`}
-                          </p>
-                          {scan.mood && <span className="text-base">{scan.mood}</span>}
-                          {scan.note && (
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{String(scan.note)}</p>
-                          )}
-                        </div>
+              <div className="space-y-4">
+                {items.map(scan => {
+                  const isEditing = editingId === scan.id;
+                  const isExpanded = expandedId === scan.id;
+                  const mode = modeConfig(scan.scanMode);
+                  const time = new Date(scan.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const name = String(scan.restaurantName || '掃描紀錄').replace(/\[Native\]\s?|\[Cloud\]\s?/g, '');
+
+                  // Content summary based on scan type
+                  const getSummary = () => {
+                    if (scan.scanMode === 'receipt' && scan.receiptData) {
+                      const itemNames = scan.receiptData.items?.slice(0, 3).map(i => i.translatedName || i.originalName).join('、') || '';
+                      const more = (scan.receiptData.items?.length || 0) > 3 ? `...等${scan.receiptData.items?.length}項` : '';
+                      return itemNames + more;
+                    }
+                    if ((scan.scanMode || 'menu') === 'menu' && scan.items.length > 0) {
+                      return scan.items.slice(0, 3).map(i => i.translatedName).join('、') + (scan.items.length > 3 ? `...等${scan.items.length}道` : '');
+                    }
+                    if (scan.scanMode === 'general' && scan.generalData) {
+                      return scan.generalData.items?.[0]?.translatedText?.substring(0, 40) || '';
+                    }
+                    if (scan.scanMode === 'ar-translate' && scan.arTranslateItems) {
+                      return `${scan.arTranslateItems.length} 段翻譯`;
+                    }
+                    if (scan.scanMode === 'chat' && scan.chatMessages) {
+                      const last = scan.chatMessages[scan.chatMessages.length - 1];
+                      return last ? `「${last.original.substring(0, 30)}」` : '';
+                    }
+                    return '';
+                  };
+
+                  const getAmount = () => {
+                    if (scan.scanMode === 'receipt' && scan.receiptData?.totalAmount) {
+                      return `¥${Math.round(parseFloat(String(scan.receiptData.totalAmount))).toLocaleString()}`;
+                    }
+                    if ((scan.scanMode || 'menu') === 'menu' && scan.items.length > 0) {
+                      const total = scan.items.reduce((s, i) => s + (parseFloat(String(i.price || 0)) || 0), 0);
+                      return total > 0 ? `¥${Math.round(total).toLocaleString()}` : '';
+                    }
+                    return '';
+                  };
+
+                  return (
+                    <div key={scan.id} className="relative">
+                      {/* Timeline dot */}
+                      <div className={`absolute -left-6 top-3 w-[18px] h-[18px] rounded-full ${mode.color} flex items-center justify-center`}>
+                        <span className="text-[10px]">{mode.icon}</span>
                       </div>
-                    </button>
 
-                    {/* Expanded content */}
-                    {isExpanded && !isEditing && (
-                      <div className="px-3 pb-3 border-t border-gray-50">
-                        {/* Items preview */}
-                        {scan.items.length > 0 && (
-                          <div className="mt-3 space-y-1.5">
-                            {scan.items.slice(0, 5).map((item, i) => (
-                              <div key={i} className="flex justify-between text-sm">
-                                <span className="text-gray-700 truncate">{item.translatedName}</span>
-                                <span className="text-gray-400 shrink-0 ml-2">{item.price ? `¥${item.price}` : ''}</span>
-                              </div>
-                            ))}
-                            {scan.items.length > 5 && (
-                              <p className="text-sm text-gray-300">+{scan.items.length - 5} 項...</p>
+                      {/* Card */}
+                      <div className={`bg-white rounded-2xl overflow-hidden border transition-all ${
+                        isEditing ? 'border-orange-300 shadow-lg' : 'border-gray-100 shadow-sm'
+                      }`}>
+                        <button
+                          onClick={() => !isEditing && setExpandedId(isExpanded ? null : scan.id)}
+                          className="w-full text-left p-3"
+                        >
+                          <div className="flex gap-3">
+                            {scan.images[0] && (
+                              <img src={scan.images[0]} alt="" className="w-16 h-16 rounded-xl object-cover bg-gray-100 shrink-0" />
                             )}
-                          </div>
-                        )}
-
-                        {/* AR Translate results */}
-                        {scan.scanMode === 'ar-translate' && scan.arTranslateItems && scan.arTranslateItems.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {scan.arTranslateItems.map((item, i) => (
-                              <div key={i} className="p-3 bg-gray-50 rounded-xl">
-                                <p className="text-base text-gray-900 font-medium">{item.translated}</p>
-                                <p className="text-sm text-gray-400 mt-1">{item.original}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <h3 className="font-bold text-sm text-gray-900 truncate">{name}</h3>
+                                <span className="text-xs text-gray-400 shrink-0">{time}</span>
                               </div>
-                            ))}
+                              {getSummary() && (
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{getSummary()}</p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1">
+                                {getAmount() && <span className="text-xs font-bold text-orange-500">{getAmount()}</span>}
+                                {scan.mood && <span className="text-sm">{scan.mood}</span>}
+                                {scan.note && <span className="text-xs text-gray-400 truncate">{String(scan.note)}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+
+                        {/* Expanded content */}
+                        {isExpanded && !isEditing && (
+                          <div className="px-3 pb-3 border-t border-gray-50">
+                            {/* Menu items */}
+                            {(scan.scanMode || 'menu') === 'menu' && scan.items.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {scan.items.slice(0, 8).map((item, i) => (
+                                  <div key={i} className="flex justify-between text-xs">
+                                    <span className="text-gray-700 truncate">{item.translatedName}</span>
+                                    <span className="text-gray-400 shrink-0 ml-2">{item.price ? `¥${item.price}` : ''}</span>
+                                  </div>
+                                ))}
+                                {scan.items.length > 8 && <p className="text-xs text-gray-300">+{scan.items.length - 8} 項...</p>}
+                              </div>
+                            )}
+
+                            {/* Receipt items */}
+                            {scan.scanMode === 'receipt' && scan.receiptData?.items && (
+                              <div className="mt-2 space-y-1">
+                                {scan.receiptData.items.slice(0, 8).map((item, i) => (
+                                  <div key={i} className="flex justify-between text-xs">
+                                    <span className="text-gray-700 truncate">{item.translatedName || item.originalName}</span>
+                                    <span className="text-gray-400 shrink-0 ml-2">¥{item.price}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* General translation */}
+                            {scan.scanMode === 'general' && scan.generalData?.items && (
+                              <div className="mt-2 space-y-2">
+                                {scan.generalData.items.slice(0, 3).map((item, i) => (
+                                  <div key={i} className="p-2 bg-gray-50 rounded-lg">
+                                    <p className="text-xs text-gray-900">{item.translatedText}</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">{item.originalText}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* AR Translate */}
+                            {scan.scanMode === 'ar-translate' && scan.arTranslateItems && (
+                              <div className="mt-2 space-y-2">
+                                {scan.arTranslateItems.slice(0, 5).map((item, i) => (
+                                  <div key={i} className="p-2 bg-gray-50 rounded-lg">
+                                    <p className="text-xs text-gray-900">{item.translated}</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">{item.original}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Chat messages */}
+                            {scan.scanMode === 'chat' && scan.chatMessages && (
+                              <div className="mt-2 space-y-1.5">
+                                {scan.chatMessages.slice(0, 6).map((msg, i) => (
+                                  <div key={i} className={`p-2 rounded-lg text-xs ${msg.role === 'user' ? 'bg-orange-50 text-gray-800' : 'bg-gray-50 text-gray-800'}`}>
+                                    <span className="font-medium">{msg.role === 'user' ? '你' : '店員'}：</span>
+                                    {msg.original}
+                                    <span className="text-gray-400"> → {msg.translated}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Note */}
+                            {scan.note && (
+                              <div className="mt-2 p-2 bg-amber-50 rounded-lg">
+                                <p className="text-xs text-gray-600">{scan.mood} {String(scan.note)}</p>
+                              </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="mt-3 flex items-center justify-between">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingId(scan.id); setDraftNote(scan.note || ''); setDraftMood(scan.mood || ''); }}
+                                className="flex items-center gap-1 text-xs text-orange-500 font-medium"
+                              >
+                                <PenLine size={12} /> 寫筆記
+                              </button>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (confirm('確定要刪除這筆紀錄嗎？')) {
+                                    await deleteScan(scan.id);
+                                    setScans(prev => prev.filter(s => s.id !== scan.id));
+                                    setExpandedId(null);
+                                  }
+                                }}
+                                className="flex items-center gap-1 text-xs text-red-400 font-medium"
+                              >
+                                <Trash2 size={12} /> 刪除
+                              </button>
+                            </div>
                           </div>
                         )}
 
-                        {/* Note display */}
-                        {scan.note && (
-                          <div className="mt-2 p-2 bg-amber-50 rounded-lg">
-                            <p className="text-xs text-gray-600">{scan.mood} {String(scan.note)}</p>
+                        {/* Editing mode */}
+                        {isEditing && (
+                          <div className="px-3 pb-3 space-y-3 border-t border-orange-100">
+                            <div className="flex gap-2 overflow-x-auto pt-2 no-scrollbar">
+                              {MOODS.map(m => (
+                                <button key={m} onClick={() => setDraftMood(draftMood === m ? '' : m)}
+                                  className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-base ${draftMood === m ? 'bg-orange-100 ring-2 ring-orange-400' : 'bg-gray-50'}`}
+                                >{m}</button>
+                              ))}
+                            </div>
+                            <textarea value={draftNote} onChange={e => setDraftNote(e.target.value)} placeholder="記錄這個瞬間..." rows={2}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none focus:border-orange-500 focus:outline-none" />
+                            <div className="flex gap-2">
+                              <button onClick={() => setEditingId(null)} className="flex-1 py-2 text-sm text-gray-500 bg-gray-100 rounded-xl">取消</button>
+                              <button onClick={() => handleSaveNote(scan)} className="flex-1 py-2 text-sm text-white bg-orange-500 rounded-xl font-bold flex items-center justify-center gap-1">
+                                <Check size={14} /> 儲存
+                              </button>
+                            </div>
                           </div>
                         )}
-
-                        {/* Edit button */}
-                        <div className="mt-3 flex items-center justify-between">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingId(scan.id);
-                              setDraftNote(scan.note || '');
-                              setDraftMood(scan.mood || '');
-                            }}
-                            className="flex items-center gap-1 text-sm text-orange-500 font-medium"
-                          >
-                            <PenLine size={14} /> 寫筆記
-                          </button>
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              if (confirm('確定要刪除這筆紀錄嗎？')) {
-                                await deleteScan(scan.id);
-                                setScans(prev => prev.filter(s => s.id !== scan.id));
-                                setExpandedId(null);
-                              }
-                            }}
-                            className="flex items-center gap-1 text-sm text-red-400 hover:text-red-600 font-medium"
-                          >
-                            <Trash2 size={14} /> 刪除
-                          </button>
-                        </div>
                       </div>
-                    )}
-
-                    {/* Editing mode */}
-                    {isEditing && (
-                      <div className="px-3 pb-3 space-y-3 border-t border-orange-100">
-                        {/* Mood picker */}
-                        <div className="flex gap-2 overflow-x-auto pt-2 no-scrollbar">
-                          {MOODS.map(m => (
-                            <button
-                              key={m}
-                              onClick={() => setDraftMood(draftMood === m ? '' : m)}
-                              className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-lg ${
-                                draftMood === m ? 'bg-orange-100 ring-2 ring-orange-400' : 'bg-gray-50'
-                              }`}
-                            >
-                              {m}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Note input */}
-                        <textarea
-                          value={draftNote}
-                          onChange={e => setDraftNote(e.target.value)}
-                          placeholder="記錄這個瞬間..."
-                          rows={2}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none focus:border-orange-500 focus:outline-none"
-                        />
-
-                        {/* Save/Cancel */}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="flex-1 py-2 text-sm text-gray-500 bg-gray-100 rounded-xl"
-                          >
-                            取消
-                          </button>
-                          <button
-                            onClick={() => handleSaveNote(scan)}
-                            className="flex-1 py-2 text-sm text-white bg-orange-500 rounded-xl font-bold flex items-center justify-center gap-1"
-                          >
-                            <Check size={14} /> 儲存
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

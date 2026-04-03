@@ -60,7 +60,7 @@ export interface GeneralAnalysisResult {
 }
 
 // === Scan Mode ===
-export type ScanMode = 'menu' | 'receipt' | 'general' | 'ar-translate';
+export type ScanMode = 'menu' | 'receipt' | 'general' | 'ar-translate' | 'chat';
 export type UIScanMode = 'menu' | 'receipt' | 'general'; // Modes with UI config
 
 // === Scan History ===
@@ -78,6 +78,7 @@ export interface SavedScan {
   mood?: string; // emoji mood
   tags?: string[]; // category tags
   arTranslateItems?: { original: string; translated: string; boundingBox?: number[] }[]; // AR translate results
+  chatMessages?: { role: 'user' | 'staff'; original: string; translated: string }[]; // Chat conversation
 }
 
 // === Order ===
