@@ -79,6 +79,7 @@ function AppInner() {
   const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutMode, setCheckoutMode] = useState<'review' | 'staff' | 'split'>('review');
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
@@ -301,7 +302,7 @@ function AppInner() {
     const apiKey = getApiKey();
     return <ChatTranslator
       onBack={() => setPage('home')}
-      onBackToCheckout={menuResult ? () => { setPage('home'); setShowCheckout(true); } : undefined}
+      onBackToCheckout={menuResult ? () => { setPage('home'); setCheckoutMode('staff'); setShowCheckout(true); } : undefined}
       apiKey={apiKey || ''}
       targetLanguage={settings.targetLanguage}
     />;
@@ -857,7 +858,8 @@ function AppInner() {
         onConfirmOrder={handleConfirmOrder}
         homeCurrency={settings.homeCurrency}
         apiKey={getApiKey() || ''}
-        onOpenChat={() => { setShowCheckout(false); setPage('chat'); }}
+        onOpenChat={() => { setShowCheckout(false); setCheckoutMode('staff'); setPage('chat'); }}
+        initialMode={checkoutMode}
       />
       <AuthModal />
 

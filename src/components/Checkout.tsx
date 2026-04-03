@@ -22,6 +22,7 @@ interface CheckoutProps {
   targetLanguage?: string;
   homeCurrency: string;
   onOpenChat?: () => void;
+  initialMode?: 'review' | 'staff' | 'split';
 }
 
 const Checkout = ({
@@ -38,8 +39,9 @@ const Checkout = ({
   apiKey,
   targetLanguage = '繁體中文',
   onOpenChat,
+  initialMode = 'review',
 }: CheckoutProps) => {
-  const [mode, setMode] = useState<'review' | 'staff' | 'split'>('review');
+  const [mode, setMode] = useState<'review' | 'staff' | 'split'>(initialMode);
   const [splitPersons, setSplitPersons] = useState(2);
   const [paidBy, setPaidBy] = useState('');
   const t = useT();
