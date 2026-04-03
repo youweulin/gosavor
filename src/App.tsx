@@ -411,7 +411,7 @@ function AppInner() {
             <img src="/goose-logo.png" alt="GoSavor" className="w-9 h-9 rounded-lg" />
             <span className="font-bold text-lg text-gray-900">GoSavor</span>
             {!(window as any).Capacitor?.isNativePlatform?.() && (
-              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA v0.9.2</span>
+              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA v0.9.3</span>
             )}
             <UsageBadge usage={usageInfo} hasOwnKey={!!settings.geminiApiKey} />
           </button>
@@ -1019,6 +1019,7 @@ function AppInner() {
                   setShowPhotoPicker(false);
                   const base64 = await pickNativeImage('camera');
                   if (base64) {
+                    setMenuResults([]); setReceiptResult(null); setGeneralResult(null);
                     setImages([`data:image/jpeg;base64,${base64}`]);
                     setShowCamera(true);
                     setTimeout(() => setAutoAnalyze(true), 50);
@@ -1038,9 +1039,10 @@ function AppInner() {
                     if (scanMode === 'menu') {
                       // Menu mode: accumulate images (max 4), don't auto-translate
                       setAutoAnalyze(false);
+                      setMenuResults([]);
                       setImages(prev => {
-                        const updated = [...prev, newImg].slice(0, 4);
-                        return updated;
+                        const current = menuResults.length > 0 ? [] : prev;
+                        return [...current, newImg].slice(0, 4);
                       });
                       setShowCamera(true);
                     } else {
@@ -1074,9 +1076,15 @@ function AppInner() {
                     const dataUrl = reader.result as string;
                     if (scanMode === 'menu') {
                       setAutoAnalyze(false);
-                      setImages(prev => [...prev, dataUrl].slice(0, 4));
+                      setMenuResults([]);
+                      setImages(prev => {
+                        // If coming from results view, start fresh
+                        const current = menuResults.length > 0 ? [] : prev;
+                        return [...current, dataUrl].slice(0, 4);
+                      });
                       setShowCamera(true);
                     } else {
+                      setMenuResults([]); setReceiptResult(null); setGeneralResult(null);
                       setImages([dataUrl]);
                       setShowCamera(true);
                       setTimeout(() => setAutoAnalyze(true), 50);
