@@ -95,8 +95,11 @@ function AppInner() {
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&accept-language=ja`);
         const data = await res.json();
-        const city = data.address?.city || data.address?.town || data.address?.county || '';
-        if (city) setGpsCity(city);
+        const addr = data.address || {};
+        const area = addr.suburb || addr.neighbourhood || addr.quarter || '';
+        const city = addr.city || addr.town || addr.county || addr.state || '';
+        const combined = [city, area].filter(Boolean).join(' ');
+        if (combined) setGpsCity(combined);
       } catch {}
     }, () => {}, { timeout: 5000 });
   }, []);
