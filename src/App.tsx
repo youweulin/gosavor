@@ -344,6 +344,9 @@ function AppInner() {
           <button onClick={handleGoHome} className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
             <img src="/goose-logo.png" alt="GoSavor" className="w-9 h-9 rounded-lg" />
             <span className="font-bold text-lg text-gray-900">GoSavor</span>
+            {!(window as any).Capacitor?.isNativePlatform?.() && (
+              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA</span>
+            )}
             <UsageBadge usage={usageInfo} hasOwnKey={!!settings.geminiApiKey} />
           </button>
           <div className="flex items-center gap-1">
