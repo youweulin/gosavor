@@ -152,72 +152,62 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
           )}
         </div>
 
-        {/* Language */}
-        <div>
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <Globe size={14} /> {t('settings.language')}
-          </label>
-          {(() => {
-            return (
-              <select
-                value={settings.targetLanguage}
-                onChange={e => onUpdate({ targetLanguage: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:border-orange-500 focus:outline-none appearance-none text-base"
-              >
-                {TARGET_LANGUAGES.map(lang => (
-                  <option key={lang.code} value={lang.code}>{lang.flag} {lang.label}</option>
-                ))}
-              </select>
-            );
-          })()}
-          <p className="text-xs text-gray-400 mt-1">
-            AI 翻譯菜單和收據時使用此語言。已根據你的瀏覽器自動偵測。
-          </p>
+        {/* Language & Currency — side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+              <Globe size={14} /> {t('settings.language')}
+            </label>
+            <select
+              value={settings.targetLanguage}
+              onChange={e => onUpdate({ targetLanguage: e.target.value })}
+              className="w-full px-3 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:border-orange-500 focus:outline-none appearance-none text-sm"
+            >
+              {TARGET_LANGUAGES.map(lang => (
+                <option key={lang.code} value={lang.code}>{lang.flag} {lang.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+              <Coins size={14} /> {t('settings.currency')}
+            </label>
+            <select
+              value={settings.homeCurrency}
+              onChange={e => onUpdate({ homeCurrency: e.target.value })}
+              className="w-full px-3 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:border-orange-500 focus:outline-none appearance-none text-sm"
+            >
+              {HOME_CURRENCIES.map(curr => (
+                <option key={curr.code} value={curr.code}>{curr.symbol} {curr.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        {/* Home Currency */}
-        <div>
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <Coins size={14} /> {t('settings.currency')}
-          </label>
-          <p className="text-xs text-gray-500 mb-2">
-            {t('settings.currencyHint')}
-          </p>
-          <select
-            value={settings.homeCurrency}
-            onChange={e => onUpdate({ homeCurrency: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:border-orange-500 focus:outline-none appearance-none"
-          >
-            {HOME_CURRENCIES.map(curr => (
-              <option key={curr.code} value={curr.code}>{curr.symbol} {curr.label}</option>
-            ))}
-          </select>
-          {rate && (
-            <div className="mt-2 p-3 bg-gray-800/50 rounded-lg font-mono text-sm text-gray-300">
-              {(() => {
-                const converted = 1000 * rate;
-                const smallUnit = ['USD', 'EUR', 'GBP', 'SGD', 'AUD', 'MYR', 'HKD', 'TWD', 'CNY', 'KRW', 'THB', 'VND', 'PHP'].includes(settings.homeCurrency);
-                const c = settings.homeCurrency;
-                // Use consistent precision: show rate × 1000 result, then derive single rate from it
-                const bulkFormatted = smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();
-                const singleFormatted = smallUnit ? rate.toFixed(4) : rate.toFixed(2);
-                return (
-                  <div className="grid grid-cols-[auto_auto_1fr] gap-x-2">
-                    <span className="text-right">¥1,000</span>
-                    <span>≈</span>
-                    <span>{bulkFormatted} {c}</span>
-                    <span className="text-right text-gray-500">1 JPY</span>
-                    <span className="text-gray-500">≈</span>
-                    <span className="text-gray-500">{singleFormatted} {c}</span>
-                  </div>
-                );
-              })()}
-              <p className="text-[10px] text-gray-400 mt-2 font-sans">
-                {t('settings.rateSource')} · {t('settings.rateUpdated')} {rateTime}
-              </p>
-            </div>
-          )}
-        </div>
+        <p className="text-xs text-gray-500 -mt-4">AI 翻譯使用此語言 · 匯率換算使用此貨幣</p>
+        {rate && (
+          <div className="p-3 bg-gray-800/50 rounded-lg font-mono text-sm text-gray-300">
+            {(() => {
+              const converted = 1000 * rate;
+              const smallUnit = ['USD', 'EUR', 'GBP', 'SGD', 'AUD', 'MYR', 'HKD', 'TWD', 'CNY', 'KRW', 'THB', 'VND', 'PHP'].includes(settings.homeCurrency);
+              const c = settings.homeCurrency;
+              const bulkFormatted = smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();
+              const singleFormatted = smallUnit ? rate.toFixed(4) : rate.toFixed(2);
+              return (
+                <div className="grid grid-cols-[auto_auto_1fr] gap-x-2">
+                  <span className="text-right">¥1,000</span>
+                  <span>≈</span>
+                  <span>{bulkFormatted} {c}</span>
+                  <span className="text-right text-gray-500">1 JPY</span>
+                  <span className="text-gray-500">≈</span>
+                  <span className="text-gray-500">{singleFormatted} {c}</span>
+                </div>
+              );
+            })()}
+            <p className="text-[10px] text-gray-400 mt-2 font-sans">
+              {t('settings.rateSource')} · {t('settings.rateUpdated')} {rateTime}
+            </p>
+          </div>
+        )}
 
         {/* Allergens */}
         <div>
