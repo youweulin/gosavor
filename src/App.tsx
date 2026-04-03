@@ -411,7 +411,7 @@ function AppInner() {
             <img src="/goose-logo.png" alt="GoSavor" className="w-9 h-9 rounded-lg" />
             <span className="font-bold text-lg text-gray-900">GoSavor</span>
             {!(window as any).Capacitor?.isNativePlatform?.() && (
-              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA v0.9.1</span>
+              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA v0.9.2</span>
             )}
             <UsageBadge usage={usageInfo} hasOwnKey={!!settings.geminiApiKey} />
           </button>
@@ -586,7 +586,11 @@ function AppInner() {
                   images={images}
                   onImagesChange={(imgs) => {
                     setImages(imgs);
-                    if (scanMode !== 'menu' && imgs.length > 0) setTimeout(() => setAutoAnalyze(true), 50);
+                    if (scanMode === 'menu') {
+                      setAutoAnalyze(false);
+                    } else if (imgs.length > 0) {
+                      setTimeout(() => setAutoAnalyze(true), 50);
+                    }
                   }}
                   onAnalyze={handleAnalyze}
                   isAnalyzing={isAnalyzing}
@@ -1033,12 +1037,12 @@ function AppInner() {
                     const newImg = `data:image/jpeg;base64,${base64}`;
                     if (scanMode === 'menu') {
                       // Menu mode: accumulate images (max 4), don't auto-translate
+                      setAutoAnalyze(false);
                       setImages(prev => {
                         const updated = [...prev, newImg].slice(0, 4);
                         return updated;
                       });
                       setShowCamera(true);
-                      // Don't auto-analyze — let user add more pages
                     } else {
                       setImages([newImg]);
                       setShowCamera(true);
@@ -1069,6 +1073,7 @@ function AppInner() {
                   reader.onload = () => {
                     const dataUrl = reader.result as string;
                     if (scanMode === 'menu') {
+                      setAutoAnalyze(false);
                       setImages(prev => [...prev, dataUrl].slice(0, 4));
                       setShowCamera(true);
                     } else {
