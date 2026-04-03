@@ -131,20 +131,33 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
             >
               {keySaved ? <><Check size={14} /> {t('settings.saved')}</> : t('settings.saveKey')}
             </button>
+          </div>
+          {/* API Key Tutorial */}
+          <div className="mt-3 bg-gray-800/50 rounded-xl p-3 space-y-2">
+            <p className="text-xs font-medium text-orange-400">{t('settings.keyGuide')}</p>
+            <ol className="text-xs text-gray-400 space-y-1.5 list-decimal list-inside">
+              <li>{t('settings.keyStep1')}</li>
+              <li>{t('settings.keyStep2')}</li>
+              <li>{t('settings.keyStep3')}</li>
+            </ol>
             <a
               href="https://aistudio.google.com/apikey"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-orange-400 hover:underline"
+              className="inline-flex items-center gap-1 mt-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium"
             >
               {t('settings.getKey')}
             </a>
+            <p className="text-[10px] text-gray-500">{t('settings.keyFree')}</p>
           </div>
           </>
           ) : (
-            <div className="bg-gray-800/50 rounded-xl p-3 flex items-center gap-3">
-              <span className="text-2xl">🔒</span>
-              <p className="text-gray-400 text-xs flex-1">贊助開通或輸入兌換碼後即可使用自帶 API Key</p>
+            <div className="bg-gray-800/50 rounded-xl p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🔒</span>
+                <p className="text-gray-400 text-xs flex-1">{t('settings.keyLocked')}</p>
+              </div>
+              <p className="text-[10px] text-gray-500">{t('settings.keyLockedHint')}</p>
             </div>
           )}
         </div>

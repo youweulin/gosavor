@@ -95,6 +95,13 @@ const zh_TW: Translations = {
   'settings.allergens': '過敏原設定',
   'settings.allergensHint': '選擇你的過敏原，AI 會自動標記含有這些成分的菜品。',
   'settings.reset': '重設',
+  'settings.keyGuide': '如何取得免費 API Key？',
+  'settings.keyStep1': '點擊下方按鈕前往 Google AI Studio',
+  'settings.keyStep2': '用 Google 帳號登入，點「Create API Key」',
+  'settings.keyStep3': '複製 Key（AIzaSy 開頭），貼到上方欄位',
+  'settings.keyFree': 'Gemini API 免費額度：每分鐘 15 次，每天 1500 次，足夠旅遊使用。',
+  'settings.keyLocked': '開通贊助版即可使用自帶 API Key，享受無限翻譯',
+  'settings.keyLockedHint': '封測優惠 $299（正式版 $599）。輸入兌換碼也可開通。',
 
   // History
   'history.title': '點餐紀錄',
@@ -243,6 +250,13 @@ const en: Translations = {
   'nav.register': 'Sign Up',
   // Settings - Account
   'settings.account': 'Account', 'settings.planFree': 'Free', 'settings.planSupporter': 'Supporter', 'settings.planPro': 'Pro',
+  'settings.keyGuide': 'How to get a free API Key?',
+  'settings.keyStep1': 'Tap the button below to visit Google AI Studio',
+  'settings.keyStep2': 'Sign in with Google, tap "Create API Key"',
+  'settings.keyStep3': 'Copy the Key (starts with AIzaSy), paste above',
+  'settings.keyFree': 'Gemini API free tier: 15 req/min, 1500 req/day — more than enough for travel.',
+  'settings.keyLocked': 'Unlock Supporter plan to use your own API Key for unlimited translations',
+  'settings.keyLockedHint': 'Beta price $299 TWD (regular $599). Redeem codes also accepted.',
   'error.noKey': 'Please set your Gemini API Key in Settings.', 'error.failed': 'Analysis failed. Check your API Key.', 'error.goSettings': 'Go to Settings',
 };
 
