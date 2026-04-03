@@ -10,7 +10,7 @@ interface UsageLimitModalProps {
   limit?: number;
 }
 
-const UsageLimitModal = ({ isVisible, onClose, onOpenSettings, errorType, message, used, limit }: UsageLimitModalProps) => {
+const UsageLimitModal = ({ isVisible, onClose, onOpenSettings, errorType, message }: UsageLimitModalProps) => {
   if (!isVisible) return null;
 
   return (
@@ -40,19 +40,15 @@ const UsageLimitModal = ({ isVisible, onClose, onOpenSettings, errorType, messag
           {errorType === 'limit' && (
             <>
               <p className="text-sm text-gray-600 text-center">
-                {message || `今日已使用 ${used}/${limit} 次`}
+                {message || '今日免費體驗額度（1次）已用完'}
               </p>
-              {/* Usage bar */}
-              <div className="bg-gray-100 rounded-full h-3 overflow-hidden">
-                <div
-                  className="bg-orange-500 h-full rounded-full transition-all"
-                  style={{ width: '100%' }}
-                />
-              </div>
               <p className="text-xs text-gray-400 text-center">明天 00:00 重置</p>
               <div className="border-t border-gray-100 pt-4">
-                <p className="text-sm text-gray-600 text-center mb-3">
-                  自帶 API Key = 無限次數
+                <p className="text-sm text-gray-600 text-center mb-1">
+                  開通贊助版 → 自帶 API Key → 無限翻譯
+                </p>
+                <p className="text-xs text-orange-500 text-center mb-3">
+                  封測優惠 $299（7/1 前限定，之後 $599）
                 </p>
                 <button
                   onClick={onOpenSettings}
@@ -72,7 +68,7 @@ const UsageLimitModal = ({ isVisible, onClose, onOpenSettings, errorType, messag
               <div className="bg-blue-50 rounded-xl p-3 flex items-start gap-2">
                 <MapPin size={16} className="text-blue-500 shrink-0 mt-0.5" />
                 <p className="text-xs text-blue-700">
-                  到日本後即可免費使用！或現在設定自帶 API Key，不受地區限制。
+                  到日本後可免費體驗 1 次/天！或開通贊助版自帶 API Key，不受地區限制。
                 </p>
               </div>
               <button

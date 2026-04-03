@@ -146,7 +146,7 @@ Only return valid JSON, no markdown.`;
           console.error('[GoSavor] Web AR translate error:', e);
           const msg = e?.message || String(e);
           if (msg.includes('GPS')) alert('系統翻譯僅限日本境內使用。請在設定中輸入自己的 API Key。');
-          else if (msg.includes('LIMIT')) alert('今日免費額度已用完。');
+          else if (msg.includes('LIMIT')) alert('今日免費體驗額度（1次）已用完。開通贊助版享無限翻譯！');
           else if (msg.includes('quota')) alert('請在設定中輸入 Gemini API Key 或稍後再試。');
           else alert('翻譯失敗：' + msg.substring(0, 100));
           resolve(null);

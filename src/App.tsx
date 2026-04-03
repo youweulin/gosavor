@@ -167,9 +167,9 @@ function AppInner() {
       const msg = err?.message || err?.toString?.() || String(err);
       console.error('[GoSavor] Analyze error:', msg);
       if (msg.includes('LIMIT')) {
-        setError('今日免費額度已用完。明天 00:00 重置，或贊助開通自帶 API Key 無限使用！也可輸入兌換碼獲得額度。');
+        setError('今日免費體驗額度（1次）已用完。開通贊助版 $299 → 自帶 API Key 無限翻譯！也可輸入兌換碼開通。');
       } else if (msg.includes('GPS') || msg.includes('日本')) {
-        setError('系統翻譯僅限日本境內使用。到日本後即可免費體驗！或贊助開通自帶 API Key 不受限制，也可輸入兌換碼。');
+        setError('系統翻譯僅限日本境內使用。到日本後可免費體驗 1 次/天！或開通贊助版自帶 API Key 不受地區限制。');
       } else if (msg.includes('NO_KEY') || msg.includes('NO_AUTH')) {
         setError('翻譯服務準備中，請稍後再試。');
       } else if (msg.includes('USE_OWN_KEY')) {
@@ -713,23 +713,12 @@ function AppInner() {
                   <span className="text-xl">🌱</span>
                   <div>
                     <p className="font-bold text-sm text-gray-900">免費體驗版</p>
-                    <p className="text-xs text-gray-400">公測期間</p>
+                    <p className="text-xs text-gray-400">封測期間</p>
                   </div>
                 </div>
                 <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium">
                   Beta
                 </span>
-              </div>
-
-              {/* Usage bar */}
-              <div className="mb-3">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-500">今日系統翻譯額度</span>
-                  <span className="font-bold text-gray-700">5 次/天</span>
-                </div>
-                <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div className="bg-orange-500 h-full rounded-full" style={{ width: '0%' }} />
-                </div>
               </div>
 
               {/* Feature list */}
@@ -743,13 +732,18 @@ function AppInner() {
                   <span className="text-green-600 font-medium">無限 ✅</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">圖文/菜單/收據</span>
-                  <span className="text-gray-500">5 次/天</span>
+                  <span className="text-gray-600">AI 翻譯（菜單/收據/萬用）</span>
+                  <span className="text-orange-500 font-medium">1 次/天</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">自帶 API Key</span>
                   <span className="text-gray-400">🔒 需開通</span>
                 </div>
+              </div>
+
+              {/* Upgrade hint */}
+              <div className="mt-3 pt-3 border-t border-orange-100">
+                <p className="text-xs text-gray-500">開通贊助版 $299（7/1 前限定）→ 自帶 API Key 無限翻譯</p>
               </div>
             </div>
 

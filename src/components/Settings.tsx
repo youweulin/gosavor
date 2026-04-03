@@ -611,7 +611,7 @@ const TermsContent = () => (
     <h2 className={h2Style}>三、方案與費用</h2>
     <h3 className={h3Style}>免費方案</h3>
     <ul>
-      <li className={liStyle}>每日 AI 翻譯額度：5 次</li>
+      <li className={liStyle}>每日 AI 翻譯額度：1 次</li>
       <li className={liStyle}>AR 即時翻譯：無限制（Apple 翻譯框架）</li>
       <li className={liStyle}>對話翻譯：無限制</li>
     </ul>
