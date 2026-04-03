@@ -852,6 +852,7 @@ function AppInner() {
         onConfirmOrder={handleConfirmOrder}
         homeCurrency={settings.homeCurrency}
         apiKey={getApiKey() || ''}
+        onOpenChat={() => { setShowCheckout(false); setPage('chat'); }}
       />
       <AuthModal />
 

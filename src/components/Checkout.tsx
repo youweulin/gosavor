@@ -21,6 +21,7 @@ interface CheckoutProps {
   apiKey?: string;
   targetLanguage?: string;
   homeCurrency: string;
+  onOpenChat?: () => void;
 }
 
 const Checkout = ({
@@ -36,6 +37,7 @@ const Checkout = ({
   homeCurrency,
   apiKey,
   targetLanguage = '繁體中文',
+  onOpenChat,
 }: CheckoutProps) => {
   const [mode, setMode] = useState<'review' | 'staff' | 'split'>('review');
   const [splitPersons, setSplitPersons] = useState(2);
@@ -412,6 +414,17 @@ const Checkout = ({
                   >
                     {isMiniTranslating ? '...' : '翻譯'}
                   </button>
+                  {onOpenChat && (
+                    <button
+                      onClick={onOpenChat}
+                      className="px-3 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white"
+                      title="對話翻譯"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 {miniTranslateResult && (
                   <div className="p-3 bg-gray-800 rounded-xl flex items-start justify-between gap-3">
