@@ -89,19 +89,21 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
               </div>
             ))}
             {scanMode === 'menu' && images.length < 4 && (
-              <button
-                onClick={() => {
-                  if (Capacitor.isNativePlatform() && onAddPage) {
-                    onAddPage();
-                  } else {
-                    albumInputRef.current?.click();
-                  }
-                }}
-                className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-orange-300 hover:text-orange-400"
-              >
-                <span className="text-xl">+</span>
-                <span className="text-[10px]">加頁</span>
-              </button>
+              Capacitor.isNativePlatform() && onAddPage ? (
+                <button
+                  onClick={onAddPage}
+                  className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-orange-300 hover:text-orange-400"
+                >
+                  <span className="text-xl">+</span>
+                  <span className="text-[10px]">加頁</span>
+                </button>
+              ) : (
+                <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-orange-300 hover:text-orange-400 cursor-pointer">
+                  <span className="text-xl">+</span>
+                  <span className="text-[10px]">加頁</span>
+                  <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                </label>
+              )
             )}
           </div>
         )
