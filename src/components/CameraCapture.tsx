@@ -26,18 +26,16 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
 
   const currentMode = modeConfig[scanMode as keyof typeof modeConfig] || modeConfig.general;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(file => {
+    if (!files || files.length === 0) return;
+    const readFile = (file: File): Promise<string> => new Promise(resolve => {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          onImagesChange([...images, ev.target.result as string]);
-        }
-      };
+      reader.onload = () => resolve(reader.result as string);
       reader.readAsDataURL(file);
     });
+    const results = await Promise.all(Array.from(files).map(readFile));
+    onImagesChange([...images, ...results].slice(0, scanMode === 'menu' ? 4 : 1));
     e.target.value = '';
   };
 
