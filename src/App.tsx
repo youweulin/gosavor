@@ -417,7 +417,7 @@ function AppInner() {
             <img src="/goose-logo.png" alt="GoSavor" className="w-9 h-9 rounded-lg" />
             <span className="font-bold text-lg text-gray-900">GoSavor</span>
             {!(window as any).Capacitor?.isNativePlatform?.() && (
-              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA v0.9.6</span>
+              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA v0.8.8</span>
             )}
             <UsageBadge usage={usageInfo} hasOwnKey={!!settings.geminiApiKey} />
           </button>

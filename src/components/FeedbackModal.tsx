@@ -67,7 +67,7 @@ const FeedbackModal = ({ onClose }: FeedbackModalProps) => {
         message: message.trim(),
         screenshot: screenshot || null,
         device_info: deviceInfo,
-        app_version: '0.8.1',
+        app_version: '0.8.8',
       });
 
       if (error) throw error;
