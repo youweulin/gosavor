@@ -139,7 +139,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
         const translated = await translateText(text, 'Japanese', targetLanguage);
         updateMessages(prev => [...prev, { role: 'staff', original: text, translated, lang: 'ja' }]);
         // Play translated text in user's language so they can hear it
-        await speakText(translated, getUserLangCode(), 0.45);
+        await speakText(translated, getUserLangCode(), 0.9);
         // Increment chat count
         const count = parseInt(localStorage.getItem('gosavor_chat_count') || '0');
         localStorage.setItem('gosavor_chat_count', String(count + 1));
@@ -172,7 +172,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
         const jaTranslated = await translateText(text, targetLanguage, 'Japanese');
         updateMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
         // Speak Japanese translation
-        await speakText(jaTranslated, 'ja-JP', 0.45);
+        await speakText(jaTranslated, 'ja-JP', 0.9);
         scrollToBottom();
       }
       setLiveText('');
@@ -195,7 +195,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
   // Send quick phrase
   const sendQuickPhrase = async (label: string, ja: string) => {
     updateMessages(prev => [...prev, { role: 'user', original: label, translated: ja, lang: getUserLangCode() }]);
-    await speakText(ja, 'ja-JP', 0.45);
+    await speakText(ja, 'ja-JP', 0.9);
     scrollToBottom();
   };
 
@@ -206,7 +206,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
     setTextInput('');
     const jaTranslated = await translateText(text, targetLanguage, 'Japanese');
     updateMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
-    await speakText(jaTranslated, 'ja-JP', 0.45);
+    await speakText(jaTranslated, 'ja-JP', 0.9);
     scrollToBottom();
   };
 
@@ -217,7 +217,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
     setJaInput('');
     const translated = await translateText(text, 'Japanese', targetLanguage);
     updateMessages(prev => [...prev, { role: 'staff', original: text, translated, lang: 'ja' }]);
-    await speakText(translated, getUserLangCode(), 0.45);
+    await speakText(translated, getUserLangCode(), 0.9);
     scrollToBottom();
   };
 
@@ -227,10 +227,10 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
   const speakMsg = async (msg: ChatMessage) => {
     if (msg.role === 'user') {
       // User said something → play the Japanese translation
-      await speakText(msg.translated, 'ja-JP', 0.45);
+      await speakText(msg.translated, 'ja-JP', 0.9);
     } else {
       // Staff said Japanese → play user's language translation
-      await speakText(msg.translated, getUserLangCode(), 0.45);
+      await speakText(msg.translated, getUserLangCode(), 0.9);
     }
   };
 

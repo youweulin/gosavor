@@ -13,7 +13,7 @@ export interface NativeSpeechPlugin {
 const NativeSpeech = registerPlugin<NativeSpeechPlugin>('NativeSpeech');
 
 // Helper: speak with fallback to Web Speech API
-export const speakText = async (text: string, lang = 'ja-JP', rate = 0.45) => {
+export const speakText = async (text: string, lang = 'ja-JP', rate = 0.9) => {
   if (Capacitor.isNativePlatform()) {
     try {
       await NativeSpeech.speak({ text, lang, rate });
