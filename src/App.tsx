@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
-import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode as setGeminiScanMode } from './services/gemini';
+import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode as setGeminiScanMode, getLastUsageInfo } from './services/gemini';
+import UsageBadge from './components/UsageBadge';
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
@@ -69,6 +70,7 @@ function AppInner() {
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemStatus, setRedeemStatus] = useState('');
   const [userPlan, setUserPlan] = useState('free');
+  const [usageInfo, setUsageInfo] = useState<ReturnType<typeof getLastUsageInfo>>(null);
   const [menuResult, setMenuResult] = useState<MenuAnalysisResult | null>(null);
   const [receiptResult, setReceiptResult] = useState<ReceiptAnalysisResult | null>(null);
   const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
@@ -107,6 +109,7 @@ function AppInner() {
       if (scanMode === 'menu') {
         const result = await analyzeMenuImage(imageData, targetLangLabel, apiKey, settings.allergens);
         setMenuResult(result);
+        setUsageInfo(getLastUsageInfo());
         setQuantities({});
         saveScan({
           id: crypto.randomUUID(), timestamp: Date.now(), scanMode: 'menu',
@@ -117,6 +120,7 @@ function AppInner() {
       } else if (scanMode === 'receipt') {
         const result = await analyzeReceiptImage(imageData, targetLangLabel, apiKey);
         setReceiptResult(result);
+        setUsageInfo(getLastUsageInfo());
         saveScan({
           id: crypto.randomUUID(), timestamp: Date.now(), scanMode: 'receipt',
           restaurantName: result.merchantName || 'Receipt',
@@ -148,6 +152,7 @@ function AppInner() {
       } else {
         const result = await analyzeGeneralImage(imageData, targetLangLabel, apiKey);
         setGeneralResult(result);
+        setUsageInfo(getLastUsageInfo());
         saveScan({
           id: crypto.randomUUID(), timestamp: Date.now(), scanMode: 'general',
           restaurantName: result.locationGuess || 'Translation',
@@ -337,6 +342,7 @@ function AppInner() {
           <button onClick={handleGoHome} className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
             <img src="/goose-logo.png" alt="GoSavor" className="w-9 h-9 rounded-lg" />
             <span className="font-bold text-lg text-gray-900">GoSavor</span>
+            <UsageBadge usage={usageInfo} hasOwnKey={!!settings.geminiApiKey} />
           </button>
           <div className="flex items-center gap-1">
             <button

@@ -104,7 +104,7 @@ const safeParseJSON = <T>(text: string): T => {
   }
 };
 
-const resizeImage = (base64Str: string, maxDim = 600): Promise<string> => {
+const resizeImage = (base64Str: string, maxDim = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = `data:image/jpeg;base64,${base64Str}`;
@@ -119,7 +119,7 @@ const resizeImage = (base64Str: string, maxDim = 600): Promise<string> => {
       canvas.width = w;
       canvas.height = h;
       canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.5).split(',')[1]);
+      resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
     };
   });
 };
@@ -131,12 +131,6 @@ export const analyzeMenuImage = async (
   allergens: string[] = [],
   modelName = 'gemini-3.1-flash-lite-preview'
 ): Promise<MenuAnalysisResult> => {
-  const resized = await Promise.all(
-    images.map(async (img) => ({
-      base64: await resizeImage(img.base64),
-      mimeType: 'image/jpeg',
-    }))
-  );
 
   const ai = getAI(apiKey);
   const allergenPart = allergens.length > 0
@@ -169,9 +163,9 @@ export const analyzeMenuImage = async (
       }
 
       if (ocrBlocks.length > 0) {
-        // Auto-switch model: complex menus (>30 OCR blocks) use 2.5-flash for better coverage
-        // Fallback chain: gemini-2.5-flash → gemini-3.1-flash-lite-preview (if 2.5 quota exceeded)
-        const preferredModel = ocrBlocks.length > 30 ? 'gemini-2.5-flash' : modelName;
+        // Menu always uses 2.5-flash for accurate sourceIds/bounding box matching
+        // Fallback chain: gemini-2.5-flash → modelName (if 2.5 quota exceeded)
+        const preferredModel = 'gemini-2.5-flash';
         let effectiveModel = preferredModel;
         console.log(`[GoSavor] Menu complexity: ${ocrBlocks.length} blocks → model: ${effectiveModel}`);
 
@@ -252,7 +246,7 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
         } catch (err: any) {
           // If 2.5-flash quota exceeded (429) or unavailable (503), fallback to 3.1-lite
           if (effectiveModel === 'gemini-2.5-flash' && (err?.message?.includes('429') || err?.message?.includes('503') || err?.message?.includes('quota'))) {
-            effectiveModel = 'gemini-3.1-flash-lite-preview';
+            effectiveModel = modelName; // fallback to default model
             console.log(`[GoSavor] 2.5-flash unavailable, fallback → ${effectiveModel}`);
             response = await ai.models.generateContent({
               model: effectiveModel,
@@ -352,7 +346,14 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
   }
 
   // === STRATEGY: Fallback to Gemini Vision (Web / PWA) ===
-  const imageCount = resized.length;
+  // PWA menu needs larger images (800px/70%) for accurate bounding box positions
+  const pwaResized = await Promise.all(
+    images.map(async (img) => ({
+      base64: await resizeImage(img.base64, 800, 0.7),
+      mimeType: 'image/jpeg',
+    }))
+  );
+  const imageCount = pwaResized.length;
   const prompt = `Menu translator. Analyze ${imageCount} menu image(s). Output ${targetLanguage}.
 For each item: ... (Same bounding box logic as before) ...
 - originalName: item name in original language
@@ -364,12 +365,13 @@ For each item: ... (Same bounding box logic as before) ...
 - imageIndex: which image (0-based) this item appears in.${allergenPart}
 Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]").`;
 
-  const imageParts = resized.map((img) => ({
+  const imageParts = pwaResized.map((img) => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
   }));
 
+  // PWA menu uses 2.5-flash for accurate bounding boxes
   const response = await ai.models.generateContent({
-    model: modelName,
+    model: 'gemini-2.5-flash',
     contents: { parts: [...imageParts, { text: prompt }] },
     config: {
       thinkingConfig: { thinkingBudget: 0 },
