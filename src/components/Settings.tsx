@@ -193,19 +193,17 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
               const bulkFormatted = smallUnit ? converted.toFixed(2) : Math.round(converted).toLocaleString();
               const singleFormatted = smallUnit ? rate.toFixed(4) : rate.toFixed(2);
               return (
-                <div className="grid grid-cols-[auto_auto_1fr] gap-x-2">
+                <div className="grid grid-cols-[auto_auto_1fr_auto] gap-x-2">
                   <span className="text-right">¥1,000</span>
                   <span>≈</span>
                   <span>{bulkFormatted} {c}</span>
+                  <span className="text-[10px] text-gray-500 font-sans self-center text-right row-span-2">{rateTime?.split(' ')[0] || ''}</span>
                   <span className="text-right text-gray-500">1 JPY</span>
                   <span className="text-gray-500">≈</span>
                   <span className="text-gray-500">{singleFormatted} {c}</span>
                 </div>
               );
             })()}
-            <p className="text-[10px] text-gray-500 mt-1 font-sans text-right">
-              {rateTime?.split(' ')[0] || ''}
-            </p>
           </div>
         )}
 
