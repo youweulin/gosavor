@@ -89,17 +89,17 @@ function AppInner() {
   const [error, setError] = useState('');
 
   const getApiKey = useCallback((): string | null => {
-    if (settings.geminiApiKey) return settings.geminiApiKey;
-    if (userPlan === 'supporter' || userPlan === 'pro') {
-      return import.meta.env.VITE_GEMINI_API_KEY || null;
-    }
-    return null;
-  }, [settings.geminiApiKey, userPlan]);
+    return settings.geminiApiKey || null;
+  }, [settings.geminiApiKey]);
 
   const targetLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
 
   const handleAnalyze = async () => {
-    const apiKey = getApiKey() || ''; // empty = use Worker proxy
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      setError('請先到設定輸入你的 Gemini API Key。贊助版用戶可使用「如何取得免費 API Key？」教學取得。');
+      return;
+    }
     setGeminiScanMode(scanMode);
     setIsAnalyzing(true);
     setError('');
