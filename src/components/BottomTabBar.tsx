@@ -23,7 +23,7 @@ interface BottomTabBarProps {
 }
 
 const TABS = [
-  { id: 'general', icon: Bot, color: 'text-violet-600', bg: 'bg-violet-600', shadow: 'shadow-violet-300' },
+  { id: 'general', icon: Bot, color: 'text-gray-900', bg: 'bg-gray-900', shadow: 'shadow-gray-300' },
   { id: 'menu', icon: UtensilsCrossed, color: 'text-orange-500', bg: 'bg-orange-500', shadow: 'shadow-orange-200' },
   { id: 'ar', icon: ARIcon, color: 'text-zinc-500', bg: 'bg-zinc-500', shadow: 'shadow-zinc-200' },
   { id: 'receipt', icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-200' },
