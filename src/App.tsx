@@ -957,13 +957,53 @@ function AppInner() {
         onModeChange={(mode) => {
           setScanMode(mode);
           setActiveTab(mode);
-          setShowPhotoPicker(true);
           if (menuResult || receiptResult || generalResult) {
             handleGoHome();
           }
+          if (!(window as any).Capacitor?.isNativePlatform?.()) {
+            // PWA: directly open system file picker
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = () => {
+              const file = input.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                setImages([`data:image/jpeg;base64,${base64}`]);
+                setShowCamera(true);
+                setTimeout(() => setAutoAnalyze(true), 50);
+              };
+              reader.readAsDataURL(file);
+            };
+            input.click();
+          } else {
+            setShowPhotoPicker(true);
+          }
         }}
         onCameraPress={() => {
-          handleFileFromBottomBar();
+          if (!(window as any).Capacitor?.isNativePlatform?.()) {
+            // PWA: directly open system file picker
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = () => {
+              const file = input.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                setImages([`data:image/jpeg;base64,${base64}`]);
+                setShowCamera(true);
+                setTimeout(() => setAutoAnalyze(true), 50);
+              };
+              reader.readAsDataURL(file);
+            };
+            input.click();
+          } else {
+            handleFileFromBottomBar();
+          }
         }}
         onARPress={async () => {
           setActiveTab('ar');
