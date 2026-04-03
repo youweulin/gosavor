@@ -167,6 +167,29 @@ const zh_TW: Translations = {
   'allergen.beef': '牛肉 (牛肉)',
   'allergen.pork': '豬肉 (豚肉)',
 
+  // Auth
+  'auth.subtitle': '日本旅遊翻譯神器',
+  'auth.login': '登入',
+  'auth.register': '註冊',
+  'auth.password': '密碼',
+  'auth.noAccount': '還沒有帳號？立即註冊',
+  'auth.hasAccount': '已有帳號？登入',
+  'auth.forgotPassword': '忘記密碼？',
+  'auth.backToLogin': '返回登入',
+  'auth.sendReset': '發送重設連結',
+  'auth.resetSent': '重設連結已寄出，請檢查信箱',
+  'auth.confirmEmail': '註冊成功！請到信箱點擊確認連結',
+  'auth.appleSignIn': '使用 Apple 登入',
+  'auth.or': '或',
+  'auth.loggingOut': '登出中...',
+  'nav.register': '註冊',
+
+  // Settings - Account
+  'settings.account': '帳號',
+  'settings.planFree': '免費版',
+  'settings.planSupporter': '贊助版',
+  'settings.planPro': '正式版',
+
   // Errors
   'error.noKey': '請先設定 Gemini API Key，或登入使用租用版。',
   'error.failed': '分析失敗，請確認 API Key 是否正確或重試。',
@@ -209,6 +232,17 @@ const en: Translations = {
   'allergen.egg': 'Egg (卵)', 'allergen.milk': 'Milk (乳)', 'allergen.wheat': 'Wheat (小麦)',
   'allergen.soba': 'Buckwheat (そば)', 'allergen.fish': 'Fish (魚)', 'allergen.soy': 'Soy (大豆)',
   'allergen.sesame': 'Sesame (ごま)', 'allergen.shellfish': 'Shellfish (貝類)', 'allergen.beef': 'Beef (牛肉)', 'allergen.pork': 'Pork (豚肉)',
+  // Auth
+  'auth.subtitle': 'Your Japan travel translator',
+  'auth.login': 'Sign In', 'auth.register': 'Sign Up', 'auth.password': 'Password',
+  'auth.noAccount': 'No account? Sign up', 'auth.hasAccount': 'Have an account? Sign in',
+  'auth.forgotPassword': 'Forgot password?', 'auth.backToLogin': 'Back to sign in',
+  'auth.sendReset': 'Send reset link', 'auth.resetSent': 'Reset link sent! Check your inbox.',
+  'auth.confirmEmail': 'Signed up! Please check your inbox to confirm.',
+  'auth.appleSignIn': 'Sign in with Apple', 'auth.or': 'or', 'auth.loggingOut': 'Signing out...',
+  'nav.register': 'Sign Up',
+  // Settings - Account
+  'settings.account': 'Account', 'settings.planFree': 'Free', 'settings.planSupporter': 'Supporter', 'settings.planPro': 'Pro',
   'error.noKey': 'Please set your Gemini API Key in Settings.', 'error.failed': 'Analysis failed. Check your API Key.', 'error.goSettings': 'Go to Settings',
 };
 

@@ -9,7 +9,7 @@ import {
   Image
 } from 'lucide-react';
 import { useSettings } from './hooks/useSettings';
-import { useAuth } from './hooks/useAuth';
+import { useAuthContext } from './contexts/AuthContext';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode as setGeminiScanMode, getLastUsageInfo } from './services/gemini';
 import UsageBadge from './components/UsageBadge';
 import ARWaitingPage from './components/ARWaitingPage';
@@ -17,9 +17,10 @@ import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
 import ShareButton from './components/ShareButton';
-import { initAnonymousAuth, trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode } from './services/supabase';
+import { trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
+import { AuthProvider } from './contexts/AuthContext';
 import type { MenuAnalysisResult, ReceiptAnalysisResult, GeneralAnalysisResult, OrderItem, SavedOrder, SavedScan, SplitInfo, ScanMode } from './types';
 
 import CameraCapture from './components/CameraCapture';
@@ -47,15 +48,15 @@ type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary' | 'chat' | 'd
 function AppInner() {
   const t = useT();
   const { settings, updateSettings, resetSettings } = useSettings();
-  const { login, register, isRentalActive, isLifetime } = useAuth();
+  const { isAuthenticated, isLoading } = useAuthContext();
 
-  // Supabase anonymous auth (silent, user unaware)
+  // Load user profile after auth
   useEffect(() => {
-    initAnonymousAuth().then(() => {
+    if (isAuthenticated) {
       getNickname().then(setProfileNickname);
       getUserProfile().then(p => { if (p?.plan) setUserPlan(p.plan); });
-    });
-  }, []);
+    }
+  }, [isAuthenticated]);
 
   const [page, setPage] = useState<Page>('home');
   const [images, setImages] = useState<string[]>([]);
@@ -78,7 +79,6 @@ function AppInner() {
   const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
@@ -89,11 +89,11 @@ function AppInner() {
 
   const getApiKey = useCallback((): string | null => {
     if (settings.geminiApiKey) return settings.geminiApiKey;
-    if (isRentalActive || isLifetime) {
+    if (userPlan === 'supporter' || userPlan === 'pro') {
       return import.meta.env.VITE_GEMINI_API_KEY || null;
     }
     return null;
-  }, [settings.geminiApiKey, isRentalActive, isLifetime]);
+  }, [settings.geminiApiKey, userPlan]);
 
   const targetLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
 
@@ -833,12 +833,7 @@ function AppInner() {
         homeCurrency={settings.homeCurrency}
         apiKey={getApiKey() || ''}
       />
-      <AuthModal
-        isVisible={showAuth}
-        onClose={() => setShowAuth(false)}
-        onLogin={async (e, p) => { await login(e, p); }}
-        onRegister={async (e, p) => { await register(e, p); }}
-      />
+      <AuthModal />
 
       {/* Debug Modal */}
       {showDebug && menuResult?.ocrDebug && (
@@ -1063,9 +1058,11 @@ function AppInner() {
 function App() {
   const { settings } = useSettings();
   return (
-    <I18nProvider lang={settings.targetLanguage}>
-      <AppInner />
-    </I18nProvider>
+    <AuthProvider>
+      <I18nProvider lang={settings.targetLanguage}>
+        <AppInner />
+      </I18nProvider>
+    </AuthProvider>
   );
 }
 

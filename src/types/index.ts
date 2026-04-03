@@ -142,15 +142,7 @@ export interface AppSettings {
 }
 
 // === User Auth ===
-export type UserPlan = 'free' | 'rental' | 'lifetime';
-
-export interface UserData {
-  uid: string;
-  email: string;
-  plan: UserPlan;
-  rentalExpiry?: number; // timestamp
-  createdAt: number;
-}
+export type UserPlan = 'free' | 'supporter' | 'pro' | 'rental';
 
 // === Constants ===
 // Re-exported from i18n - kept for backward compatibility

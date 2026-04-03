@@ -10,12 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor-community/apple-sign-in": "^7.1.0",
     "@capacitor/cli": "^8.3.0",
     "@capacitor/core": "^8.3.0",
     "@capacitor/ios": "^8.3.0",
     "@google/genai": "^1.47.0",
     "@supabase/supabase-js": "^2.101.1",
-    "firebase": "^12.11.0",
     "fuse.js": "^7.1.0",
     "html2canvas": "^1.4.1",
     "lucide-react": "^1.7.0",

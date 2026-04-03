@@ -6,57 +6,25 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // =============================================
-// Anonymous Auth
+// Auth Helper
 // =============================================
 
-let currentUserId: string | null = null;
-
-/** 匿名登入（App 啟動時自動呼叫，用戶無感） */
-export const initAnonymousAuth = async (): Promise<string | null> => {
+/** 取得目前登入的用戶 ID（從 Supabase session） */
+export const getCurrentUserId = async (): Promise<string | null> => {
   try {
-    // Check existing session
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (session?.user) {
-      currentUserId = session.user.id;
-      console.log('[GoSavor] Supabase: existing session', currentUserId?.substring(0, 8));
-      // Ensure user record exists (might have failed before due to RLS)
-      await createUserRecord(currentUserId);
-      await updateLastActive();
-      return currentUserId;
-    }
-
-    // No session → sign in anonymously
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      console.error('[GoSavor] Supabase anonymous auth error:', error.message);
-      return null;
-    }
-
-    currentUserId = data.user?.id || null;
-    console.log('[GoSavor] Supabase: new anonymous user', currentUserId?.substring(0, 8));
-
-    // Create user record
-    if (currentUserId) {
-      await createUserRecord(currentUserId);
-    }
-
-    return currentUserId;
-  } catch (err) {
-    console.error('[GoSavor] Supabase init error:', err);
-    return null;
-  }
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  } catch { return null; }
 };
-
-export const getCurrentUserId = () => currentUserId;
 
 /** 取得用戶完整資訊 */
 export const getUserProfile = async () => {
-  if (!currentUserId) return null;
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
   try {
     const { data } = await supabase.from('users')
-      .select('nickname, plan, credits, daily_usage, last_reset_date, total_scans, price_report_count')
-      .eq('anonymous_id', currentUserId)
+      .select('nickname, plan, credits, daily_usage, last_reset_date, total_scans, price_report_count, email, auth_provider')
+      .eq('anonymous_id', userId)
       .single();
     return data;
   } catch { return null; }
@@ -64,11 +32,12 @@ export const getUserProfile = async () => {
 
 /** 取得暱稱 */
 export const getNickname = async (): Promise<string> => {
-  if (!currentUserId) return '旅人';
+  const userId = await getCurrentUserId();
+  if (!userId) return '旅人';
   try {
     const { data } = await supabase.from('users')
       .select('nickname')
-      .eq('anonymous_id', currentUserId)
+      .eq('anonymous_id', userId)
       .single();
     return data?.nickname || '旅人';
   } catch { return '旅人'; }
@@ -76,51 +45,15 @@ export const getNickname = async (): Promise<string> => {
 
 /** 更新暱稱 */
 export const updateNickname = async (nickname: string): Promise<boolean> => {
-  if (!currentUserId) return false;
+  const userId = await getCurrentUserId();
+  if (!userId) return false;
   try {
     const { error } = await supabase.from('users')
       .update({ nickname })
-      .eq('anonymous_id', currentUserId);
+      .eq('anonymous_id', userId);
     if (error) { console.error('[GoSavor] Update nickname error:', error.message); return false; }
     return true;
   } catch { return false; }
-};
-
-// =============================================
-// User Record
-// =============================================
-
-const createUserRecord = async (anonymousId: string) => {
-  try {
-    // Verify auth is working
-    const { data: authData } = await supabase.auth.getUser();
-    console.log('[GoSavor] Auth uid:', authData?.user?.id?.substring(0, 8), 'anonymous_id:', anonymousId.substring(0, 8));
-
-    const { error } = await supabase.from('users').upsert({
-      anonymous_id: anonymousId,
-      platform: 'ios',
-      app_version: '0.8.1',
-      created_at: new Date().toISOString(),
-      last_active_at: new Date().toISOString(),
-    }, { onConflict: 'anonymous_id' });
-
-    if (error) {
-      console.error('[GoSavor] Create user error:', error.message, error.details, error.hint);
-    } else {
-      console.log('[GoSavor] User record created/updated ✅');
-    }
-  } catch (err) {
-    console.error('[GoSavor] Create user error:', err);
-  }
-};
-
-const updateLastActive = async () => {
-  if (!currentUserId) return;
-  try {
-    await supabase.from('users')
-      .update({ last_active_at: new Date().toISOString() })
-      .eq('anonymous_id', currentUserId);
-  } catch { /* silent */ }
 };
 
 // =============================================
@@ -135,7 +68,8 @@ export interface RedeemResult {
 }
 
 export const redeemCode = async (code: string): Promise<RedeemResult> => {
-  if (!currentUserId) return { success: false, message: '請先開啟 App' };
+  const currentUserId = await getCurrentUserId();
+  if (!currentUserId) return { success: false, message: '請先登入' };
 
   try {
     // 1. Find code
@@ -241,6 +175,7 @@ export const redeemCode = async (code: string): Promise<RedeemResult> => {
 
 /** 記錄掃描事件 + 更新用戶統計 */
 export const trackScanEvent = async (scanMode: string, category?: string) => {
+  const currentUserId = await getCurrentUserId();
   if (!currentUserId) return;
 
   try {
@@ -307,6 +242,7 @@ export interface PriceReportInput {
 
 /** 上傳價格報告（從收據掃描自動收集） */
 export const submitPriceReport = async (report: PriceReportInput) => {
+  const currentUserId = await getCurrentUserId();
   if (!currentUserId) return;
 
   try {
