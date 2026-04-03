@@ -244,6 +244,12 @@ function AppInner() {
   // Auto-analyze when photo is selected from bottom bar
   useEffect(() => {
     if (autoAnalyze && images.length > 0 && !isAnalyzing) {
+      console.log('[GoSavor] autoAnalyze triggered! mode:', scanMode, 'images:', images.length);
+      if (scanMode === 'menu') {
+        console.log('[GoSavor] BLOCKED autoAnalyze for menu mode');
+        setAutoAnalyze(false);
+        return;
+      }
       setAutoAnalyze(false);
       handleAnalyze();
     }
@@ -411,7 +417,7 @@ function AppInner() {
             <img src="/goose-logo.png" alt="GoSavor" className="w-9 h-9 rounded-lg" />
             <span className="font-bold text-lg text-gray-900">GoSavor</span>
             {!(window as any).Capacitor?.isNativePlatform?.() && (
-              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA v0.9.4</span>
+              <span className="text-[9px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">PWA v0.9.5</span>
             )}
             <UsageBadge usage={usageInfo} hasOwnKey={!!settings.geminiApiKey} />
           </button>
@@ -1074,17 +1080,16 @@ function AppInner() {
                   const reader = new FileReader();
                   reader.onload = () => {
                     const dataUrl = reader.result as string;
+                    console.log('[GoSavor] PWA photo selected, mode:', scanMode);
+                    // Clear ALL previous results
+                    setMenuResults([]); setReceiptResult(null); setGeneralResult(null);
+                    setAutoAnalyze(false);
                     if (scanMode === 'menu') {
-                      setAutoAnalyze(false);
-                      setMenuResults([]);
-                      setImages(prev => {
-                        // If coming from results view, start fresh
-                        const current = menuResults.length > 0 ? [] : prev;
-                        return [...current, dataUrl].slice(0, 4);
-                      });
+                      console.log('[GoSavor] PWA menu: adding photo, no auto-analyze');
+                      setImages(prev => [...prev, dataUrl].slice(0, 4));
                       setShowCamera(true);
                     } else {
-                      setMenuResults([]); setReceiptResult(null); setGeneralResult(null);
+                      console.log('[GoSavor] PWA non-menu: single photo, auto-analyze');
                       setImages([dataUrl]);
                       setShowCamera(true);
                       setTimeout(() => setAutoAnalyze(true), 50);
