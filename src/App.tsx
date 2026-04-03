@@ -410,7 +410,7 @@ function AppInner() {
             </div>
           </div>
         </div>
-      ) : generalResult && images.length > 0 ? (
+      ) : generalResult && images.length > 0 && !generalResult.items.some(i => i.category === 'AR') ? (
         <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
           <div className="max-w-md mx-auto">
             <img src={images[0]} alt="Photo" className="w-full object-cover max-h-[35vh]" />
