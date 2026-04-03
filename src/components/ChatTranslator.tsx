@@ -49,10 +49,9 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isNative = Capacitor.isNativePlatform();
 
-  // Check if Web Speech Recognition is available (not on Safari)
-  const hasSpeechRecognition = isNative || !!(
-    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  );
+  // Only iOS native app has reliable speech recognition
+  // PWA (including Safari with webkitSpeechRecognition) doesn't work reliably in standalone mode
+  const hasSpeechRecognition = isNative;
 
   // User language label for button
   const userLangLabel = (() => {
