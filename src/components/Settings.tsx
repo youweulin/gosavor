@@ -203,8 +203,8 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
                 </div>
               );
             })()}
-            <p className="text-[10px] text-gray-400 mt-2 font-sans">
-              {t('settings.rateSource')} · {t('settings.rateUpdated')} {rateTime}
+            <p className="text-[10px] text-gray-500 mt-1 font-sans text-right">
+              {rateTime?.split(' ')[0] || ''}
             </p>
           </div>
         )}
