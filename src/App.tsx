@@ -12,6 +12,7 @@ import { useSettings } from './hooks/useSettings';
 import { useAuth } from './hooks/useAuth';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode as setGeminiScanMode, getLastUsageInfo } from './services/gemini';
 import UsageBadge from './components/UsageBadge';
+import ARWaitingPage from './components/ARWaitingPage';
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
@@ -59,6 +60,7 @@ function AppInner() {
   const [page, setPage] = useState<Page>('home');
   const [images, setImages] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isARProcessing, setIsARProcessing] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>('menu');
   const [activeTab, setActiveTab] = useState('menu');
   const [autoAnalyze, setAutoAnalyze] = useState(false);
@@ -907,6 +909,11 @@ function AppInner() {
         </div>
       )}
 
+      {/* AR Processing waiting page (PWA only) */}
+      {isARProcessing && (
+        <ARWaitingPage onClose={() => setIsARProcessing(false)} />
+      )}
+
       <BottomTabBar
         scanMode={scanMode}
         activeTab={activeTab}
@@ -924,7 +931,11 @@ function AppInner() {
         onARPress={async () => {
           setActiveTab('ar');
           try {
-            const result = await startLiveTranslate();
+            const result = await startLiveTranslate('zh-Hant', () => {
+              // Called after photo is taken, before API call — show loading page
+              setIsARProcessing(true);
+            });
+            setIsARProcessing(false);
             if (result && result.items.length > 0) {
               const imageDataUrl = result.imageBase64
                 ? `data:image/jpeg;base64,${result.imageBase64}` : '';
@@ -958,6 +969,7 @@ function AppInner() {
               setShowCamera(true);
             }
           } catch (e) { console.error('[GoSavor] AR Translate error:', e); }
+          setIsARProcessing(false);
         }}
         onChatPress={() => {
           setActiveTab('chat');

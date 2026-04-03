@@ -28,7 +28,7 @@ const LiveTranslate = registerPlugin<LiveTranslatePlugin>('LiveTranslate');
  * iOS: Apple VisionKit (native AR)
  * PWA: Browser camera → Gemini 3.1-lite OCR + translation
  */
-export const startLiveTranslate = async (targetLang = 'zh-Hant'): Promise<{
+export const startLiveTranslate = async (targetLang = 'zh-Hant', onPhotoTaken?: () => void): Promise<{
   items: ARTranslateItem[];
   imageBase64: string;
   timestamp: number;
@@ -54,13 +54,13 @@ export const startLiveTranslate = async (targetLang = 'zh-Hant'): Promise<{
   }
 
   // PWA: browser camera → capture → Gemini translate
-  return webCameraTranslate(targetLang);
+  return webCameraTranslate(targetLang, onPhotoTaken);
 };
 
 /**
  * PWA: Use file input (no camera permission needed) → Gemini OCR + translation
  */
-const webCameraTranslate = (targetLang: string): Promise<{
+const webCameraTranslate = (targetLang: string, onPhotoTaken?: () => void): Promise<{
   items: ARTranslateItem[];
   imageBase64: string;
   timestamp: number;
@@ -98,6 +98,9 @@ const webCameraTranslate = (targetLang: string): Promise<{
         apiCanvas.width = w; apiCanvas.height = h;
         apiCanvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
         const base64 = apiCanvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+
+        // Notify that photo is captured — show loading page
+        onPhotoTaken?.();
 
         try {
           const settings = JSON.parse(localStorage.getItem('gosavor_settings') || '{}');
