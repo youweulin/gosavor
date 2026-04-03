@@ -586,11 +586,18 @@ function AppInner() {
                   images={images}
                   onImagesChange={(imgs) => {
                     setImages(imgs);
-                    if (imgs.length > 0) setTimeout(() => setAutoAnalyze(true), 50);
+                    if (scanMode !== 'menu' && imgs.length > 0) setTimeout(() => setAutoAnalyze(true), 50);
                   }}
                   onAnalyze={handleAnalyze}
                   isAnalyzing={isAnalyzing}
                   scanMode={scanMode}
+                  onAddPage={async () => {
+                    const { pickNativeImage } = await import('./services/LiveTranslate');
+                    const base64 = await pickNativeImage('album');
+                    if (base64) {
+                      setImages(prev => [...prev, `data:image/jpeg;base64,${base64}`].slice(0, 4));
+                    }
+                  }}
                 />
                 {isAnalyzing && (
                   <div className="mt-4">

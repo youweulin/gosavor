@@ -9,9 +9,10 @@ interface CameraCaptureProps {
   onAnalyze: () => void;
   isAnalyzing: boolean;
   scanMode: ScanMode;
+  onAddPage?: () => void;
 }
 
-const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode }: CameraCaptureProps) => {
+const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onAddPage }: CameraCaptureProps) => {
   const t = useT();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const albumInputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +91,7 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
             ))}
             {scanMode === 'menu' && images.length < 4 && (
               <button
-                onClick={() => albumInputRef.current?.click()}
+                onClick={() => onAddPage ? onAddPage() : albumInputRef.current?.click()}
                 className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-orange-300 hover:text-orange-400"
               >
                 <span className="text-xl">+</span>
