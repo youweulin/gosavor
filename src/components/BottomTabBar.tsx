@@ -1,6 +1,16 @@
-import { UtensilsCrossed, Receipt, Languages, MessageCircle, Scan } from 'lucide-react';
+import { UtensilsCrossed, Receipt, Bot, MessageCircle } from 'lucide-react';
 import type { ScanMode } from '../types';
 import { useT } from '../i18n/context';
+
+/** AR button: scan frame with "A" inside */
+const ARIcon = ({ size = 32, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    {/* Scan frame corners */}
+    <path d="M7 2H2v5" /><path d="M17 2h5v5" /><path d="M7 22H2v-5" /><path d="M17 22h5v-5" />
+    {/* Letter A */}
+    <text x="12" y="16" textAnchor="middle" fill="currentColor" stroke="none" fontSize="12" fontWeight="bold" fontFamily="sans-serif">A</text>
+  </svg>
+);
 
 interface BottomTabBarProps {
   scanMode: ScanMode;
@@ -13,9 +23,9 @@ interface BottomTabBarProps {
 }
 
 const TABS = [
-  { id: 'general', icon: Languages, color: 'text-slate-600', bg: 'bg-slate-600', shadow: 'shadow-slate-300' },
+  { id: 'general', icon: Bot, color: 'text-violet-600', bg: 'bg-violet-600', shadow: 'shadow-violet-300' },
   { id: 'menu', icon: UtensilsCrossed, color: 'text-orange-500', bg: 'bg-orange-500', shadow: 'shadow-orange-200' },
-  { id: 'ar', icon: Scan, color: 'text-zinc-500', bg: 'bg-zinc-500', shadow: 'shadow-zinc-200' },
+  { id: 'ar', icon: ARIcon, color: 'text-zinc-500', bg: 'bg-zinc-500', shadow: 'shadow-zinc-200' },
   { id: 'receipt', icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-200' },
   { id: 'chat', icon: MessageCircle, color: 'text-purple-500', bg: 'bg-purple-500', shadow: 'shadow-purple-200' },
 ];
@@ -24,7 +34,7 @@ const BottomTabBar = ({ onModeChange, onARPress, onChatPress, activeTab }: Botto
   const t = useT();
 
   const labels: Record<string, string> = {
-    general: t('mode.general'),
+    general: 'AI翻譯',
     menu: t('mode.menu'),
     ar: 'AR翻譯',
     receipt: t('mode.receipt'),
@@ -72,7 +82,7 @@ const BottomTabBar = ({ onModeChange, onARPress, onChatPress, activeTab }: Botto
               onClick={() => handleTabPress('ar')}
               className="absolute -top-8 w-[72px] h-[72px] rounded-full bg-zinc-500 shadow-xl shadow-zinc-300/50 flex items-center justify-center active:scale-90 transition-all ring-4 ring-white"
             >
-              <Scan size={32} className="text-white" />
+              <ARIcon size={34} className="text-white" />
             </button>
             <span className="mt-auto mb-3">&nbsp;</span>
           </div>
