@@ -143,7 +143,7 @@ export interface AppSettings {
 }
 
 // === User Auth ===
-export type UserPlan = 'free' | 'supporter' | 'pro' | 'rental';
+export type UserPlan = 'free' | 'beta' | 'supporter' | 'pro' | 'rental';
 
 // === Constants ===
 // Re-exported from i18n - kept for backward compatibility

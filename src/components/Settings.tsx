@@ -16,7 +16,7 @@ interface SettingsProps {
 }
 
 const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: SettingsProps) => {
-  const canUseApiKey = userPlan === 'supporter' || userPlan === 'pro';
+  const canUseApiKey = userPlan === 'supporter' || userPlan === 'pro' || userPlan === 'beta';
   const t = useT();
   const { userEmail, authProvider, signOut } = useAuthContext();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -74,6 +74,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
                 {authProvider === 'apple' ? 'Apple ID' : 'Email'} · {
                   userPlan === 'supporter' ? t('settings.planSupporter') :
                   userPlan === 'pro' ? t('settings.planPro') :
+                  userPlan === 'beta' ? t('settings.planBeta') :
                   t('settings.planFree')
                 }
               </p>

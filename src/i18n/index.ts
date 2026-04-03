@@ -209,6 +209,7 @@ const zh_TW: Translations = {
   // Settings - Account
   'settings.account': '帳號',
   'settings.planFree': '免費版',
+  'settings.planBeta': '公測版',
   'settings.planSupporter': '贊助版',
   'settings.planPro': '正式版',
 
@@ -264,7 +265,7 @@ const en: Translations = {
   'auth.appleSignIn': 'Sign in with Apple', 'auth.or': 'or', 'auth.loggingOut': 'Signing out...',
   'nav.register': 'Sign Up',
   // Settings - Account
-  'settings.account': 'Account', 'settings.planFree': 'Free', 'settings.planSupporter': 'Supporter', 'settings.planPro': 'Pro',
+  'settings.account': 'Account', 'settings.planFree': 'Free', 'settings.planBeta': 'Beta', 'settings.planSupporter': 'Supporter', 'settings.planPro': 'Pro',
   'settings.keyGuide': 'How to get a free API Key?',
   'settings.keyStep1': 'Tap the button below to visit Google AI Studio',
   'settings.keyStep2': 'Sign in with Google, tap "Create API Key"',

@@ -119,8 +119,9 @@ function AppInner() {
       setError('請先到設定輸入你的 Gemini API Key。贊助版用戶可使用「如何取得免費 API Key？」教學取得。');
       return;
     }
-    if (!checkDailyLimit()) {
-      setError(`今日已達 ${DAILY_LIMIT} 次翻譯上限，明天 00:00 重置。封測期間每日限 ${DAILY_LIMIT} 次，感謝配合！`);
+    const isUnlimited = userPlan === 'supporter' || userPlan === 'pro';
+    if (!isUnlimited && !checkDailyLimit()) {
+      setError(`今日已達 ${DAILY_LIMIT} 次翻譯上限，明天 00:00 重置。開通贊助版可享無限翻譯！`);
       return;
     }
     setGeminiScanMode(scanMode);
@@ -737,22 +738,24 @@ function AppInner() {
             {(() => {
               const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
               const isPaid = userPlan === 'supporter' || userPlan === 'pro';
+              const isBeta = userPlan === 'beta';
+              const hasAccess = isPaid || isBeta;
               return (
-              <div className={`bg-gradient-to-br ${isPaid ? 'from-orange-50 to-amber-50 border-orange-200' : 'from-gray-50 to-orange-50 border-orange-100'} rounded-2xl p-4 mb-5 border`}>
+              <div className={`bg-gradient-to-br ${hasAccess ? 'from-orange-50 to-amber-50 border-orange-200' : 'from-gray-50 to-orange-50 border-orange-100'} rounded-2xl p-4 mb-5 border`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">{isPaid ? '⭐' : isNative ? '🍎' : '🌐'}</span>
+                    <span className="text-xl">{isPaid ? '⭐' : isBeta ? '🧪' : isNative ? '🍎' : '🌐'}</span>
                     <div>
                       <p className="font-bold text-sm text-gray-900">
-                        {isPaid ? (userPlan === 'pro' ? '正式版' : '贊助版') : '免費體驗版'}
+                        {isPaid ? (userPlan === 'pro' ? '正式版' : '贊助版') : isBeta ? '公開測試版' : '免費體驗版'}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {isPaid ? '感謝支持 GoSavor！' : `${isNative ? 'iOS 版' : 'PWA 網頁版'}・封測期間`}
+                        {isPaid ? '感謝支持 GoSavor！' : isBeta ? '自帶 Key · 50次/天' : `${isNative ? 'iOS 版' : 'PWA 網頁版'}・封測期間`}
                       </p>
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${isPaid ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-600'}`}>
-                    {isPaid ? (userPlan === 'pro' ? 'Pro' : 'Supporter') : 'Beta'}
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${hasAccess ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-600'}`}>
+                    {isPaid ? (userPlan === 'pro' ? 'Pro' : 'Supporter') : isBeta ? 'Beta' : 'Free'}
                   </span>
                 </div>
 
@@ -772,13 +775,13 @@ function AppInner() {
                   )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">AI 翻譯（菜單/收據/萬用）</span>
-                    <span className={isPaid ? 'text-green-600 font-medium' : isNative ? 'text-orange-500 font-medium' : 'text-green-600 font-medium'}>
-                      {isPaid ? '無限（自帶 Key）✅' : isNative ? '1 次/天' : '20 次/天（7/1 前免費）'}
+                    <span className={hasAccess ? 'text-green-600 font-medium' : 'text-gray-400'}>
+                      {isPaid ? '無限（自帶 Key）✅' : isBeta ? '50 次/天（自帶 Key）✅' : '🔒 需兌換碼'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">自帶 API Key</span>
-                    {isPaid ? (
+                    {hasAccess ? (
                       <span className="text-green-600 font-medium">已開通 ✅</span>
                     ) : (
                       <span className="text-gray-400">🔒 需開通</span>
@@ -786,13 +789,13 @@ function AppInner() {
                   </div>
                 </div>
 
-                {/* Upgrade hint (only for free users) */}
+                {/* Upgrade hint */}
                 {!isPaid && (
                   <div className="mt-3 pt-3 border-t border-orange-100">
-                    {isNative ? (
-                      <p className="text-xs text-gray-500">開通贊助版 $299（7/1 前限定）→ 自帶 API Key 無限翻譯</p>
+                    {isBeta ? (
+                      <p className="text-xs text-gray-500">升級贊助版 → 無限翻譯，不受每日 50 次限制</p>
                     ) : (
-                      <p className="text-xs text-gray-500">7/1 後需開通：PWA 版 $199 ｜ iOS 全功能版 $299</p>
+                      <p className="text-xs text-gray-500">輸入公測兌換碼開通，或直接開通贊助版（7/1 前 $299）</p>
                     )}
                   </div>
                 )}
