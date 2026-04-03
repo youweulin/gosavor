@@ -48,7 +48,7 @@ type Page = 'home' | 'history' | 'settings' | 'expenses' | 'diary' | 'chat' | 'd
 function AppInner() {
   const t = useT();
   const { settings, updateSettings, resetSettings } = useSettings();
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated } = useAuthContext();
 
   // Load user profile after auth
   useEffect(() => {
