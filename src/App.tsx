@@ -16,7 +16,7 @@ import ARWaitingPage from './components/ARWaitingPage';
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
-import ShareButton from './components/ShareButton';
+
 import { trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
@@ -683,7 +683,6 @@ function AppInner() {
               />
             </div>
             <div className="flex justify-center mt-3">
-              <ShareButton targetId="share-result" title={menuResult.restaurantName || '菜單翻譯'} />
             </div>
             {/* Affiliate recommendations */}
             <div className="mt-4">
@@ -709,7 +708,6 @@ function AppInner() {
               <ReceiptView data={receiptResult} imageSrc={images[0]} layout={receiptLayout} onLayoutChange={setReceiptLayout} highlightIdx={receiptHighlight} onHighlight={(idx) => { setReceiptHighlight(idx); setTimeout(() => setReceiptHighlight(null), 2000); }} homeCurrency={settings.homeCurrency} />
             </div>
             <div className="flex justify-center mt-3">
-              <ShareButton targetId="share-result" title={receiptResult.merchantName || '收據翻譯'} />
             </div>
             <div className="mt-4">
               <RecommendCards loadProducts={() => getRecommendations('receipt', receiptResult.merchantName)} />
@@ -734,7 +732,6 @@ function AppInner() {
               <GeneralView data={generalResult} imageSrc={images[0]} />
             </div>
             <div className="flex justify-center mt-3">
-              <ShareButton targetId="share-result" title={generalResult.locationGuess || '翻譯結果'} />
             </div>
             <div className="mt-4">
               <RecommendCards loadProducts={() => getRecommendations('general', undefined, generalResult.locationGuess)} />
