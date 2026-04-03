@@ -77,7 +77,7 @@ export interface SavedScan {
   note?: string; // user diary note
   mood?: string; // emoji mood
   tags?: string[]; // category tags
-  arTranslateItems?: { original: string; translated: string }[]; // AR translate results
+  arTranslateItems?: { original: string; translated: string; boundingBox?: number[] }[]; // AR translate results
 }
 
 // === Order ===

@@ -275,6 +275,7 @@ function AppInner() {
     } else if (mode === 'ar-translate' && scan.arTranslateItems) {
       // Display AR translate items as general result
       setScanMode('general');
+      setShowCamera(true); // ensure image area shows
       setGeneralResult({
         locationGuess: scan.restaurantName || 'AR翻譯',
         items: scan.arTranslateItems.map(item => ({
@@ -282,6 +283,7 @@ function AppInner() {
           translatedText: item.translated,
           explanation: '',
           category: 'AR',
+          boundingBox: item.boundingBox,
         })),
       });
     }
