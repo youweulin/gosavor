@@ -1,21 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Wallet, BarChart3 } from 'lucide-react';
-import type { SavedScan, Expense } from '../types';
+import type { Expense } from '../types';
+import type { SavedScan } from '../types';
 import { getScanHistory, getExpenses, getActiveTrip } from '../services/storage';
 
 interface TripSummaryProps {
   homeCurrency: string;
 }
-
-const modeEmoji = (mode?: string) => {
-  switch (mode) {
-    case 'receipt': return '🛍️';
-    case 'general': return '⛩️';
-    case 'ar-translate': return '📷';
-    case 'chat': return '💬';
-    default: return '🍜';
-  }
-};
 
 const TripSummary = ({}: TripSummaryProps) => {
   const [allScans, setAllScans] = useState<SavedScan[]>([]);
@@ -53,12 +44,11 @@ const TripSummary = ({}: TripSummaryProps) => {
       ? `${currency}${formatted}` : `${formatted} ${currency}`;
   };
 
-  // Recent highlights (last 5)
-  const recentScans = scans.slice(0, 5);
-
-  // Summary stats
   const menuCount = scans.filter(s => (s.scanMode || 'menu') === 'menu').length;
   const receiptCount = scans.filter(s => s.scanMode === 'receipt').length;
+  const generalCount = scans.filter(s => s.scanMode === 'general').length;
+  const arCount = scans.filter(s => s.scanMode === 'ar-translate').length;
+  const chatCount = scans.filter(s => s.scanMode === 'chat').length;
 
   const tripName = showAll ? '全部統計' : (activeTrip?.name || '旅遊日記');
 
@@ -84,43 +74,25 @@ const TripSummary = ({}: TripSummaryProps) => {
         </div>
       </div>
 
-      {/* Quick stats row */}
-      <div className="flex gap-3 mb-3 text-xs text-gray-500">
-        {menuCount > 0 && <span>🍜 {menuCount}餐</span>}
-        {receiptCount > 0 && <span>🛍️ {receiptCount}購物</span>}
-        {scans.length - menuCount - receiptCount > 0 && <span>📸 {scans.length - menuCount - receiptCount}翻譯</span>}
-      </div>
-
-      {/* Recent highlights */}
-      {recentScans.length > 0 && (
-        <div className="space-y-2 mb-3">
-          {recentScans.map(scan => {
-            const name = String(scan.restaurantName || '').replace(/\[Native\]\s?|\[Cloud\]\s?/g, '') || '掃描';
-            const time = new Date(scan.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            // Get highlight text
-            let detail = '';
-            if ((scan.scanMode || 'menu') === 'menu' && scan.items.length > 0) {
-              detail = scan.items.slice(0, 2).map(i => i.translatedName).join('、');
-            } else if (scan.scanMode === 'receipt' && scan.receiptData?.items) {
-              detail = scan.receiptData.items.slice(0, 2).map(i => i.translatedName || i.originalName).join('、');
-            } else if (scan.scanMode === 'general' && scan.generalData?.items?.[0]) {
-              detail = scan.generalData.items[0].translatedText?.substring(0, 20) || '';
-            }
-
-            return (
-              <div key={scan.id} className="flex items-center gap-2">
-                <span className="text-sm">{modeEmoji(scan.scanMode)}</span>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium text-gray-800 truncate block">{name}</span>
-                  {detail && <span className="text-[10px] text-gray-400 truncate block">{detail}</span>}
-                </div>
-                <span className="text-[10px] text-gray-400 shrink-0">{time}</span>
-              </div>
-            );
-          })}
+      {/* Stats grid */}
+      <div className="grid grid-cols-4 gap-2 text-center">
+        <div className="bg-orange-50 rounded-xl py-2">
+          <p className="text-xl font-black text-orange-500">{menuCount}</p>
+          <p className="text-[10px] text-gray-500">🍜 餐</p>
         </div>
-      )}
+        <div className="bg-pink-50 rounded-xl py-2">
+          <p className="text-xl font-black text-pink-500">{receiptCount}</p>
+          <p className="text-[10px] text-gray-500">🛍️ 購物</p>
+        </div>
+        <div className="bg-blue-50 rounded-xl py-2">
+          <p className="text-xl font-black text-blue-500">{generalCount + arCount}</p>
+          <p className="text-[10px] text-gray-500">📸 翻譯</p>
+        </div>
+        <div className="bg-green-50 rounded-xl py-2">
+          <p className="text-xl font-black text-green-500">{chatCount}</p>
+          <p className="text-[10px] text-gray-500">💬 對話</p>
+        </div>
+      </div>
 
       {/* Spending summary */}
       {Object.keys(totalByC).length > 0 && (
