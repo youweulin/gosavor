@@ -44,9 +44,15 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
   const [isListeningUser, setIsListeningUser] = useState(false);
   const [liveText, setLiveText] = useState('');
   const [textInput, setTextInput] = useState('');
+  const [jaInput, setJaInput] = useState(''); // text input for staff's Japanese
   const lastHeardRef = useRef('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isNative = Capacitor.isNativePlatform();
+
+  // Check if Web Speech Recognition is available (not on Safari)
+  const hasSpeechRecognition = isNative || !!(
+    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  );
 
   // User language label for button
   const userLangLabel = (() => {
@@ -194,7 +200,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
     scrollToBottom();
   };
 
-  // Send typed text
+  // Send typed text (user's language → Japanese)
   const sendTextInput = async () => {
     const text = textInput.trim();
     if (!text) return;
@@ -202,6 +208,17 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
     const jaTranslated = await translateText(text, targetLanguage, 'Japanese');
     updateMessages(prev => [...prev, { role: 'user', original: text, translated: jaTranslated, lang: getUserLangCode() }]);
     await speakText(jaTranslated, 'ja-JP', 0.45);
+    scrollToBottom();
+  };
+
+  // Send staff's Japanese text input (Japanese → user's language)
+  const sendJaInput = async () => {
+    const text = jaInput.trim();
+    if (!text) return;
+    setJaInput('');
+    const translated = await translateText(text, 'Japanese', targetLanguage);
+    updateMessages(prev => [...prev, { role: 'staff', original: text, translated, lang: 'ja' }]);
+    await speakText(translated, getUserLangCode(), 0.45);
     scrollToBottom();
   };
 
@@ -298,49 +315,93 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
 
       {/* Fixed bottom area */}
       <div className="sticky bottom-0 z-20 bg-white border-t border-gray-200 px-4 pt-3">
-        {/* Text input */}
-        <div className="flex gap-2 mb-3">
-          <input
-            value={textInput}
-            onChange={e => setTextInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendTextInput()}
-            placeholder="輸入文字翻譯成日語..."
-            className="flex-1 px-4 py-3 bg-gray-100 rounded-2xl text-base focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-200"
-          />
-          <button
-            onClick={sendTextInput}
-            disabled={!textInput.trim()}
-            className="px-4 py-3 bg-orange-500 rounded-2xl text-white disabled:opacity-30"
-          >
-            <Send size={22} />
-          </button>
-        </div>
+        {hasSpeechRecognition ? (
+          <>
+            {/* Text input */}
+            <div className="flex gap-2 mb-3">
+              <input
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendTextInput()}
+                placeholder="輸入文字翻譯成日語..."
+                className="flex-1 px-4 py-3 bg-gray-100 rounded-2xl text-base focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-200"
+              />
+              <button
+                onClick={sendTextInput}
+                disabled={!textInput.trim()}
+                className="px-4 py-3 bg-orange-500 rounded-2xl text-white disabled:opacity-30"
+              >
+                <Send size={22} />
+              </button>
+            </div>
 
-        {/* Voice buttons */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <button
-            onClick={toggleListenJapanese}
-            className={`py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
-              isListeningJa
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-            }`}
-          >
-            {isListeningJa ? <MicOff size={20} /> : <Mic size={20} />}
-            🇯🇵 {isListeningJa ? '停止' : '日語'}
-          </button>
-          <button
-            onClick={toggleListenUser}
-            className={`py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
-              isListeningUser
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-            }`}
-          >
-            {isListeningUser ? <MicOff size={20} /> : <Mic size={20} />}
-            {isListeningUser ? '停止' : userLangLabel}
-          </button>
-        </div>
+            {/* Voice buttons (native + Chrome only) */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <button
+                onClick={toggleListenJapanese}
+                className={`py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
+                  isListeningJa
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                }`}
+              >
+                {isListeningJa ? <MicOff size={20} /> : <Mic size={20} />}
+                🇯🇵 {isListeningJa ? '停止' : '日語'}
+              </button>
+              <button
+                onClick={toggleListenUser}
+                className={`py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
+                  isListeningUser
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                }`}
+              >
+                {isListeningUser ? <MicOff size={20} /> : <Mic size={20} />}
+                {isListeningUser ? '停止' : userLangLabel}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* PWA Safari: dual text input (no speech recognition) */}
+            {/* Staff's Japanese input */}
+            <div className="flex gap-2 mb-2">
+              <div className="flex items-center px-3 py-2 bg-gray-50 rounded-l-2xl border border-gray-200 text-sm font-bold text-gray-500">🇯🇵</div>
+              <input
+                value={jaInput}
+                onChange={e => setJaInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendJaInput()}
+                placeholder="店員說的日語..."
+                className="flex-1 px-4 py-3 bg-gray-100 rounded-r-2xl text-base focus:outline-none focus:bg-white focus:ring-2 focus:ring-gray-200"
+              />
+              <button
+                onClick={sendJaInput}
+                disabled={!jaInput.trim()}
+                className="px-3 py-3 bg-gray-700 rounded-2xl text-white disabled:opacity-30"
+              >
+                <Send size={18} />
+              </button>
+            </div>
+            {/* User's language input */}
+            <div className="flex gap-2 mb-3">
+              <div className="flex items-center px-3 py-2 bg-orange-50 rounded-l-2xl border border-orange-200 text-sm font-bold text-orange-500">我</div>
+              <input
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendTextInput()}
+                placeholder="我想說的話..."
+                className="flex-1 px-4 py-3 bg-gray-100 rounded-r-2xl text-base focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-200"
+              />
+              <button
+                onClick={sendTextInput}
+                disabled={!textInput.trim()}
+                className="px-3 py-3 bg-orange-500 rounded-2xl text-white disabled:opacity-30"
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Quick phrases */}
         <div className="pb-[env(safe-area-inset-bottom)]">
