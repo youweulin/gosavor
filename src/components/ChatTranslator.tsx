@@ -6,6 +6,7 @@ import { speakText, startListening, stopListening } from '../services/NativeSpee
 
 interface ChatTranslatorProps {
   onBack: () => void;
+  onBackToCheckout?: () => void;
   apiKey: string;
   targetLanguage: string;
 }
@@ -31,7 +32,7 @@ const QUICK_PHRASES = [
   { label: '再見', ja: 'さようなら' },
 ];
 
-const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps) => {
+const ChatTranslator = ({ onBack, onBackToCheckout, apiKey, targetLanguage }: ChatTranslatorProps) => {
   const CHAT_HISTORY_KEY = 'gosavor_chat_history';
 
   // Load saved messages
@@ -335,7 +336,7 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
             </div>
 
             {/* Voice buttons (native + Chrome only) */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className={`grid ${onBackToCheckout ? 'grid-cols-[1fr_1fr_auto]' : 'grid-cols-2'} gap-3 mb-3`}>
               <button
                 onClick={toggleListenJapanese}
                 className={`py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
@@ -358,6 +359,18 @@ const ChatTranslator = ({ onBack, apiKey, targetLanguage }: ChatTranslatorProps)
                 {isListeningUser ? <MicOff size={20} /> : <Mic size={20} />}
                 {isListeningUser ? '停止' : userLangLabel}
               </button>
+              {onBackToCheckout && (
+                <button
+                  onClick={onBackToCheckout}
+                  className="py-4 px-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center"
+                  title="回到結帳"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                  </svg>
+                </button>
+              )}
             </div>
           </>
         ) : (

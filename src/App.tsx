@@ -299,7 +299,12 @@ function AppInner() {
   if (page === 'drugstore') return <DrugstoreInfo onBack={() => setPage('home')} />;
   if (page === 'chat') {
     const apiKey = getApiKey();
-    return <ChatTranslator onBack={() => setPage('home')} apiKey={apiKey || ''} targetLanguage={settings.targetLanguage} />;
+    return <ChatTranslator
+      onBack={() => setPage('home')}
+      onBackToCheckout={menuResult ? () => { setPage('home'); setShowCheckout(true); } : undefined}
+      apiKey={apiKey || ''}
+      targetLanguage={settings.targetLanguage}
+    />;
   }
   if (page === 'settings') {
     return (
