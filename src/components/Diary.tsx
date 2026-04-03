@@ -125,6 +125,28 @@ const Diary = ({ onBack }: DiaryProps) => {
       </div>
 
       <div className="px-4 py-4 max-w-lg mx-auto">
+        {/* Trip stats summary */}
+        {tripScans.length > 0 && (
+          <div className="grid grid-cols-4 gap-2 text-center mb-4">
+            <div className="bg-orange-50 rounded-xl py-2">
+              <p className="text-xl font-black text-orange-500">{tripScans.filter(s => (s.scanMode || 'menu') === 'menu').length}</p>
+              <p className="text-[10px] text-gray-500">🍜 餐</p>
+            </div>
+            <div className="bg-pink-50 rounded-xl py-2">
+              <p className="text-xl font-black text-pink-500">{tripScans.filter(s => s.scanMode === 'receipt').length}</p>
+              <p className="text-[10px] text-gray-500">🛍️ 購物</p>
+            </div>
+            <div className="bg-blue-50 rounded-xl py-2">
+              <p className="text-xl font-black text-blue-500">{tripScans.filter(s => s.scanMode === 'general' || s.scanMode === 'ar-translate').length}</p>
+              <p className="text-[10px] text-gray-500">📸 翻譯</p>
+            </div>
+            <div className="bg-green-50 rounded-xl py-2">
+              <p className="text-xl font-black text-green-500">{tripScans.filter(s => s.scanMode === 'chat').length}</p>
+              <p className="text-[10px] text-gray-500">💬 對話</p>
+            </div>
+          </div>
+        )}
+
         {/* New trip modal */}
         {showNewTrip && (
           <div className="mb-4 bg-white rounded-2xl p-4 border border-orange-200 shadow-sm">

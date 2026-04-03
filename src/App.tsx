@@ -34,7 +34,7 @@ import InlineImageMap from './components/InlineImageMap';
 import ScanHistory from './components/ScanHistory';
 import ReceiptView from './components/ReceiptView';
 import HomeCard from './components/HomeCard';
-import TripSummary from './components/TripSummary';
+
 import GeneralView from './components/GeneralView';
 import ChatTranslator from './components/ChatTranslator';
 import ExpenseBook from './components/ExpenseBook';
@@ -494,9 +494,6 @@ function AppInner() {
                   onExpenses={() => setPage('expenses')}
                   onHistory={() => setPage('history')}
                 />
-
-                {/* Trip Summary */}
-                <TripSummary homeCurrency={settings.homeCurrency} />
 
                 {/* Drugstore Info */}
                 <button
