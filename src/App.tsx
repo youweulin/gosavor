@@ -831,6 +831,7 @@ function AppInner() {
         serviceFee={settings.serviceFee}
         onConfirmOrder={handleConfirmOrder}
         homeCurrency={settings.homeCurrency}
+        apiKey={getApiKey() || ''}
       />
       <AuthModal
         isVisible={showAuth}
