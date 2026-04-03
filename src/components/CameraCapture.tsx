@@ -70,18 +70,33 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
         isAnalyzing ? (
           <div className="rounded-xl overflow-hidden">
             <img src={images[0]} alt="" className="w-full object-cover max-h-[35vh]" />
+            {images.length > 1 && (
+              <p className="text-center text-sm text-gray-500 mt-1">翻譯中... {images.length} 頁菜單</p>
+            )}
           </div>
         ) : (
-          <div className="flex justify-center pb-2">
-            <div className="relative shrink-0 w-32 h-32 rounded-xl overflow-hidden border-2 border-orange-200">
-              <img src={images[0]} alt="" className="w-full h-full object-cover" />
+          <div className="flex gap-2 justify-center pb-2 flex-wrap">
+            {images.map((img, i) => (
+              <div key={i} className="relative shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 border-orange-200">
+                <img src={img} alt="" className="w-full h-full object-cover" />
+                <span className="absolute top-0.5 left-1 text-[10px] font-bold text-white bg-black/50 px-1 rounded">{i + 1}</span>
+                <button
+                  onClick={() => removeImage(i)}
+                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center"
+                >
+                  <X size={10} className="text-white" />
+                </button>
+              </div>
+            ))}
+            {scanMode === 'menu' && images.length < 4 && (
               <button
-                onClick={() => removeImage(0)}
-                className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
+                onClick={() => albumInputRef.current?.click()}
+                className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-orange-300 hover:text-orange-400"
               >
-                <X size={12} className="text-white" />
+                <span className="text-xl">+</span>
+                <span className="text-[10px]">加頁</span>
               </button>
-            </div>
+            )}
           </div>
         )
       )}

@@ -1023,15 +1023,26 @@ function AppInner() {
                   setShowPhotoPicker(false);
                   const base64 = await pickNativeImage('album');
                   if (base64) {
-                    setImages([`data:image/jpeg;base64,${base64}`]);
-                    setShowCamera(true);
-                    setTimeout(() => setAutoAnalyze(true), 50);
+                    const newImg = `data:image/jpeg;base64,${base64}`;
+                    if (scanMode === 'menu') {
+                      // Menu mode: accumulate images (max 4), don't auto-translate
+                      setImages(prev => {
+                        const updated = [...prev, newImg].slice(0, 4);
+                        return updated;
+                      });
+                      setShowCamera(true);
+                      // Don't auto-analyze — let user add more pages
+                    } else {
+                      setImages([newImg]);
+                      setShowCamera(true);
+                      setTimeout(() => setAutoAnalyze(true), 50);
+                    }
                   }
                 }}
                 className="flex flex-col items-center gap-1 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
                 <Image size={24} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
-                <span className="text-[13px] font-bold text-gray-800 tracking-wide">相簿</span>
+                <span className="text-[13px] font-bold text-gray-800 tracking-wide">{scanMode === 'menu' ? '相簿(多選)' : '相簿'}</span>
               </button>
             </div>
           ) : (
