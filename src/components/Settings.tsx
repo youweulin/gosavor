@@ -27,6 +27,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
   const [rate, setRate] = useState<number | null>(null);
   const [rateTime, setRateTime] = useState<string>('');
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showKeyGuide, setShowKeyGuide] = useState(false);
   const [showLegal, setShowLegal] = useState<'privacy' | 'terms' | null>(null);
   const [showAbout, setShowAbout] = useState(false);
 
@@ -131,33 +132,23 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
             >
               {keySaved ? <><Check size={14} /> {t('settings.saved')}</> : t('settings.saveKey')}
             </button>
-          </div>
-          {/* API Key Tutorial */}
-          <div className="mt-3 bg-gray-800/50 rounded-xl p-3 space-y-2">
-            <p className="text-xs font-medium text-orange-400">{t('settings.keyGuide')}</p>
-            <ol className="text-xs text-gray-400 space-y-1.5 list-decimal list-inside">
-              <li>{t('settings.keyStep1')}</li>
-              <li>{t('settings.keyStep2')}</li>
-              <li>{t('settings.keyStep3')}</li>
-            </ol>
-            <a
-              href="https://aistudio.google.com/apikey"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 mt-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium"
+            <button
+              onClick={() => setShowKeyGuide(true)}
+              className="px-3 py-2 text-xs text-orange-400 hover:text-orange-300"
             >
-              {t('settings.getKey')}
-            </a>
-            <p className="text-[10px] text-gray-500">{t('settings.keyFree')}</p>
+              {t('settings.keyGuide')}
+            </button>
           </div>
           </>
           ) : (
-            <div className="bg-gray-800/50 rounded-xl p-3 space-y-2">
+            <div className="bg-gray-800/50 rounded-xl p-3">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">🔒</span>
-                <p className="text-gray-400 text-xs flex-1">{t('settings.keyLocked')}</p>
+                <div className="flex-1">
+                  <p className="text-gray-400 text-xs">{t('settings.keyLocked')}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{t('settings.keyLockedHint')}</p>
+                </div>
               </div>
-              <p className="text-[10px] text-gray-500">{t('settings.keyLockedHint')}</p>
             </div>
           )}
         </div>
@@ -344,6 +335,81 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
           <p className="text-[10px] text-gray-700 mt-1">Made with 🪿 in Taiwan</p>
         </div>
       </div>
+
+      {/* API Key Guide */}
+      {showKeyGuide && (
+        <div className="fixed inset-0 z-50 bg-gray-950">
+          <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-800">
+            <button onClick={() => setShowKeyGuide(false)} className="p-2 rounded-full hover:bg-gray-800">
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <h1 className="font-bold text-lg text-white">{t('settings.keyGuide')}</h1>
+          </div>
+          <div className="p-4 space-y-6 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
+            {/* Step 1 */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-sm font-bold flex items-center justify-center">1</span>
+                <h3 className="text-white font-medium">{t('guide.step1Title')}</h3>
+              </div>
+              <p className="text-gray-400 text-sm ml-9">{t('guide.step1Desc')}</p>
+              <a
+                href="https://aistudio.google.com/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-9 inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-xl font-medium"
+              >
+                {t('guide.openStudio')}
+              </a>
+            </div>
+
+            {/* Step 2 */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-sm font-bold flex items-center justify-center">2</span>
+                <h3 className="text-white font-medium">{t('guide.step2Title')}</h3>
+              </div>
+              <p className="text-gray-400 text-sm ml-9">{t('guide.step2Desc')}</p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-sm font-bold flex items-center justify-center">3</span>
+                <h3 className="text-white font-medium">{t('guide.step3Title')}</h3>
+              </div>
+              <p className="text-gray-400 text-sm ml-9">{t('guide.step3Desc')}</p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-green-500 text-white text-sm font-bold flex items-center justify-center">4</span>
+                <h3 className="text-white font-medium">{t('guide.step4Title')}</h3>
+              </div>
+              <p className="text-gray-400 text-sm ml-9">{t('guide.step4Desc')}</p>
+            </div>
+
+            {/* Info box */}
+            <div className="bg-gray-800/50 rounded-xl p-4 space-y-2">
+              <p className="text-orange-400 text-sm font-medium">{t('guide.freeTitle')}</p>
+              <ul className="text-gray-400 text-xs space-y-1">
+                <li>- {t('guide.free1')}</li>
+                <li>- {t('guide.free2')}</li>
+                <li>- {t('guide.free3')}</li>
+              </ul>
+            </div>
+
+            {/* Done button */}
+            <button
+              onClick={() => setShowKeyGuide(false)}
+              className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold"
+            >
+              {t('guide.done')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Feedback Modal */}
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
