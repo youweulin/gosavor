@@ -48,7 +48,7 @@ const getCurrentPosition = (): Promise<{ lat: number; lon: number } | null> => {
 export const callGeminiViaWorker = async (
   geminiRequest: any,
   scanMode: string,
-  model = 'gemini-2.5-flash',
+  model = 'gemini-3.1-flash-lite-preview',
 ): Promise<WorkerResponse> => {
   if (!WORKER_URL) {
     throw new Error('Worker URL not configured');
@@ -109,7 +109,7 @@ export const smartGeminiCall = async (
   geminiRequest: any,
   scanMode: string,
   ownApiKey?: string,
-  model = 'gemini-2.5-flash',
+  model = 'gemini-3.1-flash-lite-preview',
 ): Promise<{ result: any; usage?: UsageInfo; viaWorker: boolean }> => {
   // Has own key → direct call (no limits)
   if (ownApiKey) {

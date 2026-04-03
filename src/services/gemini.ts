@@ -67,7 +67,7 @@ const getAI = (apiKey: string) => {
       generateContent: async (params: any) => {
         const parts = params.contents?.parts || [];
         const config = params.config || {};
-        const model = params.model || 'gemini-2.5-flash';
+        const model = params.model || 'gemini-3.1-flash-lite-preview';
 
         const geminiRequest: any = {
           contents: [{ parts }],
@@ -104,7 +104,7 @@ const safeParseJSON = <T>(text: string): T => {
   }
 };
 
-const resizeImage = (base64Str: string, maxDim = 800): Promise<string> => {
+const resizeImage = (base64Str: string, maxDim = 600): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = `data:image/jpeg;base64,${base64Str}`;
@@ -119,7 +119,7 @@ const resizeImage = (base64Str: string, maxDim = 800): Promise<string> => {
       canvas.width = w;
       canvas.height = h;
       canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
+      resolve(canvas.toDataURL('image/jpeg', 0.5).split(',')[1]);
     };
   });
 };
@@ -129,7 +129,7 @@ export const analyzeMenuImage = async (
   targetLanguage: string,
   apiKey: string,
   allergens: string[] = [],
-  modelName = 'gemini-2.5-flash'
+  modelName = 'gemini-3.1-flash-lite-preview'
 ): Promise<MenuAnalysisResult> => {
   const resized = await Promise.all(
     images.map(async (img) => ({
@@ -169,11 +169,14 @@ export const analyzeMenuImage = async (
       }
 
       if (ocrBlocks.length > 0) {
+        // Auto-switch model: complex menus (>30 OCR blocks) use 2.5-flash for better coverage
+        // Fallback chain: gemini-2.5-flash → gemini-3.1-flash-lite-preview (if 2.5 quota exceeded)
+        const preferredModel = ocrBlocks.length > 30 ? 'gemini-2.5-flash' : modelName;
+        let effectiveModel = preferredModel;
+        console.log(`[GoSavor] Menu complexity: ${ocrBlocks.length} blocks → model: ${effectiveModel}`);
+
         // We have OCR blocks! Send text exclusively to Gemini
         const textToAnalyze = ocrBlocks.map(b => ({ id: b.id, imgIdx: b.imageIndex, text: b.text }));
-        
-        console.log('[GoSavor OCR] Total blocks:', ocrBlocks.length);
-        console.log('[GoSavor OCR] Sample blocks:', JSON.stringify(ocrBlocks.slice(0, 8), null, 2));
 
         const prompt = `You are a menu parser. Below is raw OCR data extracted from ${images.length} menu image(s) using Apple Vision.
 Each block has: id (unique integer), imgIdx (image index), text (raw recognized text).
@@ -209,39 +212,57 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
           }))
         );
 
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: { parts: [...thumbs, { text: prompt }] },  // Tiny image + OCR text = best of both worlds
-          config: {
-            thinkingConfig: { thinkingBudget: 0 },
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                currency: { type: Type.STRING },
-                restaurantName: { type: Type.STRING },
+        const menuConfig = {
+          thinkingConfig: { thinkingBudget: 0 },
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              currency: { type: Type.STRING },
+              restaurantName: { type: Type.STRING },
+              items: {
+                type: Type.ARRAY,
                 items: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      originalName: { type: Type.STRING },
-                      translatedName: { type: Type.STRING },
-                      description: { type: Type.STRING },
-                      price: { type: Type.STRING },
-                      category: { type: Type.STRING },
-                      allergens: { type: Type.ARRAY, items: { type: Type.STRING } },
-                      sourceIds: { type: Type.ARRAY, items: { type: Type.INTEGER } },
-                      imageIndex: { type: Type.INTEGER },
-                    },
-                    required: ['originalName', 'translatedName', 'price', 'category', 'sourceIds'],
+                  type: Type.OBJECT,
+                  properties: {
+                    originalName: { type: Type.STRING },
+                    translatedName: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    price: { type: Type.STRING },
+                    category: { type: Type.STRING },
+                    allergens: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    sourceIds: { type: Type.ARRAY, items: { type: Type.INTEGER } },
+                    imageIndex: { type: Type.INTEGER },
                   },
+                  required: ['originalName', 'translatedName', 'price', 'category', 'sourceIds'],
                 },
               },
-              required: ['currency', 'items'],
             },
+            required: ['currency', 'items'],
           },
-        });
+        };
+
+        let response;
+        try {
+          response = await ai.models.generateContent({
+            model: effectiveModel,
+            contents: { parts: [...thumbs, { text: prompt }] },
+            config: menuConfig,
+          });
+        } catch (err: any) {
+          // If 2.5-flash quota exceeded (429) or unavailable (503), fallback to 3.1-lite
+          if (effectiveModel === 'gemini-2.5-flash' && (err?.message?.includes('429') || err?.message?.includes('503') || err?.message?.includes('quota'))) {
+            effectiveModel = 'gemini-3.1-flash-lite-preview';
+            console.log(`[GoSavor] 2.5-flash unavailable, fallback → ${effectiveModel}`);
+            response = await ai.models.generateContent({
+              model: effectiveModel,
+              contents: { parts: [...thumbs, { text: prompt }] },
+              config: menuConfig,
+            });
+          } else {
+            throw err;
+          }
+        }
 
         if (!response.text) throw new Error('No response from AI');
         const parsed = safeParseJSON<any>(response.text);
@@ -398,7 +419,7 @@ export const analyzeReceiptImage = async (
   images: { base64: string; mimeType: string }[],
   targetLanguage: string,
   apiKey: string,
-  modelName = 'gemini-2.5-flash'
+  modelName = 'gemini-3.1-flash-lite-preview'
 ): Promise<ReceiptAnalysisResult> => {
   const ai = getAI(apiKey);
 
@@ -551,7 +572,7 @@ export const analyzeGeneralImage = async (
   images: { base64: string; mimeType: string }[],
   targetLanguage: string,
   apiKey: string,
-  modelName = 'gemini-2.5-flash'
+  modelName = 'gemini-3.1-flash-lite-preview'
 ): Promise<GeneralAnalysisResult> => {
   const ai = getAI(apiKey);
 

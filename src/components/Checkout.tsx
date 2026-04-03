@@ -157,7 +157,7 @@ const Checkout = ({
         const { GoogleGenAI } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey });
         const res = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.1-flash-lite-preview',
           contents: `Translate to ${targetLang}. Only return the translation, nothing else: "${text}"`,
           config: { thinkingConfig: { thinkingBudget: 0 } },
         });

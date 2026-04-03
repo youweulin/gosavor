@@ -24,6 +24,8 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
   const [rate, setRate] = useState<number | null>(null);
   const [rateTime, setRateTime] = useState<string>('');
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showLegal, setShowLegal] = useState<'privacy' | 'terms' | null>(null);
+  const [showAbout, setShowAbout] = useState(false);
 
   useEffect(() => {
     const homeCode = settings.homeCurrency.toLowerCase();
@@ -241,30 +243,26 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
           </div>
         </div>
 
-        {/* Privacy Policy */}
+        {/* Privacy Policy & Terms */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
             <Shield size={14} /> 隱私權與條款
           </label>
           <div className="space-y-2">
-            <a
-              href="https://gosavor.zeabur.app/privacy.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 bg-gray-900 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
+            <button
+              onClick={() => setShowLegal('privacy')}
+              className="w-full flex items-center gap-3 p-3 bg-gray-900 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
             >
               <Shield size={16} className="text-gray-400" />
               <span className="text-sm text-gray-300">隱私權政策</span>
-            </a>
-            <a
-              href="https://gosavor.zeabur.app/terms.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 bg-gray-900 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
+            </button>
+            <button
+              onClick={() => setShowLegal('terms')}
+              className="w-full flex items-center gap-3 p-3 bg-gray-900 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
             >
               <Info size={16} className="text-gray-400" />
               <span className="text-sm text-gray-300">使用條款</span>
-            </a>
+            </button>
           </div>
         </div>
 
@@ -278,8 +276,14 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
           </button>
         </div>
 
-        {/* Version */}
+        {/* About & Version */}
         <div className="text-center pb-6">
+          <button
+            onClick={() => setShowAbout(true)}
+            className="mb-3 px-4 py-2 text-sm text-orange-400 hover:text-orange-300 transition-colors"
+          >
+            關於 GoSavor
+          </button>
           <p className="text-xs text-gray-600">GoSavor v0.8.1 Beta</p>
           <p className="text-[10px] text-gray-700 mt-1">Made with 🪿 in Taiwan</p>
         </div>
@@ -287,8 +291,261 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
 
       {/* Feedback Modal */}
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
+
+      {/* About Modal */}
+      {showAbout && (
+        <div className="fixed inset-0 z-50 bg-gray-950">
+          <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-800">
+            <button onClick={() => setShowAbout(false)} className="p-2 rounded-full hover:bg-gray-800">
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <h1 className="font-bold text-lg text-white">關於 GoSavor</h1>
+          </div>
+          <div className="p-4 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
+            <AboutContent />
+          </div>
+        </div>
+      )}
+
+      {/* Legal Content Modal */}
+      {showLegal && (
+        <div className="fixed inset-0 z-50 bg-gray-950">
+          <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm px-4 py-4 flex items-center gap-3 border-b border-gray-800">
+            <button onClick={() => setShowLegal(null)} className="p-2 rounded-full hover:bg-gray-800">
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <h1 className="font-bold text-lg text-white">
+              {showLegal === 'privacy' ? '隱私權政策' : '使用條款'}
+            </h1>
+          </div>
+          <div className="p-4 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
+            {showLegal === 'privacy' ? <PrivacyContent /> : <TermsContent />}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const AboutContent = () => (
+  <div className="text-sm text-gray-300 space-y-6">
+    {/* Logo & Name */}
+    <div className="text-center pt-4">
+      <img src="/goose-logo.png" alt="GoSavor" className="w-24 h-24 rounded-2xl mx-auto mb-4 shadow-lg" />
+      <h2 className="text-2xl font-bold text-white">GoSavor</h2>
+      <p className="text-orange-400 font-medium mt-1">購莎鵝 — 日本旅遊 AI 翻譯神器</p>
+      <p className="text-xs text-gray-500 mt-2">v0.8.1 Beta</p>
+    </div>
+
+    {/* Name meaning */}
+    <div className="flex justify-center gap-6 py-4">
+      {[
+        { en: 'Go', zh: '購', desc: '買買買' },
+        { en: 'Sa', zh: '殺', desc: '殺價血拼' },
+        { en: 'Vor', zh: '鵝', desc: '又餓又可愛' },
+      ].map(p => (
+        <div key={p.en} className="text-center">
+          <div className="text-2xl font-extrabold text-orange-500">{p.en}</div>
+          <div className="text-sm text-gray-400">{p.zh}</div>
+          <div className="text-[11px] text-gray-500">{p.desc}</div>
+        </div>
+      ))}
+    </div>
+
+    <p className="text-center text-gray-400 text-sm px-4">
+      一隻斯文、懂吃、又幫你買東西的白色小胖鵝 🪿
+    </p>
+
+    {/* Features */}
+    <div className="space-y-3 pt-2">
+      <h3 className="text-base font-bold text-white border-b border-gray-800 pb-1">購莎鵝會什麼？</h3>
+      {[
+        { icon: '📸', title: '拍菜單・秒翻譯', desc: 'AI 辨識菜名、價格、描述，自動標示 14 種過敏原' },
+        { icon: '🧾', title: '掃收據・自動記帳', desc: '辨識商品名稱與價格，即時匯率換算' },
+        { icon: '👁️', title: 'AR 即時翻譯', desc: '鏡頭對準藥妝標示，翻譯疊在畫面上（免費無限次）' },
+        { icon: '💬', title: '對話翻譯', desc: '中日雙向即時翻譯，支援語音輸入與朗讀' },
+        { icon: '💰', title: '藥妝比價', desc: '群眾回報價格，跨店比價不怕買貴' },
+        { icon: '💱', title: '匯率換算', desc: '即時日圓匯率，支援 13 種幣別' },
+      ].map(f => (
+        <div key={f.title} className="flex items-start gap-3 p-3 bg-gray-900/50 rounded-xl">
+          <span className="text-xl">{f.icon}</span>
+          <div>
+            <div className="font-semibold text-white text-sm">{f.title}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{f.desc}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* Credits */}
+    <div className="text-center pt-4 pb-2 space-y-2">
+      <p className="text-xs text-gray-500">Made with 🪿 in Taiwan</p>
+      <p className="text-xs text-gray-600">© 2026 GoSavor 購莎鵝</p>
+      <p className="text-xs text-gray-600">support@gosavor.com</p>
+    </div>
+  </div>
+);
+
+const sectionStyle = "text-sm text-gray-300 space-y-3";
+const h2Style = "text-base font-bold text-white mt-6 mb-2 pb-1 border-b border-gray-800";
+const h3Style = "text-sm font-semibold text-gray-200 mt-4 mb-1";
+const liStyle = "text-sm text-gray-400 ml-4 list-disc";
+const highlightStyle = "bg-orange-500/10 border-l-2 border-orange-500 p-3 rounded-r-lg text-sm text-gray-300 my-3";
+const warnStyle = "bg-red-500/10 border-l-2 border-red-500 p-3 rounded-r-lg text-sm text-gray-300 my-3";
+
+const PrivacyContent = () => (
+  <div className={sectionStyle}>
+    <p className="text-xs text-gray-500">Last updated: April 3, 2026</p>
+    <p>GoSavor ("the Service") values your privacy. This policy describes how we collect, use, store, and protect your information.</p>
+
+    <h2 className={h2Style}>1. Information We Collect</h2>
+    <div className={highlightStyle}>
+      <strong>Anonymous by default:</strong> GoSavor uses anonymous authentication. We do not require account registration and do not collect your name, email address, or phone number.
+    </div>
+
+    <h3 className={h3Style}>1.1 Automatically Collected</h3>
+    <ul>
+      <li className={liStyle}>Anonymous user ID — device identification and quota tracking</li>
+      <li className={liStyle}>Device platform (iOS) — technical support</li>
+      <li className={liStyle}>App version — version management and debugging</li>
+      <li className={liStyle}>Daily usage count — quota management</li>
+      <li className={liStyle}>Scan events (type and timestamp) — feature analytics</li>
+    </ul>
+
+    <h3 className={h3Style}>1.2 Information You Provide</h3>
+    <ul>
+      <li className={liStyle}>Nickname — personalized display</li>
+      <li className={liStyle}>Photos taken or selected — AI translation analysis (temporarily stored in memory only, not retained after analysis)</li>
+      <li className={liStyle}>Allergen preferences — allergen labeling during menu translation</li>
+      <li className={liStyle}>Gemini API Key (optional) — bring your own API key</li>
+      <li className={liStyle}>Feedback and screenshots — service quality improvement</li>
+    </ul>
+
+    <h3 className={h3Style}>1.3 Location Information (Authorization Required)</h3>
+    <p>Used to display your current city and weather, verify whether you are in Japan, and record receipt location data. You may disable location permissions at any time.</p>
+
+    <h3 className={h3Style}>1.4 Price Report Data</h3>
+    <p>When you scan receipts, product names, prices, and store information are automatically extracted and de-identified for use in our crowdsourced price comparison service.</p>
+
+    <h2 className={h2Style}>2. How Your Data Is Used</h2>
+    <ul>
+      <li className={liStyle}><strong>AI Translation:</strong> Photos are sent to Google Gemini API for analysis, compressed before transmission, and not retained by Google for training purposes</li>
+      <li className={liStyle}><strong>Weather & Location:</strong> GPS coordinates are sent to OpenStreetMap (Nominatim) and wttr.in</li>
+      <li className={liStyle}><strong>Currency Conversion:</strong> Via public exchange rate API; no personal information is transmitted</li>
+      <li className={liStyle}><strong>Travel Recommendations:</strong> Klook and KKday activity links; these platforms may record click sources</li>
+      <li className={liStyle}><strong>Usage Analytics:</strong> For service improvement and quota management; not used for advertising</li>
+    </ul>
+
+    <h2 className={h2Style}>3. Third-Party Services</h2>
+    <ul>
+      <li className={liStyle}>Supabase (Tokyo) — data storage</li>
+      <li className={liStyle}>Google Gemini API — AI translation</li>
+      <li className={liStyle}>Cloudflare Workers — API proxy</li>
+      <li className={liStyle}>OpenStreetMap — geocoding</li>
+      <li className={liStyle}>wttr.in — weather data</li>
+      <li className={liStyle}>Klook, KKday — affiliate recommendations</li>
+    </ul>
+
+    <h2 className={h2Style}>4. Data Security</h2>
+    <ul>
+      <li className={liStyle}>Cloud data stored in Supabase Tokyo datacenter with TLS encryption</li>
+      <li className={liStyle}>Row Level Security (RLS) ensures users can only access their own data</li>
+      <li className={liStyle}>Photos are temporarily stored in memory only; never permanently uploaded</li>
+      <li className={liStyle}>No cookies, no third-party tracking scripts</li>
+    </ul>
+
+    <h2 className={h2Style}>5. Your Rights</h2>
+    <ul>
+      <li className={liStyle}>Modify or clear your nickname and preference settings</li>
+      <li className={liStyle}>Disable location and camera permissions</li>
+      <li className={liStyle}>Request deletion of all your data (support@gosavor.com)</li>
+      <li className={liStyle}>Reset to default to clear all local data</li>
+    </ul>
+
+    <h2 className={h2Style}>6. Children's Privacy</h2>
+    <p>This Service is not designed for children under 13. We do not knowingly collect personal information from children.</p>
+
+    <h2 className={h2Style}>7. Contact Us</h2>
+    <p>Email: support@gosavor.com</p>
+
+    <p className="text-center text-xs text-gray-600 mt-8">© 2026 GoSavor. All rights reserved.</p>
+  </div>
+);
+
+const TermsContent = () => (
+  <div className={sectionStyle}>
+    <p className="text-xs text-gray-500">最後更新：2026 年 4 月 3 日</p>
+    <p>使用 GoSavor 即表示您同意以下條款。</p>
+
+    <h2 className={h2Style}>一、服務說明</h2>
+    <p>GoSavor 是專為日本旅遊設計的 AI 翻譯工具，提供菜單翻譯、收據翻譯、即時翻譯（AR）、對話翻譯、比價功能與匯率轉換。</p>
+
+    <h2 className={h2Style}>二、使用資格</h2>
+    <ul>
+      <li className={liStyle}>年滿 13 歲方可使用</li>
+      <li className={liStyle}>封測期間部分功能需兌換碼開通</li>
+    </ul>
+
+    <h2 className={h2Style}>三、方案與費用</h2>
+    <h3 className={h3Style}>免費方案</h3>
+    <ul>
+      <li className={liStyle}>每日 AI 翻譯額度：5 次</li>
+      <li className={liStyle}>AR 即時翻譯：無限制（Apple 翻譯框架）</li>
+      <li className={liStyle}>對話翻譯：無限制</li>
+    </ul>
+    <h3 className={h3Style}>付費方案（未來推出）</h3>
+    <p>所有付費功能透過 Apple In-App Purchase 進行，退款依照 Apple 政策處理。</p>
+    <h3 className={h3Style}>兌換碼</h3>
+    <p>僅供免費推廣，不可買賣或轉讓，有使用次數限制與有效期限。</p>
+
+    <h2 className={h2Style}>四、AI 翻譯免責聲明</h2>
+    <div className={warnStyle}>
+      <strong>重要提醒：</strong>翻譯結果僅供參考，可能存在不準確之處。
+    </div>
+    <ul>
+      <li className={liStyle}>菜單翻譯可能因圖片品質導致辨識錯誤</li>
+      <li className={liStyle}>收據金額辨識可能有誤差，以實際收據為準</li>
+      <li className={liStyle}><strong>過敏原標示僅為 AI 推測，不能取代向餐廳確認</strong></li>
+      <li className={liStyle}>價格比較來自群眾回報，可能不即時或有誤</li>
+      <li className={liStyle}>匯率為參考值，以實際兌換匯率為準</li>
+    </ul>
+
+    <h2 className={h2Style}>五、使用者行為規範</h2>
+    <ul>
+      <li className={liStyle}>不得以自動化方式大量存取</li>
+      <li className={liStyle}>不得繞過使用額度限制</li>
+      <li className={liStyle}>不得提交不實的價格回報</li>
+      <li className={liStyle}>不得用於違法目的</li>
+    </ul>
+
+    <h2 className={h2Style}>六、價格回報與群眾資料</h2>
+    <p>掃描收據時產生的價格資料經去識別化後用於比價服務。我們保留將資料用於統計分析或 B2B 服務的權利。</p>
+
+    <h2 className={h2Style}>七、智慧財產權</h2>
+    <ul>
+      <li className={liStyle}>GoSavor 商標、Logo（購莎鵝 🪿）歸本服務所有</li>
+      <li className={liStyle}>您上傳的照片著作權歸您所有</li>
+      <li className={liStyle}>AI 翻譯結果不構成原創著作物</li>
+    </ul>
+
+    <h2 className={h2Style}>八、第三方連結</h2>
+    <p>本服務包含 Klook 與 KKday 推薦連結，點擊後的交易與本服務無關。我們可能從聯盟行銷獲得佣金。</p>
+
+    <h2 className={h2Style}>九、服務中斷與終止</h2>
+    <p>本服務處於封測階段（Beta），可能不穩定。我們保留隨時暫停、修改或終止服務的權利。</p>
+
+    <h2 className={h2Style}>十、責任限制</h2>
+    <p>本服務按「現況」提供。對於翻譯錯誤、過敏原標示不正確、價格資訊不準確等造成的損失，本服務不承擔責任。</p>
+
+    <h2 className={h2Style}>十一、準據法</h2>
+    <p>本條款受中華民國（台灣）法律管轄，以台灣台中地方法院為第一審管轄法院。</p>
+
+    <h2 className={h2Style}>十二、聯繫我們</h2>
+    <p>Email：support@gosavor.com</p>
+    <p>LINE 封測群組：購莎鵝 Beta 測試與除錯～許願地</p>
+
+    <p className="text-center text-xs text-gray-600 mt-8">© 2026 GoSavor 購莎鵝 · Made in Taiwan</p>
+  </div>
+);
 
 export default Settings;

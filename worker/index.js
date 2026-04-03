@@ -191,19 +191,130 @@ function getDailyUsage(user) {
 }
 
 // =============================================
-// Gemini API proxy
+// Vertex AI / Gemini API proxy
 // =============================================
-async function callGemini(apiKey, requestBody, model) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+// --- Google OAuth2 via Service Account JWT ---
+let _accessToken = null;
+let _tokenExpiry = 0;
+
+function pemToArrayBuffer(pem) {
+  const b64 = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\\n/g, '')
+    .replace(/\n/g, '')
+    .replace(/\s/g, '');
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+function base64UrlEncode(data) {
+  if (typeof data === 'string') {
+    return btoa(data).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  // Handle Uint8Array (binary signature data)
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function getAccessToken(email, privateKey) {
+  const now = Math.floor(Date.now() / 1000);
+
+  // Return cached token if still valid (with 60s buffer)
+  if (_accessToken && _tokenExpiry > now + 60) return _accessToken;
+
+  // Build JWT
+  const header = base64UrlEncode(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const payload = base64UrlEncode(JSON.stringify({
+    iss: email,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+  }));
+
+  const signInput = new TextEncoder().encode(`${header}.${payload}`);
+
+  // Import private key and sign
+  const keyData = pemToArrayBuffer(privateKey);
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8', keyData,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['sign']
+  );
+  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, signInput);
+  const sig64 = base64UrlEncode(new Uint8Array(signature));
+
+  const jwt = `${header}.${payload}.${sig64}`;
+
+  // Exchange JWT for access token
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OAuth token error ${res.status}: ${err.substring(0, 200)}`);
+  }
+
+  const data = await res.json();
+  _accessToken = data.access_token;
+  _tokenExpiry = now + (data.expires_in || 3600);
+  return _accessToken;
+}
+
+async function callGemini(env, requestBody, model) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000); // 55s timeout
+  const timeout = setTimeout(() => controller.abort(), 55000);
 
   try {
+    let url, headers;
+
+    if (env.GCP_PRIVATE_KEY && env.GCP_SERVICE_ACCOUNT_EMAIL && env.GCP_PROJECT_ID) {
+      // Vertex AI (uses Google Cloud $300 credits)
+      const token = await getAccessToken(env.GCP_SERVICE_ACCOUNT_EMAIL, env.GCP_PRIVATE_KEY);
+      const region = 'us-central1';
+      url = `https://${region}-aiplatform.googleapis.com/v1beta1/projects/${env.GCP_PROJECT_ID}/locations/${region}/publishers/google/models/${model}:generateContent`;
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      };
+    } else {
+      // Fallback: direct Gemini API key
+      url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
+      headers = { 'Content-Type': 'application/json' };
+    }
+
+    // Vertex AI requires different format: roles must be "user" or "model"
+    let body = requestBody;
+    if (env.GCP_PRIVATE_KEY) {
+      body = JSON.parse(JSON.stringify(requestBody)); // deep clone
+      // Ensure all content parts have valid role
+      if (body.contents) {
+        if (Array.isArray(body.contents)) {
+          body.contents = body.contents.map(c => ({
+            ...c,
+            role: c.role === 'model' ? 'model' : 'user',
+          }));
+        }
+      }
+      // Remove thinkingConfig (not supported by Vertex AI)
+      if (body.generationConfig?.thinkingConfig) {
+        delete body.generationConfig.thinkingConfig;
+      }
+    }
+
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
+      headers,
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -286,9 +397,9 @@ export default {
       // 6. Proxy to Gemini
       const body = await request.json();
       const result = await callGemini(
-        env.GEMINI_API_KEY,
+        env,
         body.geminiRequest,
-        body.model || 'gemini-2.5-flash'
+        body.model || 'gemini-3.1-flash-lite-preview'
       );
 
       // 7. Update usage

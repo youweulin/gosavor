@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>隱私權政策 - GoSavor 購莎鵝</title>
+  <title>Privacy Policy - GoSavor</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9fafb; color: #1f2937; line-height: 1.8; }
@@ -15,9 +15,6 @@
     h3 { font-size: 15px; color: #374151; margin: 20px 0 8px; }
     p, li { font-size: 14px; color: #4b5563; margin-bottom: 8px; }
     ul { padding-left: 20px; }
-    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
-    th, td { padding: 8px 12px; border: 1px solid #e5e7eb; text-align: left; }
-    th { background: #f3f4f6; font-weight: 600; color: #374151; }
     .highlight { background: #fff7ed; border-left: 3px solid #f97316; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
     .footer { text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px; }
   </style>
@@ -25,121 +22,117 @@
 <body>
   <div class="container">
     <div class="logo">
-      <h1>🪿 GoSavor 購莎鵝</h1>
-      <p>隱私權政策</p>
+      <h1>GoSavor</h1>
+      <p>Privacy Policy</p>
     </div>
 
-    <p><strong>最後更新日期：</strong>2026 年 4 月 3 日</p>
-    <p>GoSavor（以下稱「本服務」或「我們」）重視您的隱私。本隱私權政策說明我們如何收集、使用、儲存及保護您的資訊。使用本服務即表示您同意本政策的內容。</p>
+    <p><strong>Last updated:</strong> April 3, 2026</p>
+    <p>GoSavor ("the Service" or "we") values your privacy. This Privacy Policy describes how we collect, use, store, and protect your information. By using the Service, you agree to the practices described in this policy.</p>
 
-    <h2>一、我們收集的資訊</h2>
+    <h2>1. Information We Collect</h2>
 
     <div class="highlight">
-      <strong>匿名優先原則：</strong>GoSavor 採用匿名驗證機制，不需要註冊帳號、不收集您的姓名、電子郵件或電話號碼。
+      <strong>Anonymous by default:</strong> GoSavor uses anonymous authentication. We do not require account registration and do not collect your name, email address, or phone number.
     </div>
 
-    <h3>1.1 自動收集的資訊</h3>
-    <table>
-      <tr><th>資料類型</th><th>用途</th><th>儲存位置</th></tr>
-      <tr><td>匿名使用者 ID</td><td>識別裝置、追蹤使用額度</td><td>Supabase（東京）</td></tr>
-      <tr><td>裝置平台（iOS）</td><td>技術支援</td><td>Supabase</td></tr>
-      <tr><td>App 版本號</td><td>版本管理與除錯</td><td>Supabase</td></tr>
-      <tr><td>每日使用次數</td><td>額度管理</td><td>Supabase</td></tr>
-      <tr><td>掃描事件（類型與時間）</td><td>功能使用統計</td><td>Supabase</td></tr>
-    </table>
-
-    <h3>1.2 您主動提供的資訊</h3>
-    <table>
-      <tr><th>資料類型</th><th>用途</th><th>儲存位置</th></tr>
-      <tr><td>暱稱</td><td>個人化顯示</td><td>Supabase</td></tr>
-      <tr><td>拍攝或選取的照片</td><td>AI 翻譯分析</td><td>僅暫存於裝置記憶體，分析後不上傳保留</td></tr>
-      <tr><td>過敏原偏好設定</td><td>菜單翻譯時標示過敏原</td><td>裝置本機（localStorage）</td></tr>
-      <tr><td>Gemini API Key（選填）</td><td>使用自帶 API 金鑰</td><td>裝置本機（localStorage）</td></tr>
-      <tr><td>意見回饋內容與截圖</td><td>改善服務品質</td><td>Supabase</td></tr>
-    </table>
-
-    <h3>1.3 位置資訊（需您授權）</h3>
-    <p>GoSavor 可能請求您的地理位置權限，用於：</p>
+    <h3>1.1 Automatically Collected Information</h3>
     <ul>
-      <li>顯示所在城市與天氣</li>
-      <li>驗證是否在日本境內（免費額度適用條件）</li>
-      <li>收據翻譯時記錄商品所在區域</li>
+      <li>Anonymous user ID — device identification and quota tracking</li>
+      <li>Device platform (iOS) — technical support</li>
+      <li>App version — version management and debugging</li>
+      <li>Daily usage count — quota management</li>
+      <li>Scan events (type and timestamp) — feature usage analytics</li>
     </ul>
-    <p>您可以隨時在裝置設定中關閉位置權限，不影響核心翻譯功能。</p>
 
-    <h3>1.4 價格回報資料</h3>
-    <p>當您掃描收據時，系統會自動擷取以下資訊用於建立「群眾比價資料庫」：</p>
+    <h3>1.2 Information You Provide</h3>
     <ul>
-      <li>商品名稱、價格、商店名稱與分店</li>
-      <li>免稅狀態、商品條碼（JAN Code）</li>
-      <li>商品類別與區域</li>
+      <li>Nickname — personalized display</li>
+      <li>Photos taken or selected — AI translation analysis (temporarily stored in memory only, not retained after analysis)</li>
+      <li>Allergen preferences — allergen labeling during menu translation</li>
+      <li>Gemini API Key (optional) — bring your own API key</li>
+      <li>Feedback content and screenshots — service quality improvement</li>
+    </ul>
+
+    <h3>1.3 Location Information (Authorization Required)</h3>
+    <p>GoSavor may request your location permission, used for:</p>
+    <ul>
+      <li>Displaying your current city and weather</li>
+      <li>Verifying whether you are within Japan (free quota eligibility)</li>
+      <li>Recording the geographic area for receipt-based price reports</li>
+    </ul>
+    <p>You may disable location permissions at any time in your device settings without affecting core translation functionality.</p>
+
+    <h3>1.4 Price Report Data</h3>
+    <p>When you scan receipts, the system automatically extracts the following information for our crowdsourced price comparison database:</p>
+    <ul>
+      <li>Product name, price, store name and branch</li>
+      <li>Tax-free status, product barcode (JAN Code)</li>
+      <li>Product category and geographic area</li>
     </ul>
     <div class="highlight">
-      這些價格資料將去識別化後，用於提供跨店比價服務，幫助所有使用者找到更好的價格。
+      This price data is de-identified and used to provide cross-store price comparison services to help all users find better prices.
     </div>
 
-    <h2>二、資料如何被使用</h2>
+    <h2>2. How Your Data Is Used</h2>
     <ul>
-      <li><strong>AI 翻譯：</strong>您的照片會傳送至 Google Gemini API 進行分析，照片經壓縮處理（最大 800px、JPEG 60-70% 品質），分析完成後不會被 Google 保留用於訓練。</li>
-      <li><strong>天氣與位置顯示：</strong>GPS 座標傳送至 OpenStreetMap（Nominatim）及 wttr.in 取得地名與天氣。</li>
-      <li><strong>匯率轉換：</strong>透過公開匯率 API 取得即時匯率，不傳送任何個人資訊。</li>
-      <li><strong>旅遊推薦：</strong>根據您的翻譯場景推薦相關行程（Klook、KKday），當您點擊連結時，該平台可能記錄點擊來源。</li>
-      <li><strong>使用統計：</strong>用於改善服務、管理額度，不會用於廣告投放。</li>
+      <li><strong>AI Translation:</strong> Your photos are sent to Google Gemini API for analysis. Photos are compressed (max 800px, JPEG 60-70% quality) before transmission and are not retained by Google for training purposes.</li>
+      <li><strong>Weather & Location:</strong> GPS coordinates are sent to OpenStreetMap (Nominatim) and wttr.in to retrieve location names and weather data.</li>
+      <li><strong>Currency Conversion:</strong> Via public exchange rate API. No personal information is transmitted.</li>
+      <li><strong>Travel Recommendations:</strong> Context-based recommendations of Klook and KKday activities. When you click these links, the respective platform may record the click source.</li>
+      <li><strong>Usage Analytics:</strong> For service improvement and quota management. Not used for advertising.</li>
     </ul>
 
-    <h2>三、第三方服務</h2>
-    <table>
-      <tr><th>服務</th><th>提供者</th><th>傳送的資料</th><th>用途</th></tr>
-      <tr><td>資料庫</td><td>Supabase（東京機房）</td><td>匿名 ID、使用紀錄、價格回報</td><td>核心資料儲存</td></tr>
-      <tr><td>AI 翻譯</td><td>Google Gemini API</td><td>壓縮後的照片、翻譯偏好</td><td>菜單/收據/文字翻譯</td></tr>
-      <tr><td>API 代理</td><td>Cloudflare Workers</td><td>翻譯請求、GPS 座標</td><td>API 安全代理與額度控管</td></tr>
-      <tr><td>地理編碼</td><td>OpenStreetMap</td><td>GPS 座標</td><td>顯示所在城市</td></tr>
-      <tr><td>天氣</td><td>wttr.in</td><td>GPS 座標</td><td>顯示當地天氣</td></tr>
-      <tr><td>匯率</td><td>fawazahmed0 Currency API</td><td>幣別代碼</td><td>匯率轉換</td></tr>
-      <tr><td>旅遊推薦</td><td>Klook、KKday</td><td>點擊追蹤（URL 參數）</td><td>聯盟行銷推薦</td></tr>
-    </table>
-
-    <h2>四、資料儲存與安全</h2>
+    <h2>3. Third-Party Services</h2>
     <ul>
-      <li>雲端資料儲存於 Supabase 東京機房，傳輸過程採用 TLS 加密。</li>
-      <li>資料庫設有 Row Level Security（RLS），每位使用者只能存取自己的資料。</li>
-      <li>裝置本機資料（設定、掃描記錄）儲存於 localStorage 和 IndexedDB。</li>
-      <li>照片僅暫存於記憶體中用於分析，不會永久上傳至任何伺服器。</li>
-      <li>我們不使用 Cookie、不安裝第三方追蹤碼（無 Google Analytics、無 Facebook Pixel）。</li>
+      <li><strong>Supabase</strong> (Tokyo datacenter) — core data storage</li>
+      <li><strong>Google Gemini API</strong> — AI translation</li>
+      <li><strong>Cloudflare Workers</strong> — API proxy and rate limiting</li>
+      <li><strong>OpenStreetMap (Nominatim)</strong> — geocoding</li>
+      <li><strong>wttr.in</strong> — weather information</li>
+      <li><strong>fawazahmed0 Currency API</strong> — exchange rates</li>
+      <li><strong>Klook, KKday</strong> — affiliate travel recommendations</li>
     </ul>
 
-    <h2>五、資料保留</h2>
+    <h2>4. Data Storage & Security</h2>
     <ul>
-      <li>使用者帳號資料：保留至服務終止或您主動要求刪除。</li>
-      <li>價格回報資料：去識別化後永久保留（構成公共比價資料庫）。</li>
-      <li>意見回饋：處理完畢後保留最多 12 個月。</li>
-      <li>使用事件紀錄：保留最多 6 個月。</li>
+      <li>Cloud data is stored in the Supabase Tokyo datacenter with TLS encryption in transit.</li>
+      <li>Row Level Security (RLS) ensures each user can only access their own data.</li>
+      <li>Local device data (settings, scan history) is stored in localStorage and IndexedDB.</li>
+      <li>Photos are temporarily stored in memory for analysis only and are never permanently uploaded to any server.</li>
+      <li>We do not use cookies, Google Analytics, Facebook Pixel, or any third-party tracking scripts.</li>
     </ul>
 
-    <h2>六、您的權利</h2>
-    <p>您可以隨時：</p>
+    <h2>5. Data Retention</h2>
     <ul>
-      <li>在設定中修改或清除您的暱稱與偏好設定</li>
-      <li>關閉裝置的位置權限與相機權限</li>
-      <li>要求我們刪除與您相關的所有資料（請透過 support@gosavor.com 聯繫）</li>
-      <li>清除裝置本機的所有資料（設定 → 重置為預設值）</li>
+      <li>User account data: retained until service termination or your deletion request.</li>
+      <li>Price report data: permanently retained after de-identification (forms the public price database).</li>
+      <li>Feedback: retained for up to 12 months after resolution.</li>
+      <li>Usage event logs: retained for up to 6 months.</li>
     </ul>
 
-    <h2>七、兒童隱私</h2>
-    <p>本服務不針對 13 歲以下兒童設計。我們不會故意收集兒童的個人資訊。如果您發現有兒童使用本服務，請聯繫我們，我們將立即刪除相關資料。</p>
-
-    <h2>八、政策變更</h2>
-    <p>我們可能不定期更新本隱私權政策。重大變更將透過 App 內通知或封測群組公告。繼續使用本服務即視為同意更新後的政策。</p>
-
-    <h2>九、聯繫我們</h2>
-    <p>如果您對隱私權政策有任何疑問，請透過以下方式聯繫：</p>
+    <h2>6. Your Rights</h2>
+    <p>You may at any time:</p>
     <ul>
-      <li>Email：<a href="mailto:support@gosavor.com">support@gosavor.com</a></li>
-      <li>LINE 封測群組：購莎鵝 Beta 測試與除錯～許願地</li>
+      <li>Modify or clear your nickname and preference settings</li>
+      <li>Disable location and camera permissions on your device</li>
+      <li>Request deletion of all data associated with you (contact support@gosavor.com)</li>
+      <li>Clear all local data via Settings → Reset to Default</li>
+    </ul>
+
+    <h2>7. Children's Privacy</h2>
+    <p>This Service is not designed for children under the age of 13. We do not knowingly collect personal information from children. If you discover that a child is using this Service, please contact us and we will promptly delete the relevant data.</p>
+
+    <h2>8. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. Significant changes will be communicated through in-app notifications or our beta testing group. Continued use of the Service constitutes acceptance of the updated policy.</p>
+
+    <h2>9. Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, please contact us:</p>
+    <ul>
+      <li>Email: <a href="mailto:support@gosavor.com">support@gosavor.com</a></li>
     </ul>
 
     <div class="footer">
-      <p>🪿 GoSavor 購莎鵝 · Made in Taiwan</p>
+      <p>GoSavor · Made in Taiwan</p>
       <p>© 2026 GoSavor. All rights reserved.</p>
     </div>
   </div>

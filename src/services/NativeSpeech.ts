@@ -55,13 +55,45 @@ export const startListening = async (
       console.warn('[GoSavor] Native listen failed:', e);
     }
   }
-  // No web fallback for speech recognition (requires native)
-  throw new Error('Speech recognition requires iOS app');
+  // Web fallback: Web Speech API (Chrome, Edge, some Safari)
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    throw new Error('Speech recognition not supported on this browser');
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = lang;
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (event: any) => {
+    let text = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      text += event.results[i][0].transcript;
+    }
+    const isFinal = event.results[event.results.length - 1].isFinal;
+    onResult(text, isFinal);
+  };
+
+  recognition.onerror = (event: any) => {
+    console.warn('[GoSavor] Web Speech error:', event.error);
+  };
+
+  recognition.start();
+  // Store reference for stopListening
+  (window as any).__goSavorRecognition = recognition;
 };
 
 export const stopListening = async () => {
   if (Capacitor.isNativePlatform()) {
     await NativeSpeech.stopListening();
+  } else {
+    // Web fallback: stop recognition
+    const recognition = (window as any).__goSavorRecognition;
+    if (recognition) {
+      recognition.stop();
+      (window as any).__goSavorRecognition = null;
+    }
   }
 };
 
@@ -92,7 +124,7 @@ export const translateJapanese = async (
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
       const res = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.1-flash-lite-preview',
         contents: `Translate Japanese to ${targetLang}. Return ONLY the translation:\n${text}`,
         config: { thinkingConfig: { thinkingBudget: 0 } },
       });
