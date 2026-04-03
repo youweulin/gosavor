@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Camera, Image as ImageIcon, X, UtensilsCrossed, Receipt, Languages } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useT } from '../i18n/context';
 import type { ScanMode } from '../types';
 
@@ -91,7 +92,13 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
             ))}
             {scanMode === 'menu' && images.length < 4 && (
               <button
-                onClick={() => onAddPage ? onAddPage() : albumInputRef.current?.click()}
+                onClick={() => {
+                  if (Capacitor.isNativePlatform() && onAddPage) {
+                    onAddPage();
+                  } else {
+                    albumInputRef.current?.click();
+                  }
+                }}
                 className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-orange-300 hover:text-orange-400"
               >
                 <span className="text-xl">+</span>
