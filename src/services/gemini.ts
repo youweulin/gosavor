@@ -401,7 +401,7 @@ Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]")
               boundingBox: { type: Type.ARRAY, items: { type: Type.NUMBER } },
               imageIndex: { type: Type.INTEGER },
             },
-            required: ['originalName', 'translatedName', 'price', 'category'],
+            required: ['originalName', 'translatedName', 'price', 'category', 'boundingBox', 'imageIndex'],
           },
         },
       },
