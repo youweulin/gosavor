@@ -136,14 +136,6 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
         </div>
       </div>
 
-      {/* Trip name bar */}
-      {tripName && (
-        <div className="px-4 py-2 bg-orange-50/50 flex items-center justify-between">
-          <span className="text-xs font-medium text-orange-600">✈️ {tripName}</span>
-          <span className="text-xs font-bold text-green-600">第 {tripDays} 天</span>
-        </div>
-      )}
-
       {/* Lower: Quick Actions with stats */}
       <div className="flex border-t border-orange-100/60">
         <button onClick={onDiary} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
@@ -164,6 +156,13 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
           {totalMeals > 0 && <span className="text-[10px] text-gray-400">{totalMeals} 餐</span>}
         </button>
       </div>
+
+      {/* Trip name — centered below buttons */}
+      {tripName && (
+        <div className="py-2 border-t border-orange-100/60 text-center">
+          <span className="text-xs text-gray-500">{tripName} · 第 {tripDays} 天</span>
+        </div>
+      )}
     </div>
   );
 };
