@@ -491,11 +491,11 @@ function AppInner() {
         <div className="sticky top-[53px] z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
           <div className="max-w-md mx-auto px-2 py-1">
             <InlineImageMap
-              images={images}
+              images={menuResults.length > 1 ? [images[activeMenuPage]] : images}
               items={menuResult.items}
               highlightIndex={highlightIndex}
               activeCategory={activeCategory}
-              activeImageIndex={activeImageIdx}
+              activeImageIndex={menuResults.length > 1 ? 0 : activeImageIdx}
               onTapItem={(idx) => {
                 setHighlightIndex(idx);
                 const el = document.getElementById(`menu-item-${idx}`);
@@ -503,8 +503,11 @@ function AppInner() {
                 setTimeout(() => setHighlightIndex(null), 2000);
               }}
               onImageChange={(imgIdx) => {
+                if (menuResults.length > 1) {
+                  // Multi-page: imgIdx is always 0, use page tabs to switch
+                  return;
+                }
                 setActiveImageIdx(imgIdx);
-                // Scroll menu list to first item of that image
                 if (menuResult) {
                   const firstItem = menuResult.items.findIndex(it => (it.imageIndex ?? 0) === imgIdx);
                   if (firstItem >= 0) {
