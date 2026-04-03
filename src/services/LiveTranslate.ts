@@ -117,19 +117,23 @@ const webCameraTranslate = (targetLang: string): Promise<{
     overlay.querySelector('#ar-capture')?.addEventListener('click', async () => {
       if (!video.videoWidth) return;
 
-      // Capture frame
-      const canvas = document.createElement('canvas');
+      // Capture HIGH quality frame for display/diary
+      const fullCanvas = document.createElement('canvas');
+      fullCanvas.width = video.videoWidth;
+      fullCanvas.height = video.videoHeight;
+      fullCanvas.getContext('2d')?.drawImage(video, 0, 0);
+      const fullBase64 = fullCanvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+      // Capture compressed frame for API (save tokens)
+      const apiCanvas = document.createElement('canvas');
       const maxDim = 600;
       let w = video.videoWidth, h = video.videoHeight;
-      if (w > h) {
-        if (w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
-      } else {
-        if (h > maxDim) { w = Math.round((w * maxDim) / h); h = maxDim; }
-      }
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d')?.drawImage(video, 0, 0, w, h);
-      const base64 = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+      if (w > h) { if (w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; } }
+      else { if (h > maxDim) { w = Math.round((w * maxDim) / h); h = maxDim; } }
+      apiCanvas.width = w;
+      apiCanvas.height = h;
+      apiCanvas.getContext('2d')?.drawImage(video, 0, 0, w, h);
+      const base64 = apiCanvas.toDataURL('image/jpeg', 0.5).split(',')[1];
 
       // Show loading
       loadingOverlay.style.display = 'flex';
@@ -178,7 +182,7 @@ Only return valid JSON, no markdown.` },
         cleanup();
         resolve({
           items,
-          imageBase64: base64,
+          imageBase64: fullBase64,
           timestamp: Date.now(),
         });
       } catch (e: any) {
@@ -234,19 +238,26 @@ const webFilePickerTranslate = (targetLang: string): Promise<{
       const reader = new FileReader();
       reader.onload = async () => {
         const dataUrl = reader.result as string;
-
-        // Resize
-        const canvas = document.createElement('canvas');
         const img = new Image();
         img.src = dataUrl;
         await new Promise(r => { img.onload = r; });
+
+        // High quality for display/diary
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = img.width;
+        fullCanvas.height = img.height;
+        fullCanvas.getContext('2d')?.drawImage(img, 0, 0);
+        const fullBase64 = fullCanvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+        // Compressed for API
+        const apiCanvas = document.createElement('canvas');
         let w = img.width, h = img.height;
         const maxDim = 600;
         if (w > h) { if (w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; } }
         else { if (h > maxDim) { w = Math.round((w * maxDim) / h); h = maxDim; } }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
-        const resizedBase64 = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+        apiCanvas.width = w; apiCanvas.height = h;
+        apiCanvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+        const resizedBase64 = apiCanvas.toDataURL('image/jpeg', 0.5).split(',')[1];
 
         try {
           const settings = JSON.parse(localStorage.getItem('gosavor_settings') || '{}');
@@ -279,7 +290,7 @@ const webFilePickerTranslate = (targetLang: string): Promise<{
             items = JSON.parse(text.replace(/```\w*\s*/g, '').replace(/```/g, '').trim());
           }
 
-          resolve({ items, imageBase64: resizedBase64, timestamp: Date.now() });
+          resolve({ items, imageBase64: fullBase64, timestamp: Date.now() });
         } catch (e) {
           console.error('[GoSavor] File picker translate error:', e);
           resolve(null);

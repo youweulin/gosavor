@@ -946,12 +946,12 @@ function AppInner() {
               setScanMode('general');
               if (imageDataUrl) setImages([imageDataUrl]);
               setGeneralResult({
-                locationGuess: 'AR翻譯',
+                locationGuess: 'AR 即時翻譯',
                 items: result.items.map(item => ({
                   originalText: item.original,
                   translatedText: item.translated,
-                  explanation: '',
-                  category: 'AR',
+                  explanation: `原文：${item.original}`,
+                  category: 'Sign',
                 })),
               });
               setShowCamera(true);
