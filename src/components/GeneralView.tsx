@@ -30,9 +30,13 @@ const GeneralView = ({ data, imageSrc }: GeneralViewProps) => {
       )}
       {isAR ? (
         <>
-          {/* AR image with overlay text boxes */}
-          {imageSrc && hasBoxes && (
-            <ARImageOverlay imageSrc={imageSrc} items={data.items} onSpeak={speakText} />
+          {/* AR image with overlay text boxes (or plain image if no bounding boxes) */}
+          {imageSrc && (
+            hasBoxes
+              ? <ARImageOverlay imageSrc={imageSrc} items={data.items} onSpeak={speakText} />
+              : <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                  <img src={imageSrc} alt="AR translate" className="block w-full" />
+                </div>
           )}
           {/* AR text list below image */}
           <div className="space-y-2">

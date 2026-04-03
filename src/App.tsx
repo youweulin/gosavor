@@ -273,9 +273,8 @@ function AppInner() {
     } else if (mode === 'general' && scan.generalData) {
       setGeneralResult(scan.generalData);
     } else if (mode === 'ar-translate' && scan.arTranslateItems) {
-      // Display AR translate items as general result
+      // Display AR translate items as general result (image shown via ARImageOverlay)
       setScanMode('general');
-      setShowCamera(true); // ensure image area shows
       setGeneralResult({
         locationGuess: scan.restaurantName || 'AR翻譯',
         items: scan.arTranslateItems.map(item => ({
