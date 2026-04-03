@@ -874,42 +874,75 @@ function AppInner() {
       {/* Floating photo picker (native camera / album) */}
       {showPhotoPicker && (
         <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]" onClick={() => setShowPhotoPicker(false)}>
-          <div
-            className="absolute left-1/2 -translate-x-1/2 flex items-center bg-white rounded-full shadow-2xl overflow-hidden"
-            style={{ bottom: '110px' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              onClick={async () => {
-                setShowPhotoPicker(false);
-                const base64 = await pickNativeImage('camera');
-                if (base64) {
-                  setImages([`data:image/jpeg;base64,${base64}`]);
-                  setShowCamera(true);
-                  setTimeout(() => setAutoAnalyze(true), 50);
-                }
-              }}
-              className="flex flex-col items-center gap-1 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors border-r border-gray-100"
+          {(window as any).Capacitor?.isNativePlatform?.() ? (
+            /* iOS: separate camera/album buttons (native plugin) */
+            <div
+              className="absolute left-1/2 -translate-x-1/2 flex items-center bg-white rounded-full shadow-2xl overflow-hidden"
+              style={{ bottom: '110px' }}
+              onClick={e => e.stopPropagation()}
             >
-              <Camera size={24} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
-              <span className="text-[13px] font-bold text-gray-800 tracking-wide">拍照</span>
-            </button>
-            <button
-              onClick={async () => {
+              <button
+                onClick={async () => {
+                  setShowPhotoPicker(false);
+                  const base64 = await pickNativeImage('camera');
+                  if (base64) {
+                    setImages([`data:image/jpeg;base64,${base64}`]);
+                    setShowCamera(true);
+                    setTimeout(() => setAutoAnalyze(true), 50);
+                  }
+                }}
+                className="flex flex-col items-center gap-1 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors border-r border-gray-100"
+              >
+                <Camera size={24} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
+                <span className="text-[13px] font-bold text-gray-800 tracking-wide">拍照</span>
+              </button>
+              <button
+                onClick={async () => {
+                  setShowPhotoPicker(false);
+                  const base64 = await pickNativeImage('album');
+                  if (base64) {
+                    setImages([`data:image/jpeg;base64,${base64}`]);
+                    setShowCamera(true);
+                    setTimeout(() => setAutoAnalyze(true), 50);
+                  }
+                }}
+                className="flex flex-col items-center gap-1 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <Image size={24} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
+                <span className="text-[13px] font-bold text-gray-800 tracking-wide">相簿</span>
+              </button>
+            </div>
+          ) : (
+            /* PWA: single button → iOS Safari shows native camera/album/browse menu */
+            <div
+              className="absolute left-1/2 -translate-x-1/2 bg-white rounded-full shadow-2xl overflow-hidden"
+              style={{ bottom: '110px' }}
+              onClick={e => { e.stopPropagation();
                 setShowPhotoPicker(false);
-                const base64 = await pickNativeImage('album');
-                if (base64) {
-                  setImages([`data:image/jpeg;base64,${base64}`]);
-                  setShowCamera(true);
-                  setTimeout(() => setAutoAnalyze(true), 50);
-                }
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = () => {
+                  const file = input.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const base64 = (reader.result as string).split(',')[1];
+                    setImages([`data:image/jpeg;base64,${base64}`]);
+                    setShowCamera(true);
+                    setTimeout(() => setAutoAnalyze(true), 50);
+                  };
+                  reader.readAsDataURL(file);
+                };
+                input.click();
               }}
-              className="flex flex-col items-center gap-1 px-6 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              <Image size={24} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
-              <span className="text-[13px] font-bold text-gray-800 tracking-wide">相簿</span>
-            </button>
-          </div>
+              <div className="flex flex-col items-center gap-1 px-8 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                <Camera size={28} className={scanMode === 'menu' ? 'text-orange-500' : scanMode === 'receipt' ? 'text-blue-500' : 'text-slate-600'} />
+                <span className="text-[13px] font-bold text-gray-800 tracking-wide">拍照 / 相簿</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
