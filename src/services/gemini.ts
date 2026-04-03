@@ -431,7 +431,10 @@ Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]")
   }
 
   if (!response.text) throw new Error('No response from AI');
+  console.log('[GoSavor] PWA menu raw response length:', response.text.length);
+  console.log('[GoSavor] PWA menu raw response:', response.text.substring(0, 500));
   const result = safeParseJSON<MenuAnalysisResult>(response.text);
+  console.log('[GoSavor] PWA menu parsed items:', result.items?.length, 'first box:', result.items?.[0]?.boundingBox);
 
   // Auto-fix bounding box scale: if all values < 100, assume 0-100 scale → multiply by 10
   if (result.items?.length > 0) {
