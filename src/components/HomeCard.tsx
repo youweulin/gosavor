@@ -116,27 +116,29 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
           </span>
         </div>
 
-        {/* Trip name + Location + Weather — centered */}
+        {/* Trip name + Location + Weather — centered, fixed height */}
         <div className="text-center mt-3 space-y-0.5">
           {tripName && (
             <p className="text-sm font-medium text-gray-700">{tripName} · 第 {tripDays} 天</p>
           )}
-          <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+          <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 h-5">
             {locationText ? (
               <>
                 <MapPin size={12} className="text-orange-400" />
                 <span>{locationText}</span>
               </>
-            ) : loading ? (
-              <span>📍 定位中...</span>
-            ) : null}
-            {weather && (
+            ) : (
+              <span className="text-gray-300">📍 定位中...</span>
+            )}
+            {weather ? (
               <>
-                {locationText && <span>·</span>}
+                <span>·</span>
                 <WeatherIcon icon={weather.icon} />
                 <span>{weather.temp}</span>
                 <span>{weather.desc}</span>
               </>
+            ) : (
+              <span className="text-gray-300">&nbsp;</span>
             )}
           </div>
         </div>
