@@ -95,31 +95,39 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
 
         {/* Gemini API Key */}
         <div>
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-            <Key size={14} /> {t('settings.apiKey')}
+          <label className="flex items-center justify-between mb-2">
+            <span className="flex items-center gap-2 text-sm font-medium text-gray-300">
+              <Key size={14} /> {t('settings.apiKey')}
+            </span>
+            <button
+              onClick={() => setShowKeyGuide(true)}
+              className="text-xs text-orange-400 hover:text-orange-300"
+            >
+              {t('settings.keyGuide')}
+            </button>
           </label>
           {canUseApiKey ? (
           <>
-          <div className="relative">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={keyDraft}
-              onChange={e => { setKeyDraft(e.target.value); setKeySaved(false); }}
-              placeholder="AIzaSy..."
-              className="w-full px-4 py-3 pr-12 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none"
-            />
-            <button
-              onClick={() => setShowKey(!showKey)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-            >
-              {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={keyDraft}
+                onChange={e => { setKeyDraft(e.target.value); setKeySaved(false); }}
+                placeholder="AIzaSy..."
+                className="w-full px-4 py-3 pr-12 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none"
+              />
+              <button
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              >
+                {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             <button
               onClick={() => { onUpdate({ geminiApiKey: keyDraft }); setKeySaved(true); setTimeout(() => setKeySaved(false), 2000); }}
               disabled={!keyChanged}
-              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 transition-all ${
+              className={`px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-1 shrink-0 transition-all ${
                 keySaved
                   ? 'bg-green-600 text-white'
                   : keyChanged
@@ -127,13 +135,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
                     : 'bg-gray-800 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {keySaved ? <><Check size={14} /> {t('settings.saved')}</> : t('settings.saveKey')}
-            </button>
-            <button
-              onClick={() => setShowKeyGuide(true)}
-              className="px-3 py-2 text-xs text-orange-400 hover:text-orange-300"
-            >
-              {t('settings.keyGuide')}
+              {keySaved ? <><Check size={14} /></> : t('settings.saveKey')}
             </button>
           </div>
           </>
