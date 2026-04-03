@@ -950,8 +950,9 @@ function AppInner() {
                 items: result.items.map(item => ({
                   originalText: item.original,
                   translatedText: item.translated,
-                  explanation: `原文：${item.original}`,
-                  category: 'Sign',
+                  explanation: '',
+                  category: 'AR',
+                  boundingBox: item.boundingBox,
                 })),
               });
               setShowCamera(true);

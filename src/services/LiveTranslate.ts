@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 export interface ARTranslateItem {
   original: string;
   translated: string;
+  boundingBox?: number[]; // [ymin, xmin, ymax, xmax] 0-1000 scale
 }
 
 export interface ARTranslateResult {
@@ -148,29 +149,33 @@ const webCameraTranslate = (targetLang: string): Promise<{
         // Try own key first, then worker proxy
         let items: ARTranslateItem[] = [];
 
+        const arPrompt = `Detect ALL text regions in this image. Group text by logical blocks (e.g. product name, description, ingredients, manufacturer).
+For each text block, translate to ${targetLang}.
+Return JSON array with bounding boxes:
+[{"original":"日文原文","translated":"${targetLang}翻譯","boundingBox":[ymin,xmin,ymax,xmax]}]
+- boundingBox: coordinates in 0-1000 scale relative to image dimensions
+- Each block should be a meaningful text group, NOT individual characters
+- Separate different sections (title, description, ingredients, etc.) into different items
+Only return valid JSON, no markdown.`;
+
         if (apiKey) {
           const ai = new GoogleGenAI({ apiKey });
           const res = await ai.models.generateContent({
             model: 'gemini-3.1-flash-lite-preview',
             contents: [
               { inlineData: { mimeType: 'image/jpeg', data: base64 } },
-              { text: `Detect ALL text in this image. For each text block, translate to ${targetLang}.
-Return JSON array: [{"original":"detected text","translated":"translation"}]
-Only return valid JSON, no markdown.` },
+              { text: arPrompt },
             ],
           });
           const text = res.text?.trim() || '[]';
           const clean = text.replace(/```\w*\s*/g, '').replace(/```/g, '').trim();
           items = JSON.parse(clean);
         } else {
-          // Use worker proxy
           const { callGeminiViaWorker } = await import('./workerProxy');
           const geminiRequest = {
             contents: [{ parts: [
               { inlineData: { mimeType: 'image/jpeg', data: base64 } },
-              { text: `Detect ALL text in this image. For each text block, translate to ${targetLang}.
-Return JSON array: [{"original":"detected text","translated":"translation"}]
-Only return valid JSON, no markdown.` },
+              { text: arPrompt },
             ]}],
           };
           const workerResult = await callGeminiViaWorker(geminiRequest, 'ar-translate', 'gemini-3.1-flash-lite-preview');
@@ -263,7 +268,11 @@ const webFilePickerTranslate = (targetLang: string): Promise<{
           const settings = JSON.parse(localStorage.getItem('gosavor_settings') || '{}');
           const apiKey = settings.geminiApiKey || '';
           let items: ARTranslateItem[] = [];
-          const prompt = `Detect ALL text in this image. For each text block, translate to ${targetLang}.\nReturn JSON array: [{"original":"detected text","translated":"translation"}]\nOnly return valid JSON, no markdown.`;
+          const prompt = `Detect ALL text regions in this image. Group text by logical blocks.
+For each text block, translate to ${targetLang}.
+Return JSON array: [{"original":"日文原文","translated":"翻譯","boundingBox":[ymin,xmin,ymax,xmax]}]
+boundingBox in 0-1000 scale. Separate different sections into different items.
+Only return valid JSON, no markdown.`;
 
           if (apiKey) {
             const { GoogleGenAI } = await import('@google/genai');

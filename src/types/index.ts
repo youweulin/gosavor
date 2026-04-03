@@ -51,6 +51,7 @@ export interface GeneralItem {
   translatedText: string;
   explanation: string;
   category: string;
+  boundingBox?: number[]; // [ymin, xmin, ymax, xmax] 0-1000 scale (AR translate)
 }
 
 export interface GeneralAnalysisResult {

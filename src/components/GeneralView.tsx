@@ -16,6 +16,8 @@ const GeneralView = ({ data }: GeneralViewProps) => {
     window.speechSynthesis.speak(u);
   };
 
+  const isAR = data.items.some(item => item.category === 'AR');
+
   return (
     <div className="max-w-md mx-auto space-y-3">
       {data.locationGuess && (
@@ -24,13 +26,40 @@ const GeneralView = ({ data }: GeneralViewProps) => {
           <span>{data.locationGuess}</span>
         </div>
       )}
-      {data.items.map((item, idx) =>
-        item.category === 'Fortune' ? (
-          <FortuneCard key={idx} item={item} />
-        ) : isMedicineOrBeauty(item.category) ? (
-          <MedicineCard key={idx} item={item} onSpeak={speakText} />
-        ) : (
-          <GeneralCard key={idx} item={item} onSpeak={speakText} />
+      {isAR ? (
+        // AR translate: numbered cards for easy image-text matching
+        <div className="space-y-2">
+          {data.items.map((item, idx) => (
+            <div key={idx} className="bg-white rounded-xl border border-gray-200 p-3">
+              <div className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                  {idx + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-bold text-gray-900 leading-snug">{item.translatedText}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <p className="text-xs text-gray-400 truncate">{item.originalText}</p>
+                    <button
+                      onClick={() => speakText(item.originalText)}
+                      className="text-gray-300 hover:text-orange-500 p-0.5 flex-shrink-0"
+                    >
+                      <Volume2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        data.items.map((item, idx) =>
+          item.category === 'Fortune' ? (
+            <FortuneCard key={idx} item={item} />
+          ) : isMedicineOrBeauty(item.category) ? (
+            <MedicineCard key={idx} item={item} onSpeak={speakText} />
+          ) : (
+            <GeneralCard key={idx} item={item} onSpeak={speakText} />
+          )
         )
       )}
     </div>
