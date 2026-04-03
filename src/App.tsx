@@ -709,18 +709,23 @@ function AppInner() {
             {/* Plan & Usage */}
             {(() => {
               const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+              const isPaid = userPlan === 'supporter' || userPlan === 'pro';
               return (
-              <div className="bg-gradient-to-br from-gray-50 to-orange-50 rounded-2xl p-4 mb-5 border border-orange-100">
+              <div className={`bg-gradient-to-br ${isPaid ? 'from-orange-50 to-amber-50 border-orange-200' : 'from-gray-50 to-orange-50 border-orange-100'} rounded-2xl p-4 mb-5 border`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">{isNative ? '🍎' : '🌐'}</span>
+                    <span className="text-xl">{isPaid ? '⭐' : isNative ? '🍎' : '🌐'}</span>
                     <div>
-                      <p className="font-bold text-sm text-gray-900">免費體驗版</p>
-                      <p className="text-xs text-gray-400">{isNative ? 'iOS 版' : 'PWA 網頁版'}・封測期間</p>
+                      <p className="font-bold text-sm text-gray-900">
+                        {isPaid ? (userPlan === 'pro' ? '正式版' : '贊助版') : '免費體驗版'}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {isPaid ? '感謝支持 GoSavor！' : `${isNative ? 'iOS 版' : 'PWA 網頁版'}・封測期間`}
+                      </p>
                     </div>
                   </div>
-                  <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium">
-                    Beta
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${isPaid ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-600'}`}>
+                    {isPaid ? (userPlan === 'pro' ? 'Pro' : 'Supporter') : 'Beta'}
                   </span>
                 </div>
 
@@ -740,24 +745,30 @@ function AppInner() {
                   )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">AI 翻譯（菜單/收據/萬用）</span>
-                    <span className={isNative ? 'text-orange-500 font-medium' : 'text-green-600 font-medium'}>
-                      {isNative ? '1 次/天' : '20 次/天（7/1 前免費）'}
+                    <span className={isPaid ? 'text-green-600 font-medium' : isNative ? 'text-orange-500 font-medium' : 'text-green-600 font-medium'}>
+                      {isPaid ? '無限（自帶 Key）✅' : isNative ? '1 次/天' : '20 次/天（7/1 前免費）'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">自帶 API Key</span>
-                    <span className="text-gray-400">🔒 需開通</span>
+                    {isPaid ? (
+                      <span className="text-green-600 font-medium">已開通 ✅</span>
+                    ) : (
+                      <span className="text-gray-400">🔒 需開通</span>
+                    )}
                   </div>
                 </div>
 
-                {/* Upgrade hint */}
-                <div className="mt-3 pt-3 border-t border-orange-100">
-                  {isNative ? (
-                    <p className="text-xs text-gray-500">開通贊助版 $299（7/1 前限定）→ 自帶 API Key 無限翻譯</p>
-                  ) : (
-                    <p className="text-xs text-gray-500">7/1 後需開通：PWA 版 $199 ｜ iOS 全功能版 $299</p>
-                  )}
-                </div>
+                {/* Upgrade hint (only for free users) */}
+                {!isPaid && (
+                  <div className="mt-3 pt-3 border-t border-orange-100">
+                    {isNative ? (
+                      <p className="text-xs text-gray-500">開通贊助版 $299（7/1 前限定）→ 自帶 API Key 無限翻譯</p>
+                    ) : (
+                      <p className="text-xs text-gray-500">7/1 後需開通：PWA 版 $199 ｜ iOS 全功能版 $299</p>
+                    )}
+                  </div>
+                )}
               </div>
               );
             })()}
