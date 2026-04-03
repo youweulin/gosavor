@@ -630,7 +630,7 @@ function AppInner() {
               </button>
             </div>
             <div id="share-result">
-              <GeneralView data={generalResult} />
+              <GeneralView data={generalResult} imageSrc={images[0]} />
             </div>
             <div className="flex justify-center mt-3">
               <ShareButton targetId="share-result" title={generalResult.locationGuess || '翻譯結果'} />

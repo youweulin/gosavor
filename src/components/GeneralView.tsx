@@ -1,22 +1,24 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Sparkles, Info, Volume2, MapPin } from 'lucide-react';
 import type { GeneralAnalysisResult } from '../types';
 import { useT } from '../i18n/context';
 
 interface GeneralViewProps {
   data: GeneralAnalysisResult;
+  imageSrc?: string; // AR translate image
 }
 
 const isMedicineOrBeauty = (category?: string) =>
   ['Medicine', 'Beauty', 'Snack'].includes(category || '');
 
-const GeneralView = ({ data }: GeneralViewProps) => {
+const GeneralView = ({ data, imageSrc }: GeneralViewProps) => {
   const speakText = (text: string) => {
     const u = new SpeechSynthesisUtterance(text);
     window.speechSynthesis.speak(u);
   };
 
   const isAR = data.items.some(item => item.category === 'AR');
+  const hasBoxes = isAR && data.items.some(item => item.boundingBox?.length === 4);
 
   return (
     <div className="max-w-md mx-auto space-y-3">
@@ -27,30 +29,33 @@ const GeneralView = ({ data }: GeneralViewProps) => {
         </div>
       )}
       {isAR ? (
-        // AR translate: numbered cards for easy image-text matching
-        <div className="space-y-2">
-          {data.items.map((item, idx) => (
-            <div key={idx} className="bg-white rounded-xl border border-gray-200 p-3">
-              <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">
-                  {idx + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-bold text-gray-900 leading-snug">{item.translatedText}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <p className="text-xs text-gray-400 truncate">{item.originalText}</p>
-                    <button
-                      onClick={() => speakText(item.originalText)}
-                      className="text-gray-300 hover:text-orange-500 p-0.5 flex-shrink-0"
-                    >
-                      <Volume2 size={12} />
-                    </button>
+        <>
+          {/* AR image with overlay text boxes */}
+          {imageSrc && hasBoxes && (
+            <ARImageOverlay imageSrc={imageSrc} items={data.items} onSpeak={speakText} />
+          )}
+          {/* AR text list below image */}
+          <div className="space-y-2">
+            {data.items.map((item, idx) => (
+              <div key={idx} className="bg-white rounded-xl border border-gray-200 p-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-bold text-gray-900 leading-snug">{item.translatedText}</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <p className="text-xs text-gray-400">{item.originalText}</p>
+                      <button
+                        onClick={() => speakText(item.originalText)}
+                        className="text-gray-300 hover:text-orange-500 p-0.5 flex-shrink-0"
+                      >
+                        <Volume2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       ) : (
         data.items.map((item, idx) =>
           item.category === 'Fortune' ? (
@@ -62,6 +67,84 @@ const GeneralView = ({ data }: GeneralViewProps) => {
           )
         )
       )}
+    </div>
+  );
+};
+
+/** AR Image with translated text overlay boxes — like iOS AR translate */
+const ARImageOverlay = ({ imageSrc, items, onSpeak }: {
+  imageSrc: string;
+  items: GeneralAnalysisResult['items'];
+  onSpeak: (text: string) => void;
+}) => {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
+  const [tappedIdx, setTappedIdx] = useState<number | null>(null);
+
+  const updateSize = useCallback(() => {
+    const el = imgRef.current;
+    if (el && el.clientWidth > 0) setImgSize({ w: el.clientWidth, h: el.clientHeight });
+  }, []);
+
+  useEffect(() => {
+    const observer = new ResizeObserver(updateSize);
+    if (imgRef.current) observer.observe(imgRef.current);
+    return () => observer.disconnect();
+  }, [updateSize]);
+
+  const normalize = (box: number[]) =>
+    box.some(v => v > 1) ? box.map(v => v / 1000) : box;
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+      <div
+        className="relative inline-block w-full"
+        style={imgSize.w > 0 ? { width: imgSize.w, height: imgSize.h } : undefined}
+      >
+        <img
+          ref={imgRef}
+          src={imageSrc}
+          alt="AR translate"
+          className="block w-full"
+          onLoad={updateSize}
+        />
+        {/* Overlay translated text boxes */}
+        {items.map((item, idx) => {
+          if (!item.boundingBox || item.boundingBox.length < 4) return null;
+          const [ymin, xmin, ymax, xmax] = normalize(item.boundingBox);
+          const isTapped = tappedIdx === idx;
+
+          return (
+            <div
+              key={idx}
+              className="absolute cursor-pointer transition-all duration-200"
+              style={{
+                top: `${ymin * 100}%`,
+                left: `${xmin * 100}%`,
+                width: `${(xmax - xmin) * 100}%`,
+                height: `${(ymax - ymin) * 100}%`,
+              }}
+              onClick={() => {
+                setTappedIdx(isTapped ? null : idx);
+                if (!isTapped) onSpeak(item.originalText);
+              }}
+            >
+              {/* Semi-transparent background with translated text */}
+              <div className={`absolute inset-0 flex items-center justify-center p-0.5 rounded transition-all ${
+                isTapped
+                  ? 'bg-orange-500/90 ring-2 ring-orange-400'
+                  : 'bg-black/60 hover:bg-orange-500/80'
+              }`}>
+                <span className={`text-white font-bold leading-tight text-center ${
+                  (xmax - xmin) > 0.3 ? 'text-xs' : 'text-[9px]'
+                }`}>
+                  {item.translatedText}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
