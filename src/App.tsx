@@ -74,10 +74,17 @@ function AppInner() {
   const [redeemStatus, setRedeemStatus] = useState('');
   const [userPlan, setUserPlan] = useState('free');
   const [usageInfo, setUsageInfo] = useState<ReturnType<typeof getLastUsageInfo>>(null);
-  const [menuResult, setMenuResult] = useState<MenuAnalysisResult | null>(null);
+  const [menuResults, setMenuResults] = useState<MenuAnalysisResult[]>([]);
+  const [activeMenuPage, setActiveMenuPage] = useState(0);
+  // Computed: current page's result (backward compatible)
+  const menuResult = menuResults.length > 0 ? menuResults[activeMenuPage] || menuResults[0] : null;
+  const setMenuResult = (r: MenuAnalysisResult | null) => {
+    if (r) setMenuResults([r]);
+    else setMenuResults([]);
+  };
   const [receiptResult, setReceiptResult] = useState<ReceiptAnalysisResult | null>(null);
   const [generalResult, setGeneralResult] = useState<GeneralAnalysisResult | null>(null);
-  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState<'review' | 'staff' | 'split'>('review');
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
@@ -150,14 +157,24 @@ function AppInner() {
       }));
 
       if (scanMode === 'menu') {
-        const result = await analyzeMenuImage(imageData, targetLangLabel, apiKey, settings.allergens);
-        setMenuResult(result);
+        // Translate each image separately (max 4 pages)
+        const pagesToTranslate = images.slice(0, 4);
+        const results: MenuAnalysisResult[] = [];
+        for (let i = 0; i < pagesToTranslate.length; i++) {
+          const pageImageData = [{ base64: pagesToTranslate[i].split(',')[1], mimeType: 'image/jpeg' }];
+          const result = await analyzeMenuImage(pageImageData, targetLangLabel, apiKey, settings.allergens);
+          results.push(result);
+        }
+        setMenuResults(results);
+        setActiveMenuPage(0);
         setUsageInfo(getLastUsageInfo());
         setQuantities({});
+        // Save all items across pages
+        const allItems = results.flatMap(r => r.items);
         saveScan({
           id: crypto.randomUUID(), timestamp: Date.now(), scanMode: 'menu',
-          restaurantName: result.restaurantName || 'Menu',
-          currency: result.currency, items: result.items, images,
+          restaurantName: results[0]?.restaurantName || 'Menu',
+          currency: results[0]?.currency || '¥', items: allItems, images,
         });
         trackScanEvent('menu');
       } else if (scanMode === 'receipt') {
@@ -233,9 +250,10 @@ function AppInner() {
   }, [autoAnalyze, images, isAnalyzing]);
 
   const handleUpdateQuantity = (index: number, delta: number) => {
+    const key = `${activeMenuPage}-${index}`;
     setQuantities(prev => {
-      const next = Math.max(0, (prev[index] || 0) + delta);
-      return { ...prev, [index]: next };
+      const next = Math.max(0, (prev[key] || 0) + delta);
+      return { ...prev, [key]: next };
     });
   };
 
@@ -615,11 +633,34 @@ function AppInner() {
                 </button>
               </div>
             </div>
+            {/* Page tabs for multi-page menu */}
+            {menuResults.length > 1 && (
+              <div className="flex gap-2 mb-3">
+                {menuResults.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setActiveMenuPage(i); setActiveImageIdx(i); }}
+                    className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+                      activeMenuPage === i
+                        ? 'bg-orange-500 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                  >
+                    第 {i + 1} 頁
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div id="share-result">
               <MenuResults
                 items={menuResult.items}
                 currency={menuResult.currency}
-                quantities={quantities}
+                quantities={Object.fromEntries(
+                  Object.entries(quantities)
+                    .filter(([k]) => k.startsWith(`${activeMenuPage}-`))
+                    .map(([k, v]) => [parseInt(k.split('-')[1]), v])
+                )}
                 onUpdateQuantity={handleUpdateQuantity}
                 userAllergens={settings.allergens}
                 onLocate={(idx) => {
@@ -697,8 +738,9 @@ function AppInner() {
         <div className="fixed bottom-0 left-0 right-0 px-4 pb-2 z-40 bg-gradient-to-t from-gray-50 via-gray-50/95 to-transparent pt-4">
           <div className="max-w-md mx-auto">
             {(() => {
-              const totalForeign = Object.entries(quantities).reduce((acc, [idx, qty]) => {
-                const price = parseFloat(menuResult.items[parseInt(idx)]?.price || '0');
+              const totalForeign = Object.entries(quantities).reduce((acc, [key, qty]) => {
+                const [pageIdx, itemIdx] = key.split('-').map(Number);
+                const price = parseFloat(menuResults[pageIdx]?.items[itemIdx]?.price || '0');
                 return acc + price * qty;
               }, 0);
               const curr = menuResult.currency;
@@ -889,8 +931,24 @@ function AppInner() {
       <Checkout
         isVisible={showCheckout}
         onClose={() => { setShowCheckout(false); setQuantities({}); }}
-        items={menuResult?.items || []}
-        quantities={quantities}
+        items={menuResults.flatMap(r => r.items)}
+        quantities={Object.fromEntries(
+          (() => {
+            // Convert "pageIdx-itemIdx" to flat index for Checkout
+            let offset = 0;
+            const entries: [number, number][] = [];
+            menuResults.forEach((r, pageIdx) => {
+              Object.entries(quantities)
+                .filter(([k]) => k.startsWith(`${pageIdx}-`))
+                .forEach(([k, v]) => {
+                  const itemIdx = parseInt(k.split('-')[1]);
+                  entries.push([offset + itemIdx, v]);
+                });
+              offset += r.items.length;
+            });
+            return entries;
+          })()
+        )}
         currency={menuResult?.currency || '¥'}
         restaurantName={menuResult?.restaurantName || ''}
         taxRate={settings.taxRate}
