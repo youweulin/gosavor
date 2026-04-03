@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, BookOpen, Wallet, Clock } from 'lucide-react';
+import { getScanHistory, getExpenses, getActiveTrip } from '../services/storage';
+
 
 
 interface WeatherData { temp: string; desc: string; icon: string; }
@@ -41,6 +43,31 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
   const [location, setLocation] = useState<LocationData | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [totalScans, setTotalScans] = useState(0);
+  const [totalMeals, setTotalMeals] = useState(0);
+  const [totalSpent, setTotalSpent] = useState('');
+  const [tripName, setTripName] = useState('');
+  const [tripDays, setTripDays] = useState(0);
+
+  useEffect(() => {
+    const trip = getActiveTrip();
+    if (trip) {
+      setTripName(trip.name);
+      setTripDays(Math.max(1, Math.ceil((Date.now() - trip.startDate) / (1000 * 60 * 60 * 24))));
+    }
+    getScanHistory().then(scans => {
+      const filtered = trip ? scans.filter(s => s.timestamp >= trip.startDate) : scans;
+      setTotalScans(filtered.length);
+      setTotalMeals(filtered.filter(s => (s.scanMode || 'menu') === 'menu').length);
+    });
+    getExpenses().then(exps => {
+      const filtered = trip ? exps.filter(e => e.timestamp >= trip.startDate) : exps;
+      const byC: Record<string, number> = {};
+      filtered.forEach(e => { byC[e.currency] = (byC[e.currency] || 0) + e.amount; });
+      const parts = Object.entries(byC).map(([c, a]) => `${c}${Math.round(a).toLocaleString()}`);
+      setTotalSpent(parts.join(' '));
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,21 +136,32 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
         </div>
       </div>
 
-      {/* Lower: Quick Actions */}
+      {/* Trip name bar */}
+      {tripName && (
+        <div className="px-4 py-2 bg-orange-50/50 flex items-center justify-between">
+          <span className="text-xs font-medium text-orange-600">✈️ {tripName}</span>
+          <span className="text-xs font-bold text-green-600">第 {tripDays} 天</span>
+        </div>
+      )}
+
+      {/* Lower: Quick Actions with stats */}
       <div className="flex border-t border-orange-100/60">
         <button onClick={onDiary} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
           <BookOpen size={20} className="text-orange-500" />
           <span className="text-xs font-medium text-gray-600">旅遊日記</span>
+          {totalScans > 0 && <span className="text-[10px] text-gray-400">{totalScans} 次翻譯</span>}
         </button>
         <div className="w-px bg-orange-100/60" />
         <button onClick={onExpenses} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
           <Wallet size={20} className="text-orange-500" />
           <span className="text-xs font-medium text-gray-600">記帳簿</span>
+          {totalSpent && <span className="text-[10px] text-orange-500 font-medium">{totalSpent}</span>}
         </button>
         <div className="w-px bg-orange-100/60" />
         <button onClick={onHistory} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
           <Clock size={20} className="text-orange-500" />
           <span className="text-xs font-medium text-gray-600">點餐紀錄</span>
+          {totalMeals > 0 && <span className="text-[10px] text-gray-400">{totalMeals} 餐</span>}
         </button>
       </div>
     </div>
