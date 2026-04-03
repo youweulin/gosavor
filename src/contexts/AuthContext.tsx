@@ -50,11 +50,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) upsertUserRecord(s.user);
+    // Get initial session — sign out anonymous users
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      const u = s?.user;
+      if (u && (u.is_anonymous === true || (!u.email && !u.user_metadata?.email))) {
+        // Clear old anonymous session
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+      } else {
+        setSession(s);
+        setUser(u ?? null);
+        if (u) upsertUserRecord(u);
+      }
       setIsLoading(false);
     });
 
@@ -132,8 +140,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw new Error(error.message);
   }, []);
 
-  const isAuthenticated = !!session && !!user;
+  // Anonymous users (no email) are NOT considered authenticated
   const userEmail = user?.email || user?.user_metadata?.email || null;
+  const isAnonymous = user?.is_anonymous === true || (!userEmail && !!user);
+  const isAuthenticated = !!session && !!user && !isAnonymous;
   const authProvider = user?.app_metadata?.provider || null;
 
   return (
