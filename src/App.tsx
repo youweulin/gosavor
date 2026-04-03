@@ -87,6 +87,19 @@ function AppInner() {
   const [receiptHighlight, setReceiptHighlight] = useState<number | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [error, setError] = useState('');
+  const [gpsCity, setGpsCity] = useState('');
+
+  // Get GPS city for recommendations
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(async (pos) => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&accept-language=ja`);
+        const data = await res.json();
+        const city = data.address?.city || data.address?.town || data.address?.county || '';
+        if (city) setGpsCity(city);
+      } catch {}
+    }, () => {}, { timeout: 5000 });
+  }, []);
 
   const getApiKey = useCallback((): string | null => {
     return settings.geminiApiKey || null;
@@ -536,7 +549,7 @@ function AppInner() {
 
                 {/* Recommendations */}
                 <div>
-                  <RecommendCards loadProducts={() => getRecommendations(scanMode)} context="home" />
+                  <RecommendCards loadProducts={() => getRecommendations(scanMode, undefined, undefined, gpsCity)} context="home" />
                 </div>
 
                 {/* Recent Scans */}

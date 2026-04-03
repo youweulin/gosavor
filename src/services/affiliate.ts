@@ -319,8 +319,9 @@ export const getRecommendations = async (
   scanMode: string,
   restaurantName?: string,
   locationGuess?: string,
+  gpsCity?: string,
 ): Promise<Product[]> => {
-  const text = restaurantName || locationGuess || '';
+  const text = restaurantName || locationGuess || gpsCity || '';
   const { region, label, area } = detectLocation(text);
   const time = getTimeCategory();
   const priorities = SCAN_PRIORITIES[scanMode] || ['ticket', 'tour'];
