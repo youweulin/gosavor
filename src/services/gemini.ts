@@ -245,7 +245,8 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
           });
         } catch (err: any) {
           // If 2.5-flash quota exceeded (429) or unavailable (503), fallback to 3.1-lite
-          if (effectiveModel === 'gemini-2.5-flash' && (err?.message?.includes('429') || err?.message?.includes('503') || err?.message?.includes('quota'))) {
+          const errStr = JSON.stringify(err) + (err?.message || '') + (err?.status || '');
+          if (effectiveModel === 'gemini-2.5-flash' && (errStr.includes('429') || errStr.includes('503') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED'))) {
             effectiveModel = modelName; // fallback to default model
             console.log(`[GoSavor] 2.5-flash unavailable, fallback → ${effectiveModel}`);
             response = await ai.models.generateContent({
@@ -369,40 +370,57 @@ Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]")
     inlineData: { mimeType: img.mimeType, data: img.base64 },
   }));
 
-  // PWA menu uses 2.5-flash for accurate bounding boxes
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: { parts: [...imageParts, { text: prompt }] },
-    config: {
-      thinkingConfig: { thinkingBudget: 0 },
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          currency: { type: Type.STRING },
-          restaurantName: { type: Type.STRING },
+  // PWA menu: try 2.5-flash first, fallback to 3.1-lite if quota exceeded
+  const pwaMenuConfig = {
+    thinkingConfig: { thinkingBudget: 0 },
+    responseMimeType: 'application/json' as const,
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: {
+        currency: { type: Type.STRING },
+        restaurantName: { type: Type.STRING },
+        items: {
+          type: Type.ARRAY,
           items: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                originalName: { type: Type.STRING },
-                translatedName: { type: Type.STRING },
-                description: { type: Type.STRING },
-                price: { type: Type.STRING },
-                category: { type: Type.STRING },
-                allergens: { type: Type.ARRAY, items: { type: Type.STRING } },
-                boundingBox: { type: Type.ARRAY, items: { type: Type.NUMBER } },
-                imageIndex: { type: Type.INTEGER },
-              },
-              required: ['originalName', 'translatedName', 'price', 'category'],
+            type: Type.OBJECT,
+            properties: {
+              originalName: { type: Type.STRING },
+              translatedName: { type: Type.STRING },
+              description: { type: Type.STRING },
+              price: { type: Type.STRING },
+              category: { type: Type.STRING },
+              allergens: { type: Type.ARRAY, items: { type: Type.STRING } },
+              boundingBox: { type: Type.ARRAY, items: { type: Type.NUMBER } },
+              imageIndex: { type: Type.INTEGER },
             },
+            required: ['originalName', 'translatedName', 'price', 'category'],
           },
         },
-        required: ['currency', 'items'],
       },
+      required: ['currency', 'items'],
     },
-  });
+  };
+
+  let response;
+  try {
+    response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: { parts: [...imageParts, { text: prompt }] },
+      config: pwaMenuConfig,
+    });
+  } catch (err: any) {
+    const errStr = String(err?.message || '') + JSON.stringify(err);
+    if (errStr.includes('429') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED')) {
+      console.log('[GoSavor] PWA menu: 2.5-flash quota exceeded, fallback → 3.1-flash-lite');
+      response = await ai.models.generateContent({
+        model: modelName,
+        contents: { parts: [...imageParts, { text: prompt }] },
+        config: pwaMenuConfig,
+      });
+    } else {
+      throw err;
+    }
+  }
 
   if (!response.text) throw new Error('No response from AI');
   const result = safeParseJSON<MenuAnalysisResult>(response.text);
