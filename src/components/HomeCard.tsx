@@ -42,7 +42,7 @@ const planLabel: Record<string, { emoji: string; name: string }> = {
 const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory }: HomeCardProps) => {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [totalScans, setTotalScans] = useState(0);
   const [totalMeals, setTotalMeals] = useState(0);
   const [totalSpent, setTotalSpent] = useState('');
