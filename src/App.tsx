@@ -273,7 +273,7 @@ function AppInner() {
       const msg = err?.message || err?.toString?.() || String(err);
       console.error('[GoSavor] Analyze error:', msg);
       if (msg.includes('LIMIT')) {
-        setError('今日免費體驗額度（1次）已用完。開通贊助版 $299 → 自帶 API Key 無限翻譯！也可輸入兌換碼開通。');
+        setError('今日免費體驗額度已用完。開通贊助版（PWA $249 / iOS $299）→ 自帶 API Key 無限翻譯！也可輸入兌換碼開通。');
       } else if (msg.includes('GPS') || msg.includes('日本')) {
         setError('系統翻譯僅限日本境內使用。到日本後可免費體驗 1 次/天！或開通贊助版自帶 API Key 不受地區限制。');
       } else if (msg.includes('NO_KEY') || msg.includes('NO_AUTH')) {
@@ -931,7 +931,7 @@ function AppInner() {
                     {isBeta || isGuideMember ? (
                       <p className="text-xs text-gray-500">升級贊助版 → 自帶 Key 無限翻譯</p>
                     ) : (
-                      <p className="text-xs text-gray-500">輸入公測兌換碼開通，或直接開通贊助版（7/1 前 $299）</p>
+                      <p className="text-xs text-gray-500">輸入公測兌換碼開通，或開通贊助版（PWA $249 / iOS $299，7/1 前限定）</p>
                     )}
                   </div>
                 )}

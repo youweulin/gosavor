@@ -100,7 +100,7 @@ const zh_TW: Translations = {
   'settings.keyStep2': '用 Google 帳號登入，點「Create API Key」',
   'settings.keyStep3': '複製 Key（AIzaSy 開頭），貼到上方欄位',
   'settings.keyLocked': '開通贊助版即可使用自帶 API Key，享受無限翻譯',
-  'settings.keyLockedHint': '封測優惠 $299（7/1 前限定，之後調為 $599）。輸入兌換碼也可開通。',
+  'settings.keyLockedHint': '封測優惠 PWA $249 / iOS $299（7/1 前限定，之後 $399/$599）。輸入兌換碼也可開通。',
 
   // API Key Guide Page
   'guide.step1Title': '前往 Google AI Studio',
@@ -272,7 +272,7 @@ const en: Translations = {
   'settings.keyStep3': 'Copy the Key (starts with AIzaSy), paste above',
   'settings.keyFree': 'Gemini API free tier: 15 req/min, 1500 req/day — more than enough for travel.',
   'settings.keyLocked': 'Unlock Supporter plan to use your own API Key for unlimited translations',
-  'settings.keyLockedHint': 'Beta price $299 TWD (before 7/1 only, then $599). Redeem codes also accepted.',
+  'settings.keyLockedHint': 'Beta price: PWA $249 / iOS $299 TWD (before 7/1, then $399/$599). Redeem codes also accepted.',
   'guide.step1Title': 'Go to Google AI Studio',
   'guide.step1Desc': 'Tap the button below and sign in with your Google account.',
   'guide.openStudio': 'Open Google AI Studio',

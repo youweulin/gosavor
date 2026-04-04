@@ -48,7 +48,7 @@ const UsageLimitModal = ({ isVisible, onClose, onOpenSettings, errorType, messag
                   開通贊助版 → 自帶 API Key → 無限翻譯
                 </p>
                 <p className="text-xs text-orange-500 text-center mb-3">
-                  封測優惠 $299（7/1 前限定，之後 $599）
+                  封測優惠 PWA $249 / iOS $299（7/1 前限定，之後 $399/$599）
                 </p>
                 <button
                   onClick={onOpenSettings}
