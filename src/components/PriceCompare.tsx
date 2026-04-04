@@ -121,14 +121,24 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
                       <button
                         onClick={async () => {
                           if (!editName.trim()) return;
-                          const key = janCode || productName;
-                          if (key) {
-                            await supabase.from('price_reports').update({ translated_name: editName.trim() })
-                              .or(`jan_code.eq.${key},product_name.eq.${key}`);
+                          let updated = 0;
+                          // 用 JAN 更新所有同商品的 translated_name
+                          if (janCode) {
+                            await supabase.from('price_reports')
+                              .update({ translated_name: editName.trim() })
+                              .eq('jan_code', janCode)
+                              ;
+                            updated++;
+                          } else if (productName) {
+                            await supabase.from('price_reports')
+                              .update({ translated_name: editName.trim() })
+                              .eq('product_name', productName)
+                              ;
+                            updated++;
                           }
                           if (summary) setSummary({ ...summary, translatedName: editName.trim() });
                           setEditingName(false);
-                          setAdminStatus('✅ 名稱已更新');
+                          setAdminStatus(`✅ 已更新 ${updated} 筆`);
                         }}
                         className="px-2 py-1 bg-green-500 text-white rounded-lg text-xs font-bold"
                       >存</button>
