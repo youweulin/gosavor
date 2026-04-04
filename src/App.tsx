@@ -986,7 +986,7 @@ function AppInner() {
                 {/* Existing tour codes */}
                 {tourCodes.length > 0 && (
                   <div className="mb-3 space-y-1.5">
-                    {tourCodes.filter(c => c.is_active).map(c => (
+                    {tourCodes.filter(c => c.is_active).slice(0, 2).map(c => (
                       <div key={c.code} className="flex items-center gap-2 bg-green-100 rounded-lg px-3 py-2">
                         <span className="flex-1 font-mono text-sm font-bold text-green-800 tracking-wider">{c.code}</span>
                         <span className="text-[10px] text-green-600">{c.used_count}/{c.max_uses}人</span>
