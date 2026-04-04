@@ -354,27 +354,56 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
                   if (!toProcess.length) { setAdminStatus('✅ 所有商品已有資料'); return; }
 
                   let ok = 0;
+                  let errors: string[] = [];
                   for (const product of toProcess) {
-                    const kw = product.product_name.replace(/[\d\s\-_\.・]+[錠包枚個入g粒ml本袋箱]+$/g, '').substring(0, 20) || product.product_name.substring(0, 20);
-                    try {
-                      const res = await fetch(`https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&accessKey=${RAKUTEN_ACCESS_KEY}&keyword=${encodeURIComponent(kw)}&hits=1`);
-                      const data = await res.json();
-                      const items = data.Items || [];
-                      if (items.length > 0) {
-                        const item = items[0].Item;
-                        const img = (item.mediumImageUrls?.[0]?.imageUrl || '').replace('?_ex=128x128', '?_ex=300x300');
-                        let jan = product.jan_code || null;
-                        if (!jan && item.itemCaption) {
-                          const m = item.itemCaption.match(/JAN[:\s]?(\d{13})/i) || item.itemCaption.match(/(49\d{11}|45\d{11})/);
-                          if (m) jan = m[1];
+                    // 嘗試多種關鍵字：完整名 → 去規格 → 去數字
+                    const full = product.product_name.substring(0, 30);
+                    const short = product.product_name.replace(/[\d\s\-_\.・]+[錠包枚個入g粒ml本袋箱]+$/g, '').substring(0, 20);
+                    const keywords = [full, short].filter((v, i, a) => v && a.indexOf(v) === i);
+
+                    let found = false;
+                    for (const kw of keywords) {
+                      try {
+                        setAdminStatus(`⏳ 搜尋: ${kw}...`);
+                        const res = await fetch(`https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&accessKey=${RAKUTEN_ACCESS_KEY}&keyword=${encodeURIComponent(kw)}&hits=1`);
+                        const data = await res.json();
+                        if (data.error || data.errors) {
+                          errors.push(`${kw}: ${data.error || data.errors?.errorMessage}`);
+                          continue;
                         }
-                        await supabase.from('products').upsert({ jan_code: jan, name: product.product_name, image_url: img, rakuten_price: item.itemPrice, rakuten_url: item.itemUrl, updated_at: new Date().toISOString() }, { onConflict: 'jan_code' });
-                        ok++;
-                      }
-                    } catch { /* skip */ }
+                        const items = data.Items || [];
+                        if (items.length > 0) {
+                          const item = items[0].Item;
+                          const img = (item.mediumImageUrls?.[0]?.imageUrl || '').replace('?_ex=128x128', '?_ex=300x300');
+                          let jan = product.jan_code || null;
+                          if (!jan && item.itemCaption) {
+                            const m = item.itemCaption.match(/JAN[:\s]?(\d{13})/i) || item.itemCaption.match(/(49\d{11}|45\d{11})/);
+                            if (m) jan = m[1];
+                          }
+                          // 用楽天的正確名稱（去掉促銷文字），不用 OCR 名稱
+                          const rakutenName = item.itemName
+                            .replace(/【[^】]*】/g, '').replace(/≪[^≫]*≫/g, '')
+                            .replace(/送料無料|ポイント.*倍|マラソン.*有/g, '')
+                            .trim().substring(0, 60);
+                          await supabase.from('products').upsert({
+                            jan_code: jan,
+                            name: rakutenName || product.product_name,
+                            image_url: img,
+                            rakuten_price: item.itemPrice,
+                            rakuten_url: item.itemUrl,
+                            updated_at: new Date().toISOString(),
+                          }, { onConflict: 'jan_code' });
+                          ok++;
+                          found = true;
+                          break;
+                        }
+                      } catch (e: any) { errors.push(`${kw}: ${e.message}`); }
+                      await new Promise(r => setTimeout(r, 1200));
+                    }
+                    if (!found) errors.push(`${product.product_name}: not found`);
                     await new Promise(r => setTimeout(r, 1200));
                   }
-                  setAdminStatus(`✅ 完成！${ok}/${toProcess.length} 個商品有圖片`);
+                  setAdminStatus(`✅ ${ok}/${toProcess.length} 有圖片${errors.length ? '\n' + errors.join('\n') : ''}`);
                 } catch (err: any) {
                   setAdminStatus(`❌ ${err.message}`);
                 }
