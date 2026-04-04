@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { ArrowLeft, Camera, X, Trash2, Upload, Check, MapPin, Store } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Camera, X, Trash2, Upload, Check, MapPin, Store, Navigation } from 'lucide-react';
 import { analyzeShelfImage, type ShelfAnalysisResult } from '../services/gemini';
-import { submitPriceReports, type PriceReportInput } from '../services/supabase';
+import { submitPriceReports, type PriceReportInput, getNearbyStores, type StoreWithProducts } from '../services/supabase';
 
 interface ShelfUploadProps {
   onBack: () => void;
@@ -20,6 +20,24 @@ const ShelfUpload = ({ onBack, apiKey, targetLanguage }: ShelfUploadProps) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [nearbyStores, setNearbyStores] = useState<StoreWithProducts[]>([]);
+  const [loadingStores, setLoadingStores] = useState(false);
+
+  // 開啟時自動搜尋附近店家
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(
+      async (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setGpsCoords(coords);
+        setLoadingStores(true);
+        const stores = await getNearbyStores(coords.lat, coords.lng, 1);
+        setNearbyStores(stores);
+        setLoadingStores(false);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  }, []);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -113,10 +131,33 @@ const ShelfUpload = ({ onBack, apiKey, targetLanguage }: ShelfUploadProps) => {
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <Store size={14} /> 店家名稱
           </label>
+
+          {/* Nearby stores */}
+          {loadingStores && (
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <Navigation size={10} className="animate-spin" /> 搜尋附近店家...
+            </p>
+          )}
+          {nearbyStores.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {nearbyStores.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => { setStoreName(s.name); if (s.branch) setStoreBranch(s.branch); }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    storeName === s.name ? 'bg-orange-500 text-white border-orange-500' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-orange-300'
+                  }`}
+                >
+                  {s.name}{s.branch ? ` ${s.branch}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
+
           <input
             value={storeName}
             onChange={e => setStoreName(e.target.value)}
-            placeholder="AI 會自動偵測，或手動輸入"
+            placeholder={nearbyStores.length > 0 ? '點選上方或手動輸入' : 'AI 會自動偵測，或手動輸入'}
             className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none"
           />
           <input
