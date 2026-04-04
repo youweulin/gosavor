@@ -64,12 +64,21 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 30)}個月前`;
 }
 
+const MAP_STYLES = [
+  { name: 'OSM', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '&copy; OSM' },
+  { name: '極簡白', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr: '&copy; CartoDB' },
+  { name: '極簡暗', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attr: '&copy; CartoDB' },
+  { name: '水彩風', url: 'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', attr: '&copy; Stadia' },
+  { name: '日本地理院', url: 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', attr: '&copy; 国土地理院' },
+];
+
 const StoreMap = ({ onBack }: StoreMapProps) => {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [stores, setStores] = useState<StoreWithProducts[]>([]);
   const [selectedStore, setSelectedStore] = useState<StoreWithProducts | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingStores, setLoadingStores] = useState(false);
+  const [mapStyle, setMapStyle] = useState(1); // 預設極簡白
   const lastFetch = useRef<string>('');
 
   // 載入所有店家 + 取得用戶位置
@@ -147,6 +156,12 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
           <div className="flex items-center gap-2">
             {loadingStores && <Loader2 size={16} className="animate-spin text-orange-500" />}
             <span className="text-xs text-gray-400">{stores.length} 家店</span>
+            <button
+              onClick={() => setMapStyle((mapStyle + 1) % MAP_STYLES.length)}
+              className="px-2 py-1 bg-gray-100 rounded-full text-[10px] font-medium text-gray-600"
+            >
+              {MAP_STYLES[mapStyle].name}
+            </button>
           </div>
         </div>
       </div>
@@ -161,8 +176,9 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
             zoomControl={false}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              key={mapStyle}
+              attribution={MAP_STYLES[mapStyle].attr}
+              url={MAP_STYLES[mapStyle].url}
             />
             <MapEvents onBoundsChange={handleBoundsChange} />
             <FlyToUser position={userPos} />
