@@ -65,6 +65,7 @@ export interface RedeemResult {
   message: string;
   plan?: string;
   expiresAt?: string;
+  guideName?: string;
 }
 
 export const redeemCode = async (code: string): Promise<RedeemResult> => {
@@ -156,18 +157,33 @@ export const redeemCode = async (code: string): Promise<RedeemResult> => {
 
     // Build success message
     const parts: string[] = [];
+    const planNames: Record<string, string> = {
+      supporter: '贊助版', pro: '正式版', beta: '公測版',
+      guide: '導遊版', 'guide-member': '旅遊團',
+    };
     if (codeData.plan) {
-      parts.push(`${codeData.plan === 'supporter' ? '贊助版' : '正式版'}開通（${codeData.duration_days}天）`);
+      const name = planNames[codeData.plan] || codeData.plan;
+      // guide-member: 顯示「導遊XX贊助版」
+      const guideLabel = codeData.plan === 'guide-member' && codeData.note
+        ? `導遊${codeData.note.split('·')[0].trim()}贊助版`
+        : name;
+      parts.push(`${guideLabel}開通（${codeData.duration_days}天）`);
     }
     if (codeData.bonus_credits > 0) {
       parts.push(`獲得 ${codeData.bonus_credits} 點翻譯點數`);
     }
+
+    // Extract guide name from note (format: "Kevin · 2026/4/4")
+    const guideName = codeData.plan === 'guide-member' && codeData.note
+      ? codeData.note.split('·')[0].trim()
+      : undefined;
 
     return {
       success: true,
       message: `✨ ${parts.join(' + ')}`,
       plan: codeData.plan || undefined,
       expiresAt: codeData.plan ? expiresAt.toISOString() : undefined,
+      guideName,
     };
   } catch (err) {
     console.error('[GoSavor] Redeem error:', err);
@@ -191,15 +207,16 @@ export const generateTourCode = async (apiKey: string, durationDays = 5, maxUses
   if (!currentUserId) return { success: false, message: '請先登入' };
 
   try {
-    // Get guide's user DB id
+    // Get guide's user DB id + nickname
     const { data: user } = await supabase.from('users')
-      .select('id, plan')
+      .select('id, plan, nickname')
       .eq('anonymous_id', currentUserId)
       .single();
 
     if (!user || user.plan !== 'guide') {
       return { success: false, message: '僅限導遊使用' };
     }
+    const guideName = user.nickname || '導遊';
 
     // Generate random code: TOUR-XXXX
     const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -214,7 +231,7 @@ export const generateTourCode = async (apiKey: string, durationDays = 5, maxUses
       shared_api_key: apiKey,
       referrer_id: user.id,
       is_active: true,
-      note: `導遊生成 · ${new Date().toLocaleDateString()}`,
+      note: `${guideName} · ${new Date().toLocaleDateString()}`,
     });
 
     if (error) {
@@ -229,7 +246,7 @@ export const generateTourCode = async (apiKey: string, durationDays = 5, maxUses
           shared_api_key: apiKey,
           referrer_id: user.id,
           is_active: true,
-          note: `導遊生成 · ${new Date().toLocaleDateString()}`,
+          note: `${guideName} · ${new Date().toLocaleDateString()}`,
         });
         return { success: true, code: retry, message: `團員碼已生成：${retry}` };
       }

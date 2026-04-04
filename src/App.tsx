@@ -17,7 +17,7 @@ import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
 
-import { trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode, generateTourCode } from './services/supabase';
+import { supabase, trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode, generateTourCode } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
 import { AuthProvider } from './contexts/AuthContext';
@@ -54,9 +54,19 @@ function AppInner() {
   useEffect(() => {
     if (isAuthenticated) {
       getNickname().then(setProfileNickname);
-      getUserProfile().then(p => {
+      getUserProfile().then(async p => {
         if (p?.plan) setUserPlan(p.plan);
         if (p?.shared_api_key) setSharedApiKey(p.shared_api_key);
+        // Load guide name for guide-member
+        if (p?.plan === 'guide-member' && p?.referrer_code) {
+          try {
+            const { data: codeData } = await supabase.from('redeem_codes')
+              .select('note')
+              .eq('code', p.referrer_code)
+              .single();
+            if (codeData?.note) setGuideName(codeData.note.split('·')[0].trim());
+          } catch { /* silent */ }
+        }
       });
     }
   }, [isAuthenticated]);
@@ -77,6 +87,7 @@ function AppInner() {
   const [redeemStatus, setRedeemStatus] = useState('');
   const [userPlan, setUserPlan] = useState('free');
   const [sharedApiKey, setSharedApiKey] = useState('');
+  const [guideName, setGuideName] = useState('');
   const [usageInfo, setUsageInfo] = useState<ReturnType<typeof getLastUsageInfo>>(null);
   const [menuResults, setMenuResults] = useState<MenuAnalysisResult[]>([]);
   const [activeMenuPage, setActiveMenuPage] = useState(0);
@@ -850,7 +861,7 @@ function AppInner() {
               const hasAccess = isPaid || isBeta || isGuide || isGuideMember;
 
               const planInfo = isGuide ? { emoji: '🎌', name: '導遊版', badge: 'Guide', desc: '自帶 Key · 無限翻譯 · 可生成團員碼' }
-                : isGuideMember ? { emoji: '🎌', name: '旅遊團', badge: 'Tour', desc: '導遊提供 Key · 15 次/天' }
+                : isGuideMember ? { emoji: '🎌', name: guideName ? `導遊${guideName}贊助版` : '旅遊團', badge: 'Tour', desc: '導遊提供 Key · 15 次/天' }
                 : isPaid ? { emoji: '⭐', name: userPlan === 'pro' ? '正式版' : '贊助版', badge: userPlan === 'pro' ? 'Pro' : 'Supporter', desc: '感謝支持 GoSavor！' }
                 : isBeta ? { emoji: '🧪', name: '公開測試版', badge: 'Beta', desc: '自帶 Key · 50次/天' }
                 : { emoji: isNative ? '🍎' : '🌐', name: '免費體驗版', badge: 'Free', desc: `${isNative ? 'iOS 版' : 'PWA 網頁版'}・封測期間` };
@@ -942,6 +953,11 @@ function AppInner() {
                     if (result.success) {
                       setRedeemCode('');
                       if (result.plan) setUserPlan(result.plan);
+                      if (result.guideName) setGuideName(result.guideName);
+                      if (result.plan === 'guide-member') {
+                        // Reload profile to get shared_api_key
+                        getUserProfile().then(p => { if (p?.shared_api_key) setSharedApiKey(p.shared_api_key); });
+                      }
                     }
                   }}
                   className="px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold shrink-0"
@@ -964,12 +980,33 @@ function AppInner() {
                   onClick={async () => {
                     setRedeemStatus('⏳ 生成中...');
                     const result = await generateTourCode(settings.geminiApiKey, 5, 40);
-                    setRedeemStatus(result.success ? `✅ ${result.message}` : `❌ ${result.message}`);
+                    if (result.success && result.code) {
+                      setRedeemStatus(`✅ 團員碼：${result.code}`);
+                    } else {
+                      setRedeemStatus(`❌ ${result.message}`);
+                    }
                   }}
                   className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"
                 >
                   生成團員兌換碼（5天 / 40人）
                 </button>
+                {redeemStatus.includes('團員碼：') && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="flex-1 text-center font-mono text-lg font-black text-green-800 bg-green-100 rounded-lg py-2 tracking-widest">
+                      {redeemStatus.split('團員碼：')[1]}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const code = redeemStatus.split('團員碼：')[1];
+                        navigator.clipboard.writeText(code);
+                        setRedeemStatus(`✅ 已複製：${code}`);
+                      }}
+                      className="px-3 py-2 bg-green-700 text-white rounded-lg text-xs font-bold shrink-0"
+                    >
+                      複製
+                    </button>
+                  </div>
+                )}
                 <p className="text-[10px] text-green-600 mt-1.5">團員兌換後自動使用你的 API Key，每人每日 15 次</p>
               </div>
             )}
