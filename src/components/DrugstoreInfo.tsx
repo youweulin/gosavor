@@ -1,17 +1,21 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { ArrowLeft, Search, TrendingUp, ChevronRight, Map } from 'lucide-react';
+import { ArrowLeft, Search, TrendingUp, ChevronRight, Map, Camera } from 'lucide-react';
 import { getPopularProducts, searchProducts, type ProductRanking } from '../services/supabase';
 import PriceCompare from './PriceCompare';
 
 const StoreMap = lazy(() => import('./StoreMap'));
+const ShelfUpload = lazy(() => import('./ShelfUpload'));
 
-type ViewMode = 'list' | 'map';
+type ViewMode = 'list' | 'map' | 'upload';
 
 interface DrugstoreInfoProps {
   onBack: () => void;
+  userPlan?: string;
+  apiKey?: string;
+  targetLanguage?: string;
 }
 
-const DrugstoreInfo = ({ onBack }: DrugstoreInfoProps) => {
+const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage = 'Traditional Chinese' }: DrugstoreInfoProps) => {
   const [popular, setPopular] = useState<ProductRanking[]>([]);
   const [searchResults, setSearchResults] = useState<ProductRanking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +66,19 @@ const DrugstoreInfo = ({ onBack }: DrugstoreInfoProps) => {
     );
   }
 
+  // 上傳模式（導遊專用）
+  if (viewMode === 'upload') {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin" />
+        </div>
+      }>
+        <ShelfUpload onBack={() => setViewMode('list')} apiKey={apiKey} targetLanguage={targetLanguage} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -71,13 +88,24 @@ const DrugstoreInfo = ({ onBack }: DrugstoreInfoProps) => {
             <button onClick={onBack} className="p-1"><ArrowLeft size={20} /></button>
             <h1 className="font-bold text-lg">💊 藥妝情報</h1>
           </div>
-          <button
-            onClick={() => setViewMode('map')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-full text-sm font-medium"
-          >
-            <Map size={14} />
-            地圖
-          </button>
+          <div className="flex items-center gap-2">
+            {userPlan === 'guide' && apiKey && (
+              <button
+                onClick={() => setViewMode('upload')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-full text-sm font-medium"
+              >
+                <Camera size={14} />
+                上傳情報
+              </button>
+            )}
+            <button
+              onClick={() => setViewMode('map')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-full text-sm font-medium"
+            >
+              <Map size={14} />
+              地圖
+            </button>
+          </div>
         </div>
       </div>
 

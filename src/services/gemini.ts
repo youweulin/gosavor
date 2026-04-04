@@ -763,3 +763,79 @@ Also return locationGuess in ${targetLanguage} if identifiable.`;
   if (!response.text) throw new Error('No response from AI');
   return safeParseJSON<GeneralAnalysisResult>(response.text);
 };
+
+// =============================================
+// Shelf Photo Analysis (導遊專用：貨架照片批次辨識)
+// =============================================
+
+export interface ShelfAnalysisResult {
+  storeName: string;
+  shelfCategory: string;
+  items: {
+    productName: string;
+    translatedName: string;
+    price: number;
+    category: string;
+  }[];
+}
+
+export const analyzeShelfImage = async (
+  images: { base64: string; mimeType: string }[],
+  targetLanguage: string,
+  apiKey: string,
+): Promise<ShelfAnalysisResult> => {
+  const ai = new GoogleGenAI({ apiKey });
+  const modelName = 'gemini-3.1-flash-lite-preview';
+
+  const imageParts = images.map((img) => ({
+    inlineData: { data: img.base64, mimeType: img.mimeType },
+  }));
+
+  const prompt = `You are a drugstore product scanner. Analyze ${images.length} shelf/display photo(s) from a Japanese drugstore.
+Extract ALL visible products with their names and prices.
+
+For each product:
+- productName: the original Japanese product name as shown on the shelf/price tag
+- translatedName: translate to ${targetLanguage}
+- price: number only, tax-included price if visible (e.g. 1280)
+- category: product category in ${targetLanguage} (e.g. 感冒藥, 止痛藥, 面膜, 護膚品, 零食)
+
+Also detect:
+- storeName: store name if visible on shelf tags or signage (e.g. マツモトキヨシ, ココカラファイン)
+- shelfCategory: what section of the store this shelf is (e.g. 感冒藥, 維生素, 美妝)
+
+Be thorough — extract EVERY product visible, even partially visible ones. Prioritize accuracy of prices.`;
+
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: { parts: [...imageParts, { text: prompt }] },
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          storeName: { type: Type.STRING },
+          shelfCategory: { type: Type.STRING },
+          items: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                productName: { type: Type.STRING },
+                translatedName: { type: Type.STRING },
+                price: { type: Type.NUMBER },
+                category: { type: Type.STRING },
+              },
+              required: ['productName', 'translatedName', 'price', 'category'],
+            },
+          },
+        },
+        required: ['storeName', 'shelfCategory', 'items'],
+      },
+    },
+  });
+
+  if (!response.text) throw new Error('No response from AI');
+  console.log('[GoSavor] Shelf analysis:', response.text.substring(0, 200));
+  return safeParseJSON<ShelfAnalysisResult>(response.text);
+};

@@ -377,7 +377,7 @@ function AppInner() {
   if (page === 'history') return <OrderHistory onBack={() => setPage('home')} />;
   if (page === 'expenses') return <ExpenseBook onBack={() => setPage('home')} />;
   if (page === 'diary') return <Diary onBack={() => setPage('home')} />;
-  if (page === 'drugstore') return <DrugstoreInfo onBack={() => setPage('home')} />;
+  if (page === 'drugstore') return <DrugstoreInfo onBack={() => setPage('home')} userPlan={userPlan} apiKey={getApiKey() || ''} targetLanguage={targetLangLabel} />;
   if (page === 'chat') {
     const apiKey = getApiKey();
     return <ChatTranslator
