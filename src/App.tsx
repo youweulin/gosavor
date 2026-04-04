@@ -309,9 +309,7 @@ function AppInner() {
   // Auto-analyze when photo is selected from bottom bar
   useEffect(() => {
     if (autoAnalyze && images.length > 0 && !isAnalyzing) {
-      console.log('[GoSavor] autoAnalyze triggered! mode:', scanMode, 'images:', images.length);
       if (scanMode === 'menu') {
-        console.log('[GoSavor] BLOCKED autoAnalyze for menu mode');
         setAutoAnalyze(false);
         return;
       }
@@ -1217,16 +1215,13 @@ function AppInner() {
                   const reader = new FileReader();
                   reader.onload = () => {
                     const dataUrl = reader.result as string;
-                    console.log('[GoSavor] PWA photo selected, mode:', scanMode);
                     // Clear ALL previous results
                     setMenuResults([]); setReceiptResult(null); setGeneralResult(null);
                     setAutoAnalyze(false);
                     if (scanMode === 'menu') {
-                      console.log('[GoSavor] PWA menu: adding photo, no auto-analyze');
                       setImages(prev => [...prev, dataUrl].slice(0, 4));
                       setShowCamera(true);
                     } else {
-                      console.log('[GoSavor] PWA non-menu: single photo, auto-analyze');
                       setImages([dataUrl]);
                       setShowCamera(true);
                       setTimeout(() => setAutoAnalyze(true), 50);
@@ -1326,7 +1321,6 @@ function AppInner() {
                 images: imageDataUrl ? [imageDataUrl] : [],
                 arTranslateItems: result.items,
               });
-              console.log('[GoSavor] AR saved to diary:', result.items.length, 'items');
               trackScanEvent('ar-translate');
               setScanRefreshKey(k => k + 1);
 

@@ -364,7 +364,6 @@ export const submitMenuReport = async (report: MenuReportInput) => {
       await supabase.from('menu_reports').insert(menuItems);
     }
 
-    console.log('[GoSavor] Menu report saved:', report.restaurantName, menuItems.length, 'items');
   } catch (err) {
     console.warn('[GoSavor] Menu report error:', err);
   }
@@ -407,7 +406,6 @@ export const trackScanEvent = async (scanMode: string, category?: string) => {
       scan_field: field,
     });
 
-    console.log('[GoSavor] Tracked:', scanMode, category || '');
   } catch (err) {
     // Don't crash app if tracking fails
     console.warn('[GoSavor] Track error:', err);
@@ -547,7 +545,6 @@ export const submitPriceReport = async (report: PriceReportInput) => {
     if (error) {
       console.error('[GoSavor] Price report error:', error.message);
     } else {
-      console.log('[GoSavor] Price report saved:', report.productName, '¥' + report.price);
       // Update user's price report count
       await supabase.from('users')
         .update({ price_report_count: (user.price_report_count || 0) + 1 })

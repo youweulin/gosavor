@@ -109,10 +109,8 @@ export const translateJapanese = async (
     try {
       const res = await NativeSpeech.translate({ text, from: 'ja', to: targetLang });
       if (res.translated && res.engine === 'apple') {
-        console.log('[GoSavor] ✅ Apple Translate:', text.substring(0, 20), '→', res.translated.substring(0, 20));
         return res.translated;
       }
-      console.log('[GoSavor] Apple Translate returned:', res.engine);
     } catch (e) {
       console.warn('[GoSavor] Apple Translate error (fallback to Gemini):', e);
     }

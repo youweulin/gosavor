@@ -28,7 +28,6 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    console.log('[GoSavor] CameraCapture handleFileSelect, files:', files?.length, 'current images:', images.length, 'mode:', scanMode);
     if (!files || files.length === 0) return;
     const readFile = (file: File): Promise<string> => new Promise(resolve => {
       const reader = new FileReader();
@@ -38,7 +37,6 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
     const results = await Promise.all(Array.from(files).map(readFile));
     const maxImages = scanMode === 'menu' ? 4 : 1;
     const newImages = [...images, ...results].slice(0, maxImages);
-    console.log('[GoSavor] CameraCapture: updating to', newImages.length, 'images');
     onImagesChange(newImages);
     e.target.value = '';
   };

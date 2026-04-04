@@ -150,7 +150,6 @@ const Checkout = ({
           ]);
           if (appleResult?.translated && appleResult?.engine === 'apple') {
             translated = appleResult.translated;
-            console.log('[GoSavor] ✅ Apple Translate in checkout:', text.substring(0, 15), '→', translated.substring(0, 15));
           }
         } catch { /* fallback below */ }
       }
@@ -166,7 +165,6 @@ const Checkout = ({
           config: { thinkingConfig: { thinkingBudget: 0 } },
         });
         translated = res.text?.trim() || '';
-        console.log('[GoSavor] Gemini fallback in checkout');
       }
       setMiniTranslateResult({ original: text, ja: translated || '(翻譯失敗)' });
       setMiniTranslateInput('');

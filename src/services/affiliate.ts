@@ -327,8 +327,6 @@ export const getRecommendations = async (
   const priorities = SCAN_PRIORITIES[scanMode] || ['ticket', 'tour'];
   const timeBoost = TIME_BOOST[time] || [];
 
-  console.log(`[GoSavor Ads] mode=${scanMode} region=${region} area=${area} time=${time}`);
-
   // Step 1: Try API (if online)
   if (region) {
     const primaryCategory = priorities[0];
@@ -343,7 +341,6 @@ export const getRecommendations = async (
   }
 
   // Step 2: Offline — 1 Klook + 1 KKDay (only 2, less ad-like)
-  console.log(`[GoSavor Ads] Offline: 1 Klook + 1 KKDay`);
   const regionKey = region || 'Tokyo';
   const curated = CURATED[regionKey] || CURATED['Tokyo'];
 

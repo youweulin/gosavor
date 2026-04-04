@@ -99,7 +99,6 @@ const ChatTranslator = ({ onBack, onBackToCheckout, apiKey, targetLanguage }: Ch
         const toCode = langMap[to] || to;
         const res = await NS.translate({ text, from: fromCode, to: toCode });
         if (res.translated && res.engine === 'apple') {
-          console.log('[GoSavor Chat] ✅ Apple Translate:', text.substring(0, 15), '→', res.translated.substring(0, 15));
           return res.translated;
         }
       } catch (e) {
@@ -116,7 +115,6 @@ const ChatTranslator = ({ onBack, onBackToCheckout, apiKey, targetLanguage }: Ch
         contents: `Translate to ${to}. Only return the translation, nothing else: "${text}"`,
         config: { thinkingConfig: { thinkingBudget: 0 } },
       });
-      console.log('[GoSavor Chat] Gemini translate');
       return res.text?.trim() || text;
     } catch { return text; }
   };

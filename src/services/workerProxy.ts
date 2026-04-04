@@ -74,8 +74,6 @@ export const callGeminiViaWorker = async (
     headers['X-Longitude'] = String(pos.lon);
   }
 
-  console.log('[GoSavor Worker] Calling:', WORKER_URL, 'mode:', scanMode, 'GPS:', pos);
-
   const response = await fetch(WORKER_URL, {
     method: 'POST',
     headers,
@@ -83,7 +81,6 @@ export const callGeminiViaWorker = async (
   });
 
   const data = await response.json();
-  console.log('[GoSavor Worker] Response:', response.status, JSON.stringify(data).substring(0, 200));
 
   if (!response.ok) {
     // Handle specific errors

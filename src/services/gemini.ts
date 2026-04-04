@@ -33,7 +33,6 @@ const runNativeOCR = async (images: { base64: string; mimeType: string }[]): Pro
         });
       });
     }
-    console.log(`[GoSavor OCR] Native: ${blocks.length} blocks`);
     return blocks.length > 0 ? { blocks } : null;
   } catch (e) {
     console.warn('[GoSavor OCR] Native failed:', e);
@@ -52,12 +51,10 @@ export const setScanMode = (mode: string) => { _currentScanMode = mode; };
 const getAI = (apiKey: string) => {
   // Has own key → use real SDK (direct, no limits)
   if (apiKey) {
-    console.log('[GoSavor] Using own API key');
     return new GoogleGenAI({ apiKey });
   }
 
   // No key → return proxy that routes through Worker
-  console.log('[GoSavor] No API key, using Worker proxy. Available:', isWorkerAvailable());
   if (!isWorkerAvailable()) {
     throw new Error('NO_KEY:請設定 API Key 或等待系統服務上線');
   }
@@ -139,7 +136,6 @@ export const analyzeMenuImage = async (
 
   // === STRATEGY: Native Apple Vision OCR ===
   let ocrSource = 'Cloud';
-  console.log('[GoSavor] Platform:', Capacitor.getPlatform(), 'isNative:', Capacitor.isNativePlatform());
   if (Capacitor.isNativePlatform()) {
     try {
       ocrSource = 'Native';
@@ -167,8 +163,6 @@ export const analyzeMenuImage = async (
         // Fallback chain: gemini-2.5-flash → modelName (if 2.5 quota exceeded)
         const preferredModel = 'gemini-2.5-flash';
         let effectiveModel = preferredModel;
-        console.log(`[GoSavor] Menu complexity: ${ocrBlocks.length} blocks → model: ${effectiveModel}`);
-
         // We have OCR blocks! Send text exclusively to Gemini
         const textToAnalyze = ocrBlocks.map(b => ({ id: b.id, imgIdx: b.imageIndex, text: b.text }));
 
@@ -248,7 +242,6 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
           const errStr = JSON.stringify(err) + (err?.message || '') + (err?.status || '');
           if (effectiveModel === 'gemini-2.5-flash' && (errStr.includes('429') || errStr.includes('503') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED'))) {
             effectiveModel = modelName; // fallback to default model
-            console.log(`[GoSavor] 2.5-flash unavailable, fallback → ${effectiveModel}`);
             response = await ai.models.generateContent({
               model: effectiveModel,
               contents: { parts: [...thumbs, { text: prompt }] },
@@ -322,8 +315,6 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
               ymin = 50; xmin = 50; ymax = 100; xmax = 250;
             }
           }
-
-          console.log(`[GoSavor OCR→Box] "${item.originalName}" (${ocrSource}) → sourceIds:${JSON.stringify(item.sourceIds)} → box:[${[ymin,xmin,ymax,xmax].map(v=>v.toFixed(0)).join(',')}] matched:${matchedBlocks.length}`);
 
           return {
             ...item,
@@ -419,7 +410,6 @@ Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]")
   } catch (err: any) {
     const errStr = String(err?.message || '') + JSON.stringify(err);
     if (errStr.includes('429') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED')) {
-      console.log('[GoSavor] PWA menu: 2.5-flash quota exceeded, fallback → 3.1-flash-lite');
       response = await ai.models.generateContent({
         model: modelName,
         contents: { parts: [...imageParts, { text: prompt }] },
@@ -431,27 +421,21 @@ Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]")
   }
 
   if (!response.text) throw new Error('No response from AI');
-  console.log('[GoSavor] PWA menu raw response length:', response.text.length);
-  console.log('[GoSavor] PWA menu raw response:', response.text.substring(0, 500));
   const result = safeParseJSON<MenuAnalysisResult>(response.text);
-  console.log('[GoSavor] PWA menu parsed items:', result.items?.length, 'first box:', result.items?.[0]?.boundingBox);
 
   // Auto-fix bounding box scale: if all values < 100, assume 0-100 scale → multiply by 10
   if (result.items?.length > 0) {
     const allBoxes = result.items.filter((it: any) => it.boundingBox?.length === 4).map((it: any) => it.boundingBox);
     if (allBoxes.length > 0) {
       const maxVal = Math.max(...allBoxes.flat());
-      console.log('[GoSavor] PWA boundingBox max value:', maxVal, 'sample:', allBoxes[0]);
       if (maxVal <= 100) {
         // Scale 0-100 → 0-1000
-        console.log('[GoSavor] Auto-scaling boundingBox from 0-100 to 0-1000');
         result.items = result.items.map((it: any) => ({
           ...it,
           boundingBox: it.boundingBox?.map((v: number) => v * 10),
         }));
       } else if (maxVal <= 1) {
         // Scale 0-1 → 0-1000
-        console.log('[GoSavor] Auto-scaling boundingBox from 0-1 to 0-1000');
         result.items = result.items.map((it: any) => ({
           ...it,
           boundingBox: it.boundingBox?.map((v: number) => Math.round(v * 1000)),
@@ -844,6 +828,5 @@ Be thorough — extract EVERY product visible, even partially visible ones. Prio
   });
 
   if (!response.text) throw new Error('No response from AI');
-  console.log('[GoSavor] Shelf analysis:', response.text.substring(0, 200));
   return safeParseJSON<ShelfAnalysisResult>(response.text);
 };
