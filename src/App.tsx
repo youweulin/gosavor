@@ -190,6 +190,17 @@ function AppInner() {
         trackScanEvent('receipt');
         // Auto-submit price reports to Supabase (核心資產收集)
         if (result.items && result.items.length > 0) {
+          // 抓取 GPS 座標，為地圖功能累積店家位置資料
+          let lat: number | undefined;
+          let lng: number | undefined;
+          try {
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000, maximumAge: 300000 })
+            );
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+          } catch { /* GPS 失敗不影響上傳 */ }
+
           submitPriceReports(
             result.items
               .filter(item => item.originalName && item.price)
@@ -207,6 +218,10 @@ function AppInner() {
                 };
               }),
             result.merchantName,
+            undefined,
+            lat,
+            lng,
+            result.date,
           );
         }
       } else {

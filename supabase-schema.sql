@@ -53,7 +53,33 @@ CREATE POLICY "Users can update own data" ON users
   FOR UPDATE USING (anonymous_id = current_setting('request.headers')::json->>'x-anonymous-id');
 
 -- =============================================
--- 2. PRICE REPORTS TABLE (核心資產)
+-- 2. STORES TABLE (店家主檔，自動歸戶)
+-- =============================================
+CREATE TABLE stores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  branch TEXT,
+  normalized_name TEXT NOT NULL,
+  lat DECIMAL,
+  lng DECIMAL,
+  area TEXT,
+  is_tax_free BOOLEAN DEFAULT false,
+  report_count INT DEFAULT 0,
+  first_reported_at TIMESTAMPTZ DEFAULT now(),
+  last_reported_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_stores_name ON stores(normalized_name);
+CREATE INDEX idx_stores_location ON stores(lat, lng);
+CREATE INDEX idx_stores_area ON stores(area);
+
+ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can read stores" ON stores FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can insert stores" ON stores FOR INSERT WITH CHECK (true);
+CREATE POLICY "Authenticated users can update stores" ON stores FOR UPDATE USING (true);
+
+-- =============================================
+-- 3. PRICE REPORTS TABLE (核心資產)
 -- =============================================
 CREATE TABLE price_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -62,11 +88,15 @@ CREATE TABLE price_reports (
   normalized_key TEXT NOT NULL,
   price INT NOT NULL,
   currency TEXT DEFAULT 'JPY',
+  store_id UUID REFERENCES stores(id),
   store_name TEXT,
   store_branch TEXT,
   is_tax_free BOOLEAN DEFAULT false,
   category TEXT,
   area TEXT,
+  store_lat DECIMAL,
+  store_lng DECIMAL,
+  receipt_date TEXT,
   user_id UUID REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -74,7 +104,9 @@ CREATE TABLE price_reports (
 -- 索引（查詢加速）
 CREATE INDEX idx_price_product ON price_reports(normalized_key);
 CREATE INDEX idx_price_store ON price_reports(store_name);
+CREATE INDEX idx_price_store_id ON price_reports(store_id);
 CREATE INDEX idx_price_area ON price_reports(area);
+CREATE INDEX idx_price_location ON price_reports(store_lat, store_lng);
 CREATE INDEX idx_price_date ON price_reports(created_at);
 CREATE INDEX idx_price_user ON price_reports(user_id);
 

@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Search, TrendingUp, ChevronRight } from 'lucide-react';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { ArrowLeft, Search, TrendingUp, ChevronRight, Map } from 'lucide-react';
 import { getPopularProducts, searchProducts, type ProductRanking } from '../services/supabase';
 import PriceCompare from './PriceCompare';
+
+const StoreMap = lazy(() => import('./StoreMap'));
+
+type ViewMode = 'list' | 'map';
 
 interface DrugstoreInfoProps {
   onBack: () => void;
@@ -14,6 +18,7 @@ const DrugstoreInfo = ({ onBack }: DrugstoreInfoProps) => {
   const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<ProductRanking | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   useEffect(() => {
     getPopularProducts(30).then(data => {
@@ -44,13 +49,35 @@ const DrugstoreInfo = ({ onBack }: DrugstoreInfoProps) => {
 
   const displayList = searchQuery.trim() && searchResults.length > 0 ? searchResults : popular;
 
+  // 地圖模式
+  if (viewMode === 'map') {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin" />
+        </div>
+      }>
+        <StoreMap onBack={() => setViewMode('list')} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-1"><ArrowLeft size={20} /></button>
-          <h1 className="font-bold text-lg">💊 藥妝情報</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={onBack} className="p-1"><ArrowLeft size={20} /></button>
+            <h1 className="font-bold text-lg">💊 藥妝情報</h1>
+          </div>
+          <button
+            onClick={() => setViewMode('map')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-full text-sm font-medium"
+          >
+            <Map size={14} />
+            地圖
+          </button>
         </div>
       </div>
 

@@ -217,14 +217,66 @@ export const trackScanEvent = async (scanMode: string, category?: string) => {
 // Price Reports (核心資產)
 // =============================================
 
-/** 正規化商品名（統一半形/全形/大小寫） */
-const normalizeProductName = (name: string): string => {
+/** 正規化名稱（統一半形/全形/大小寫） */
+const normalizeName = (name: string): string => {
   return name
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[\s\-_\.・]/g, '')
     .replace(/[０-９]/g, m =>
       String.fromCharCode(m.charCodeAt(0) - 0xFEE0));
+};
+const normalizeProductName = normalizeName;
+
+/** 店家歸戶：同名+近距離(100m內) → 同一家店 */
+const findOrCreateStore = async (
+  storeName: string,
+  storeBranch?: string,
+  lat?: number,
+  lng?: number,
+  isTaxFree?: boolean,
+): Promise<string | null> => {
+  if (!storeName) return null;
+  const normalized = normalizeName(storeName + (storeBranch || ''));
+
+  try {
+    // 先用 normalized_name 查有沒有已知店家
+    const { data: existing } = await supabase.from('stores')
+      .select('id, lat, lng, report_count')
+      .eq('normalized_name', normalized)
+      .limit(1)
+      .single();
+
+    if (existing) {
+      // 更新統計 + GPS（取最新的座標，或補上之前缺的）
+      const updates: Record<string, unknown> = {
+        report_count: (existing.report_count || 0) + 1,
+        last_reported_at: new Date().toISOString(),
+      };
+      if (lat && lng && !existing.lat) {
+        updates.lat = lat;
+        updates.lng = lng;
+      }
+      if (isTaxFree) updates.is_tax_free = true;
+      await supabase.from('stores').update(updates).eq('id', existing.id);
+      return existing.id;
+    }
+
+    // 新店家 → 建立
+    const { data: newStore } = await supabase.from('stores').insert({
+      name: storeName,
+      branch: storeBranch || null,
+      normalized_name: normalized,
+      lat: lat || null,
+      lng: lng || null,
+      is_tax_free: isTaxFree || false,
+      report_count: 1,
+    }).select('id').single();
+
+    return newStore?.id || null;
+  } catch {
+    return null;
+  }
 };
 
 export interface PriceReportInput {
@@ -238,21 +290,39 @@ export interface PriceReportInput {
   category?: string;
   area?: string;
   janCode?: string;
+  storeLat?: number;
+  storeLng?: number;
+  receiptDate?: string;
 }
 
-/** 上傳價格報告（從收據掃描自動收集） */
+/** 上傳價格報告（從收據掃描自動收集，自動店家歸戶） */
 export const submitPriceReport = async (report: PriceReportInput) => {
   const currentUserId = await getCurrentUserId();
-  if (!currentUserId) return;
+  if (!currentUserId) {
+    console.warn('[GoSavor] Price report skipped: 用戶未登入');
+    return;
+  }
 
   try {
     // Get user DB id
-    const { data: user } = await supabase.from('users')
-      .select('id')
+    const { data: user, error: userError } = await supabase.from('users')
+      .select('id, price_report_count')
       .eq('anonymous_id', currentUserId)
       .single();
 
-    if (!user) return;
+    if (!user) {
+      console.warn('[GoSavor] Price report skipped: users 表找不到用戶', currentUserId, userError?.message);
+      return;
+    }
+
+    // 店家歸戶：自動找到或建立店家記錄
+    const storeId = await findOrCreateStore(
+      report.storeName || '',
+      report.storeBranch,
+      report.storeLat,
+      report.storeLng,
+      report.isTaxFree,
+    );
 
     const { error } = await supabase.from('price_reports').insert({
       product_name: report.productName,
@@ -260,12 +330,16 @@ export const submitPriceReport = async (report: PriceReportInput) => {
       normalized_key: normalizeProductName(report.productName),
       price: report.price,
       currency: report.currency || 'JPY',
+      store_id: storeId,
       store_name: report.storeName || null,
       store_branch: report.storeBranch || null,
       is_tax_free: report.isTaxFree || false,
       category: report.category || null,
       area: report.area || null,
       jan_code: report.janCode || null,
+      store_lat: report.storeLat || null,
+      store_lng: report.storeLng || null,
+      receipt_date: report.receiptDate || null,
       user_id: user.id,
     });
 
@@ -275,7 +349,7 @@ export const submitPriceReport = async (report: PriceReportInput) => {
       console.log('[GoSavor] Price report saved:', report.productName, '¥' + report.price);
       // Update user's price report count
       await supabase.from('users')
-        .update({ price_report_count: (user as any).price_report_count + 1 })
+        .update({ price_report_count: (user.price_report_count || 0) + 1 })
         .eq('anonymous_id', currentUserId);
     }
   } catch (err) {
@@ -288,12 +362,18 @@ export const submitPriceReports = async (
   reports: PriceReportInput[],
   storeName?: string,
   storeBranch?: string,
+  storeLat?: number,
+  storeLng?: number,
+  receiptDate?: string,
 ) => {
   for (const report of reports) {
     await submitPriceReport({
       ...report,
       storeName: report.storeName || storeName,
       storeBranch: report.storeBranch || storeBranch,
+      storeLat: report.storeLat ?? storeLat,
+      storeLng: report.storeLng ?? storeLng,
+      receiptDate: report.receiptDate || receiptDate,
     });
   }
 };
@@ -453,5 +533,112 @@ export const searchProducts = async (query: string): Promise<ProductRanking[]> =
     }
 
     return Object.values(grouped).sort((a, b) => b.report_count - a.report_count);
+  } catch { return []; }
+};
+
+// =============================================
+// Store Map (地圖查詢)
+// =============================================
+
+export interface StoreWithProducts {
+  id: string;
+  name: string;
+  branch: string | null;
+  lat: number;
+  lng: number;
+  is_tax_free: boolean;
+  report_count: number;
+  last_reported_at: string;
+  topProducts?: { name: string; translatedName: string; price: number; janCode: string }[];
+}
+
+/** 查詢附近店家（含熱門商品） */
+export const getNearbyStores = async (
+  lat: number,
+  lng: number,
+  radiusKm = 2,
+): Promise<StoreWithProducts[]> => {
+  try {
+    // 粗略的經緯度範圍過濾（1度 ≈ 111km）
+    const delta = radiusKm / 111;
+    const { data: stores, error } = await supabase
+      .from('stores')
+      .select('*')
+      .gte('lat', lat - delta)
+      .lte('lat', lat + delta)
+      .gte('lng', lng - delta)
+      .lte('lng', lng + delta)
+      .order('report_count', { ascending: false })
+      .limit(50);
+
+    if (error || !stores) return [];
+
+    // 為每家店查 TOP 3 熱門商品
+    const storesWithProducts: StoreWithProducts[] = [];
+    for (const store of stores) {
+      const { data: products } = await supabase
+        .from('price_reports')
+        .select('product_name, translated_name, price, jan_code')
+        .eq('store_id', store.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // 去重取 TOP 3
+      const seen = new Set<string>();
+      const topProducts: StoreWithProducts['topProducts'] = [];
+      for (const p of products || []) {
+        const key = p.jan_code || p.product_name;
+        if (!seen.has(key)) {
+          seen.add(key);
+          topProducts.push({
+            name: p.product_name,
+            translatedName: p.translated_name || p.product_name,
+            price: p.price,
+            janCode: p.jan_code || '',
+          });
+          if (topProducts.length >= 3) break;
+        }
+      }
+
+      storesWithProducts.push({
+        id: store.id,
+        name: store.name,
+        branch: store.branch,
+        lat: store.lat,
+        lng: store.lng,
+        is_tax_free: store.is_tax_free,
+        report_count: store.report_count,
+        last_reported_at: store.last_reported_at,
+        topProducts,
+      });
+    }
+
+    return storesWithProducts;
+  } catch { return []; }
+};
+
+/** 取得所有店家（不限距離，用於瀏覽模式） */
+export const getAllStores = async (): Promise<StoreWithProducts[]> => {
+  try {
+    const { data: stores, error } = await supabase
+      .from('stores')
+      .select('*')
+      .not('lat', 'is', null)
+      .not('lng', 'is', null)
+      .order('report_count', { ascending: false })
+      .limit(100);
+
+    if (error || !stores) return [];
+
+    return stores.map(store => ({
+      id: store.id,
+      name: store.name,
+      branch: store.branch,
+      lat: store.lat,
+      lng: store.lng,
+      is_tax_free: store.is_tax_free,
+      report_count: store.report_count,
+      last_reported_at: store.last_reported_at,
+    }));
   } catch { return []; }
 };
