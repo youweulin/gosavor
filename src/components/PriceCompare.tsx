@@ -25,6 +25,8 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
   const [productImage, setProductImage] = useState('');
   const [adminSearching, setAdminSearching] = useState(false);
   const [adminStatus, setAdminStatus] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
     loadData();
@@ -108,7 +110,36 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
                   <img src={productImage} alt="" className="w-20 h-20 rounded-xl object-cover shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-black text-gray-900">{summary.translatedName}</h2>
+                  {editingName ? (
+                    <div className="flex gap-2">
+                      <input
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        className="flex-1 px-2 py-1 border border-orange-300 rounded-lg text-sm font-bold focus:outline-none"
+                        autoFocus
+                      />
+                      <button
+                        onClick={async () => {
+                          if (!editName.trim()) return;
+                          const key = janCode || productName;
+                          if (key) {
+                            await supabase.from('price_reports').update({ translated_name: editName.trim() })
+                              .or(`jan_code.eq.${key},product_name.eq.${key}`);
+                          }
+                          if (summary) setSummary({ ...summary, translatedName: editName.trim() });
+                          setEditingName(false);
+                          setAdminStatus('✅ 名稱已更新');
+                        }}
+                        className="px-2 py-1 bg-green-500 text-white rounded-lg text-xs font-bold"
+                      >存</button>
+                      <button onClick={() => setEditingName(false)} className="px-2 py-1 bg-gray-200 rounded-lg text-xs">取消</button>
+                    </div>
+                  ) : (
+                    <h2 className="text-xl font-black text-gray-900" onClick={() => { if (isAdmin) { setEditName(summary.translatedName); setEditingName(true); } }}>
+                      {summary.translatedName}
+                      {isAdmin && <span className="text-[10px] text-gray-300 ml-1">✏️</span>}
+                    </h2>
+                  )}
                   <p className="text-sm text-gray-400 mt-1">{summary.productName}</p>
                 </div>
               </div>
