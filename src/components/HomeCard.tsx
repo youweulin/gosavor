@@ -34,9 +34,12 @@ const getGreeting = (): string => {
 
 const planLabel: Record<string, { emoji: string; name: string }> = {
   free: { emoji: '🌱', name: '體驗版' },
+  beta: { emoji: '🧪', name: '公測版' },
   supporter: { emoji: '⭐', name: '贊助版' },
   pro: { emoji: '👑', name: '正式版' },
   rental: { emoji: '🎫', name: '旅遊包' },
+  guide: { emoji: '🎌', name: '導遊版' },
+  'guide-member': { emoji: '🎌', name: '旅遊團' },
 };
 
 const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory }: HomeCardProps) => {

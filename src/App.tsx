@@ -17,7 +17,7 @@ import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
 
-import { trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode } from './services/supabase';
+import { trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode, generateTourCode } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
 import { AuthProvider } from './contexts/AuthContext';
@@ -54,7 +54,10 @@ function AppInner() {
   useEffect(() => {
     if (isAuthenticated) {
       getNickname().then(setProfileNickname);
-      getUserProfile().then(p => { if (p?.plan) setUserPlan(p.plan); });
+      getUserProfile().then(p => {
+        if (p?.plan) setUserPlan(p.plan);
+        if (p?.shared_api_key) setSharedApiKey(p.shared_api_key);
+      });
     }
   }, [isAuthenticated]);
 
@@ -73,6 +76,7 @@ function AppInner() {
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemStatus, setRedeemStatus] = useState('');
   const [userPlan, setUserPlan] = useState('free');
+  const [sharedApiKey, setSharedApiKey] = useState('');
   const [usageInfo, setUsageInfo] = useState<ReturnType<typeof getLastUsageInfo>>(null);
   const [menuResults, setMenuResults] = useState<MenuAnalysisResult[]>([]);
   const [activeMenuPage, setActiveMenuPage] = useState(0);
@@ -112,13 +116,25 @@ function AppInner() {
   }, []);
 
   const getApiKey = useCallback((): string | null => {
-    return settings.geminiApiKey || null;
-  }, [settings.geminiApiKey]);
+    // 1. 用戶自帶 Key 優先
+    if (settings.geminiApiKey) return settings.geminiApiKey;
+    // 2. 導遊共用 Key（兌換碼帶入，用戶看不到）
+    if (sharedApiKey) return sharedApiKey;
+    return null;
+  }, [settings.geminiApiKey, sharedApiKey]);
 
   const targetLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
 
-  const DAILY_LIMIT = 50;
+  // 限額：supporter/pro/guide=無限, guide-member=15, beta=iOS50/PWA30
+  const getDailyLimit = (): number => {
+    if (userPlan === 'supporter' || userPlan === 'pro' || userPlan === 'guide') return Infinity;
+    if (userPlan === 'guide-member') return 15; // 導遊團員用共用 Key
+    const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+    return isNative ? 50 : 30;
+  };
+  const DAILY_LIMIT = getDailyLimit();
   const checkDailyLimit = (): boolean => {
+    if (DAILY_LIMIT === Infinity) return true;
     const today = new Date().toDateString();
     const stored = localStorage.getItem('gosavor_daily_usage');
     const data = stored ? JSON.parse(stored) : { date: '', count: 0 };
@@ -926,6 +942,24 @@ function AppInner() {
                 </p>
               )}
             </div>
+
+            {/* Guide: Generate Tour Code */}
+            {userPlan === 'guide' && settings.geminiApiKey && (
+              <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-3">
+                <p className="text-sm font-bold text-green-800 mb-2">🎌 導遊工具</p>
+                <button
+                  onClick={async () => {
+                    setRedeemStatus('⏳ 生成中...');
+                    const result = await generateTourCode(settings.geminiApiKey, 5, 40);
+                    setRedeemStatus(result.success ? `✅ ${result.message}` : `❌ ${result.message}`);
+                  }}
+                  className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"
+                >
+                  生成團員兌換碼（5天 / 40人）
+                </button>
+                <p className="text-[10px] text-green-600 mt-1.5">團員兌換後自動使用你的 API Key，每人每日 15 次</p>
+              </div>
+            )}
 
             {/* Settings button */}
             <button

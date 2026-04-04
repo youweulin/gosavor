@@ -16,7 +16,8 @@ interface SettingsProps {
 }
 
 const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: SettingsProps) => {
-  const canUseApiKey = userPlan === 'supporter' || userPlan === 'pro' || userPlan === 'beta';
+  const canUseApiKey = userPlan === 'supporter' || userPlan === 'pro' || userPlan === 'beta' || userPlan === 'guide';
+  const hasSharedKey = userPlan === 'guide-member';
   const t = useT();
   const { userEmail, authProvider, signOut } = useAuthContext();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -75,6 +76,8 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
                   userPlan === 'supporter' ? t('settings.planSupporter') :
                   userPlan === 'pro' ? t('settings.planPro') :
                   userPlan === 'beta' ? t('settings.planBeta') :
+                  userPlan === 'guide' ? '導遊版' :
+                  userPlan === 'guide-member' ? '旅遊團' :
                   t('settings.planFree')
                 }
               </p>
@@ -107,7 +110,17 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
               {t('settings.keyGuide')}
             </button>
           </label>
-          {canUseApiKey ? (
+          {hasSharedKey ? (
+            <div className="bg-green-900/30 rounded-xl p-3">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🎌</span>
+                <div className="flex-1">
+                  <p className="text-green-400 text-xs font-medium">導遊提供 API Key</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">由導遊碼自動設定，每日 15 次翻譯額度</p>
+                </div>
+              </div>
+            </div>
+          ) : canUseApiKey ? (
           <>
           <div className="flex gap-2">
             <div className="relative flex-1">

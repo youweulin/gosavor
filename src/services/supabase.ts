@@ -23,7 +23,7 @@ export const getUserProfile = async () => {
   if (!userId) return null;
   try {
     const { data } = await supabase.from('users')
-      .select('nickname, plan, credits, daily_usage, last_reset_date, total_scans, price_report_count, email, auth_provider')
+      .select('nickname, plan, credits, daily_usage, last_reset_date, total_scans, price_report_count, email, auth_provider, shared_api_key, referrer_code')
       .eq('anonymous_id', userId)
       .single();
     return data;
@@ -132,6 +132,12 @@ export const redeemCode = async (code: string): Promise<RedeemResult> => {
       userUpdates.rental_expires = expiresAt.toISOString();
     }
 
+    // 導遊碼：帶入共用 API Key + referrer_code
+    if (codeData.shared_api_key) {
+      userUpdates.shared_api_key = codeData.shared_api_key;
+    }
+    userUpdates.referrer_code = codeData.code;
+
     // Add bonus credits
     if (codeData.bonus_credits > 0) {
       // Get current credits first
@@ -166,6 +172,74 @@ export const redeemCode = async (code: string): Promise<RedeemResult> => {
   } catch (err) {
     console.error('[GoSavor] Redeem error:', err);
     return { success: false, message: '兌換失敗，請稍後再試' };
+  }
+};
+
+// =============================================
+// Guide Tour Code (導遊生成團員碼)
+// =============================================
+
+export interface GenerateTourCodeResult {
+  success: boolean;
+  code?: string;
+  message: string;
+}
+
+/** 導遊生成團員兌換碼（綁自己的 API Key） */
+export const generateTourCode = async (apiKey: string, durationDays = 5, maxUses = 40): Promise<GenerateTourCodeResult> => {
+  const currentUserId = await getCurrentUserId();
+  if (!currentUserId) return { success: false, message: '請先登入' };
+
+  try {
+    // Get guide's user DB id
+    const { data: user } = await supabase.from('users')
+      .select('id, plan')
+      .eq('anonymous_id', currentUserId)
+      .single();
+
+    if (!user || user.plan !== 'guide') {
+      return { success: false, message: '僅限導遊使用' };
+    }
+
+    // Generate random code: TOUR-XXXX
+    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = `TOUR-${randomPart}`;
+
+    // Insert into redeem_codes
+    const { error } = await supabase.from('redeem_codes').insert({
+      code,
+      plan: 'guide-member',
+      duration_days: durationDays,
+      max_uses: maxUses,
+      shared_api_key: apiKey,
+      referrer_id: user.id,
+      is_active: true,
+      note: `導遊生成 · ${new Date().toLocaleDateString()}`,
+    });
+
+    if (error) {
+      // Duplicate code? retry once
+      if (error.code === '23505') {
+        const retry = `TOUR-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        await supabase.from('redeem_codes').insert({
+          code: retry,
+          plan: 'guide-member',
+          duration_days: durationDays,
+          max_uses: maxUses,
+          shared_api_key: apiKey,
+          referrer_id: user.id,
+          is_active: true,
+          note: `導遊生成 · ${new Date().toLocaleDateString()}`,
+        });
+        return { success: true, code: retry, message: `團員碼已生成：${retry}` };
+      }
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, code, message: `團員碼已生成：${code}` };
+  } catch (err) {
+    console.error('[GoSavor] Generate tour code error:', err);
+    return { success: false, message: '生成失敗，請稍後再試' };
   }
 };
 

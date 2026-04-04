@@ -89,7 +89,7 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
             <h1 className="font-bold text-lg">💊 藥妝情報</h1>
           </div>
           <div className="flex items-center gap-2">
-            {userPlan === 'guide' && apiKey && (
+            {(userPlan === 'guide' || userPlan === 'supporter' || userPlan === 'pro') && apiKey && (
               <button
                 onClick={() => setViewMode('upload')}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-full text-sm font-medium"
