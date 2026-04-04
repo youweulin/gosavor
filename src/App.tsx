@@ -844,24 +844,29 @@ function AppInner() {
             {(() => {
               const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
               const isPaid = userPlan === 'supporter' || userPlan === 'pro';
+              const isGuide = userPlan === 'guide';
+              const isGuideMember = userPlan === 'guide-member';
               const isBeta = userPlan === 'beta';
-              const hasAccess = isPaid || isBeta;
+              const hasAccess = isPaid || isBeta || isGuide || isGuideMember;
+
+              const planInfo = isGuide ? { emoji: '🎌', name: '導遊版', badge: 'Guide', desc: '自帶 Key · 無限翻譯 · 可生成團員碼' }
+                : isGuideMember ? { emoji: '🎌', name: '旅遊團', badge: 'Tour', desc: '導遊提供 Key · 15 次/天' }
+                : isPaid ? { emoji: '⭐', name: userPlan === 'pro' ? '正式版' : '贊助版', badge: userPlan === 'pro' ? 'Pro' : 'Supporter', desc: '感謝支持 GoSavor！' }
+                : isBeta ? { emoji: '🧪', name: '公開測試版', badge: 'Beta', desc: '自帶 Key · 50次/天' }
+                : { emoji: isNative ? '🍎' : '🌐', name: '免費體驗版', badge: 'Free', desc: `${isNative ? 'iOS 版' : 'PWA 網頁版'}・封測期間` };
+
               return (
               <div className={`bg-gradient-to-br ${hasAccess ? 'from-orange-50 to-amber-50 border-orange-200' : 'from-gray-50 to-orange-50 border-orange-100'} rounded-2xl p-4 mb-5 border`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">{isPaid ? '⭐' : isBeta ? '🧪' : isNative ? '🍎' : '🌐'}</span>
+                    <span className="text-xl">{planInfo.emoji}</span>
                     <div>
-                      <p className="font-bold text-sm text-gray-900">
-                        {isPaid ? (userPlan === 'pro' ? '正式版' : '贊助版') : isBeta ? '公開測試版' : '免費體驗版'}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {isPaid ? '感謝支持 GoSavor！' : isBeta ? '自帶 Key · 50次/天' : `${isNative ? 'iOS 版' : 'PWA 網頁版'}・封測期間`}
-                      </p>
+                      <p className="font-bold text-sm text-gray-900">{planInfo.name}</p>
+                      <p className="text-xs text-gray-400">{planInfo.desc}</p>
                     </div>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${hasAccess ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-600'}`}>
-                    {isPaid ? (userPlan === 'pro' ? 'Pro' : 'Supporter') : isBeta ? 'Beta' : 'Free'}
+                    {planInfo.badge}
                   </span>
                 </div>
 
@@ -882,24 +887,32 @@ function AppInner() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">AI 翻譯（菜單/收據/萬用）</span>
                     <span className={hasAccess ? 'text-green-600 font-medium' : 'text-gray-400'}>
-                      {isPaid ? '無限（自帶 Key）✅' : isBeta ? '50 次/天（自帶 Key）✅' : '🔒 需兌換碼'}
+                      {isPaid || isGuide ? '無限 ✅' : isGuideMember ? '15 次/天 ✅' : isBeta ? `${isNative ? '50' : '30'} 次/天 ✅` : '🔒 需兌換碼'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">自帶 API Key</span>
-                    {hasAccess ? (
+                    <span className="text-gray-600">API Key</span>
+                    {isGuideMember ? (
+                      <span className="text-green-600 font-medium">導遊提供 ✅</span>
+                    ) : hasAccess ? (
                       <span className="text-green-600 font-medium">已開通 ✅</span>
                     ) : (
                       <span className="text-gray-400">🔒 需開通</span>
                     )}
                   </div>
+                  {isGuide && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">藥妝情報上傳</span>
+                      <span className="text-green-600 font-medium">已開通 ✅</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Upgrade hint */}
-                {!isPaid && (
+                {!isPaid && !isGuide && (
                   <div className="mt-3 pt-3 border-t border-orange-100">
-                    {isBeta ? (
-                      <p className="text-xs text-gray-500">升級贊助版 → 無限翻譯，不受每日 50 次限制</p>
+                    {isBeta || isGuideMember ? (
+                      <p className="text-xs text-gray-500">升級贊助版 → 自帶 Key 無限翻譯</p>
                     ) : (
                       <p className="text-xs text-gray-500">輸入公測兌換碼開通，或直接開通贊助版（7/1 前 $299）</p>
                     )}
