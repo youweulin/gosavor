@@ -8,21 +8,14 @@ import 'leaflet/dist/leaflet.css';
 // 自訂 Marker icon（解決 Leaflet 預設 icon 問題）
 const storeIcon = L.divIcon({
   className: '',
-  html: `<div style="background:#f97316;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🛒</div>`,
-  iconSize: [36, 36],
-  iconAnchor: [18, 18],
-});
-
-const taxFreeIcon = L.divIcon({
-  className: '',
-  html: `<div style="background:#22c55e;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🏷️</div>`,
+  html: `<div style="background:#f97316;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">✚</div>`,
   iconSize: [36, 36],
   iconAnchor: [18, 18],
 });
 
 const restaurantIcon = L.divIcon({
   className: '',
-  html: `<div style="background:#ef4444;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🍜</div>`,
+  html: `<div style="background:#ef4444;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">📋</div>`,
   iconSize: [36, 36],
   iconAnchor: [18, 18],
 });
@@ -135,7 +128,6 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
 
   const getStoreIcon = (store: StoreWithProducts) => {
     if (store.type === 'restaurant') return restaurantIcon;
-    if (store.is_tax_free) return taxFreeIcon;
     return storeIcon;
   };
 
