@@ -28,16 +28,27 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
     return acc;
   }, {});
 
+  // Normalize currency (JPY/¥/円 → ¥)
+  const normCurrency = (c: string) => {
+    if (c === 'JPY' || c === '円' || c === 'yen') return '¥';
+    if (c === 'USD') return '$';
+    if (c === 'EUR') return '€';
+    if (c === 'TWD' || c === 'NTD') return 'NT$';
+    return c;
+  };
+
   // Totals
   const totalByCurrency = filtered.reduce<Record<string, number>>((acc, exp) => {
-    acc[exp.currency] = (acc[exp.currency] || 0) + exp.amount;
+    const c = normCurrency(exp.currency);
+    acc[c] = (acc[c] || 0) + exp.amount;
     return acc;
   }, {});
 
   const formatAmount = (amount: number, currency: string) => {
-    const formatted = amount.toLocaleString();
-    return currency === '¥' || currency === '$' || currency === '€'
-      ? `${currency}${formatted}` : `${formatted} ${currency}`;
+    const c = normCurrency(currency);
+    const formatted = Math.round(amount).toLocaleString();
+    return c === '¥' || c === '$' || c === '€' || c === 'NT$'
+      ? `${c}${formatted}` : `${formatted} ${c}`;
   };
 
   const handleDelete = async (id: string) => {
@@ -71,17 +82,22 @@ const ExpenseBook = ({ onBack }: ExpenseBookProps) => {
             ))}
           </div>
           {/* Category breakdown */}
-          <div className="flex gap-3 mt-2">
+          <div className="flex gap-3 mt-2 text-xs text-gray-500">
             {categories.map(cat => {
-              const catTotal = filtered.filter(e => e.category === cat)
-                .reduce((acc, e) => acc + e.amount, 0);
-              const mainCurrency = expenses[0]?.currency || '¥';
+              const catExpenses = filtered.filter(e => e.category === cat);
+              const catByCurrency: Record<string, number> = {};
+              catExpenses.forEach(e => {
+                const c = normCurrency(e.currency);
+                catByCurrency[c] = (catByCurrency[c] || 0) + e.amount;
+              });
               return (
-                <div key={cat} className="text-xs text-gray-500">
-                  <span className="text-gray-400">{cat}</span> {formatAmount(catTotal, mainCurrency)}
+                <div key={cat}>
+                  <span className="text-gray-400">{cat}</span>{' '}
+                  {Object.entries(catByCurrency).map(([c, t]) => formatAmount(t, c)).join(' + ')}
                 </div>
               );
             })}
+            <span className="text-gray-300">{filtered.length} 筆</span>
           </div>
         </div>
       )}
