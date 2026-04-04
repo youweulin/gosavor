@@ -410,7 +410,7 @@ async function handleRakutenSync(env, url) {
       }
 
       if (items.length === 0) {
-        results.push({ name: keyword, status: 'not_found' });
+        results.push({ name: keyword, status: 'not_found', tried: keywords });
         continue;
       }
 
@@ -466,6 +466,15 @@ export default {
     // 楽天 Sync endpoint（GET）
     if (url.pathname === '/api/rakuten-sync' && request.method === 'GET') {
       return handleRakutenSync(env, url);
+    }
+
+    // 楽天 debug test（GET）
+    if (url.pathname === '/api/rakuten-test' && request.method === 'GET') {
+      const kw = url.searchParams.get('q') || '龍角散';
+      const rakutenUrl = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&accessKey=${RAKUTEN_ACCESS_KEY}&keyword=${encodeURIComponent(kw)}&hits=1`;
+      const res = await fetch(rakutenUrl, { headers: { 'Referer': 'https://gosavor.zeabur.app/' } });
+      const raw = await res.text();
+      return new Response(raw, { headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
     }
 
     if (request.method !== 'POST') {
