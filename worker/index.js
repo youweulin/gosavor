@@ -391,7 +391,9 @@ async function handleRakutenSync(env, url) {
       for (const kw of keywords) {
         keyword = kw;
         const rakutenUrl = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&accessKey=${RAKUTEN_ACCESS_KEY}&keyword=${encodeURIComponent(kw)}&hits=1`;
-        const rakutenRes = await fetch(rakutenUrl);
+        const rakutenRes = await fetch(rakutenUrl, {
+          headers: { 'Referer': 'https://gosavor.zeabur.app/' },
+        });
         const rawText = await rakutenRes.text();
         let data;
         try { data = JSON.parse(rawText); } catch {
