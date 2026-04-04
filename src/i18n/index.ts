@@ -190,7 +190,7 @@ const zh_TW: Translations = {
   'allergen.pork': '豬肉 (豚肉)',
 
   // Auth
-  'auth.subtitle': '日本旅遊翻譯神器',
+  'auth.subtitle': '你在日本的旅遊隨身助手',
   'auth.login': '登入',
   'auth.register': '註冊',
   'auth.password': '密碼',
@@ -256,7 +256,7 @@ const en: Translations = {
   'allergen.soba': 'Buckwheat (そば)', 'allergen.fish': 'Fish (魚)', 'allergen.soy': 'Soy (大豆)',
   'allergen.sesame': 'Sesame (ごま)', 'allergen.shellfish': 'Shellfish (貝類)', 'allergen.beef': 'Beef (牛肉)', 'allergen.pork': 'Pork (豚肉)',
   // Auth
-  'auth.subtitle': 'Your Japan travel translator',
+  'auth.subtitle': 'Your travel assistant in Japan',
   'auth.login': 'Sign In', 'auth.register': 'Sign Up', 'auth.password': 'Password',
   'auth.noAccount': 'No account? Sign up', 'auth.hasAccount': 'Have an account? Sign in',
   'auth.forgotPassword': 'Forgot password?', 'auth.backToLogin': 'Back to sign in',
