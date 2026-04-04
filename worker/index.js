@@ -330,11 +330,120 @@ async function callGemini(env, requestBody, model) {
 // =============================================
 // Main handler
 // =============================================
+// =============================================
+// 楽天商品圖片 Bot（管理員觸發）
+// GET /api/rakuten-sync?key=YOUR_SECRET
+// =============================================
+const RAKUTEN_APP_ID = '40c15934-1373-4dc0-a3f6-e9fffa2f83c3';
+
+async function handleRakutenSync(env, url) {
+  // 簡易驗證（防止隨意觸發）
+  const syncKey = url.searchParams.get('key');
+  if (syncKey !== (env.SYNC_SECRET || 'gosavor-sync-2026')) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+
+  const BATCH = parseInt(url.searchParams.get('batch') || '10');
+  const results = [];
+
+  // 1. 撈 price_reports 有名字的商品
+  const reportsRes = await fetch(`${env.SUPABASE_URL}/rest/v1/price_reports?select=product_name,jan_code&order=created_at.desc&limit=${BATCH * 3}`, {
+    headers: { 'apikey': env.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}` },
+  });
+  const reports = await reportsRes.json();
+  if (!reports || reports.length === 0) return json({ message: 'No products to process', results: [] });
+
+  // 去重
+  const seen = new Set();
+  const unique = [];
+  for (const r of reports) {
+    const key = r.jan_code || r.product_name;
+    if (!seen.has(key)) { seen.add(key); unique.push(r); }
+  }
+
+  // 2. 檢查已在 products 表的
+  const existRes = await fetch(`${env.SUPABASE_URL}/rest/v1/products?select=name,jan_code&limit=1000`, {
+    headers: { 'apikey': env.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}` },
+  });
+  const existing = await existRes.json();
+  const existNames = new Set((existing || []).map(p => p.name));
+  const existJANs = new Set((existing || []).filter(p => p.jan_code).map(p => p.jan_code));
+
+  const toProcess = unique.filter(p => {
+    if (p.jan_code && existJANs.has(p.jan_code)) return false;
+    if (existNames.has(p.product_name)) return false;
+    return true;
+  }).slice(0, BATCH);
+
+  if (toProcess.length === 0) return json({ message: 'All products already have data', results: [] });
+
+  // 3. 搜尋楽天
+  for (const product of toProcess) {
+    const keyword = product.product_name.replace(/[\s\-_\.・]/g, ' ').substring(0, 30);
+    try {
+      const rakutenRes = await fetch(`https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&keyword=${encodeURIComponent(keyword)}&hits=1`);
+      const data = await rakutenRes.json();
+      const items = data.Items || [];
+
+      if (items.length === 0) {
+        results.push({ name: keyword, status: 'not_found' });
+        continue;
+      }
+
+      const item = items[0].Item;
+      const imageUrl = (item.mediumImageUrls?.[0]?.imageUrl || '').replace('?_ex=128x128', '?_ex=300x300');
+
+      // Extract JAN from caption
+      let jan = product.jan_code || null;
+      if (!jan && item.itemCaption) {
+        const m = item.itemCaption.match(/JAN[:\s]?(\d{13})/i) || item.itemCaption.match(/(49\d{11}|45\d{11})/);
+        if (m) jan = m[1];
+      }
+
+      // 4. Upsert to products
+      await fetch(`${env.SUPABASE_URL}/rest/v1/products`, {
+        method: 'POST',
+        headers: {
+          'apikey': env.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify({
+          jan_code: jan,
+          name: product.product_name,
+          image_url: imageUrl,
+          rakuten_price: item.itemPrice || null,
+          rakuten_url: item.itemUrl || null,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+
+      results.push({ name: keyword, status: 'ok', image: !!imageUrl, jan });
+    } catch (err) {
+      results.push({ name: keyword, status: 'error', error: err.message });
+    }
+
+    // Rate limit: 1 req/sec
+    await new Promise(r => setTimeout(r, 1100));
+  }
+
+  return json({ message: `Processed ${results.length} products`, results });
+}
+
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS });
     }
+
+    // 楽天 Sync endpoint（GET）
+    if (url.pathname === '/api/rakuten-sync' && request.method === 'GET') {
+      return handleRakutenSync(env, url);
+    }
+
     if (request.method !== 'POST') {
       return json({ error: 'Method not allowed' }, 405);
     }
