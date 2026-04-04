@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { ArrowLeft, Search, TrendingUp, ChevronRight, Map, Camera } from 'lucide-react';
+import { ArrowLeft, Search, TrendingUp, ChevronRight, Map, Camera, Trash2 } from 'lucide-react';
 import { supabase, getPopularProducts, searchProducts, type ProductRanking } from '../services/supabase';
+import { useAuthContext } from '../contexts/AuthContext';
 import PriceCompare from './PriceCompare';
 
 const StoreMap = lazy(() => import('./StoreMap'));
@@ -16,6 +17,8 @@ interface DrugstoreInfoProps {
 }
 
 const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage = 'Traditional Chinese' }: DrugstoreInfoProps) => {
+  const { userEmail } = useAuthContext();
+  const isAdmin = userEmail === 'metaworldfood@gmail.com';
   const [popular, setPopular] = useState<ProductRanking[]>([]);
   const [searchResults, setSearchResults] = useState<ProductRanking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,6 +223,25 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
                   </div>
                 </div>
 
+                {/* Admin delete */}
+                {isAdmin && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!confirm(`刪除「${product.translated_name}」的所有比價資料？`)) return;
+                      const key = product.jan_code || product.normalized_key;
+                      supabase.from('price_reports').delete()
+                        .or(`jan_code.eq.${key},normalized_key.eq.${key}`)
+                        .then(() => {
+                          setPopular(prev => prev.filter(p => p !== product));
+                          setSearchResults(prev => prev.filter(p => p !== product));
+                        });
+                    }}
+                    className="p-2 hover:bg-red-50 rounded-lg shrink-0"
+                  >
+                    <Trash2 size={14} className="text-red-400" />
+                  </button>
+                )}
                 <ChevronRight size={16} className="text-gray-300 shrink-0" />
               </button>
             ))}
