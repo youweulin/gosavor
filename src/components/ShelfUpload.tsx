@@ -207,7 +207,7 @@ const ShelfUpload = ({ onBack, apiKey, targetLanguage }: ShelfUploadProps) => {
                 <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-orange-300">
                   <Camera size={20} />
                   <span className="text-[10px] mt-1">加照片</span>
-                  <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                  <input type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
                 </label>
               )}
             </div>
