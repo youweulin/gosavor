@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, TrendingDown, Store, Calendar } from 'lucide-react';
+import { ArrowLeft, TrendingDown, Store, Calendar, Search } from 'lucide-react';
 import { supabase, comparePrices, getProductSummary, type PriceCompareResult } from '../services/supabase';
+import { useAuthContext } from '../contexts/AuthContext';
 
 interface PriceCompareProps {
   janCode?: string;
@@ -9,7 +10,12 @@ interface PriceCompareProps {
   onBack: () => void;
 }
 
+const RAKUTEN_APP_ID = '40c15934-1373-4dc0-a3f6-e9fffa2f83c3';
+const RAKUTEN_ACCESS_KEY = 'pk_cnZ5aZt4XZnrTXsxrB0beaUrh9jeDjbJ1ek762viGfR';
+
 const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCompareProps) => {
+  const { userEmail } = useAuthContext();
+  const isAdmin = userEmail === 'metaworldfood@gmail.com';
   const [stores, setStores] = useState<PriceCompareResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<{
@@ -17,6 +23,8 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
     translatedName: string; productName: string;
   } | null>(null);
   const [productImage, setProductImage] = useState('');
+  const [adminSearching, setAdminSearching] = useState(false);
+  const [adminStatus, setAdminStatus] = useState('');
 
   useEffect(() => {
     loadData();
@@ -104,6 +112,45 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
                   <p className="text-sm text-gray-400 mt-1">{summary.productName}</p>
                 </div>
               </div>
+
+              {/* Admin: search image + edit name */}
+              {isAdmin && (
+                <div className="mt-3 flex gap-2">
+                  <button
+                    disabled={adminSearching}
+                    onClick={async () => {
+                      setAdminSearching(true);
+                      setAdminStatus('搜尋中...');
+                      try {
+                        const kw = janCode || summary.productName.substring(0, 20);
+                        const res = await fetch(`https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&accessKey=${RAKUTEN_ACCESS_KEY}&keyword=${encodeURIComponent(kw)}&hits=1`);
+                        const data = await res.json();
+                        const items = data.Items || [];
+                        if (items.length > 0) {
+                          const item = items[0].Item;
+                          const img = (item.mediumImageUrls?.[0]?.imageUrl || '').replace('?_ex=128x128', '?_ex=300x300');
+                          const rakutenName = item.itemName.replace(/【[^】]*】/g, '').replace(/≪[^≫]*≫/g, '').replace(/送料無料|ポイント.*倍/g, '').trim().substring(0, 60);
+                          let jan = janCode || null;
+                          if (!jan && item.itemCaption) {
+                            const m = item.itemCaption.match(/JAN[:\s]?(\d{13})/i) || item.itemCaption.match(/(49\d{11}|45\d{11})/);
+                            if (m) jan = m[1];
+                          }
+                          await supabase.from('products').upsert({ jan_code: jan, name: rakutenName, image_url: img, rakuten_price: item.itemPrice, rakuten_url: item.itemUrl, updated_at: new Date().toISOString() }, { onConflict: 'jan_code' });
+                          setProductImage(img);
+                          setAdminStatus(`✅ ${rakutenName}`);
+                        } else {
+                          setAdminStatus('❌ 搜不到');
+                        }
+                      } catch (e: any) { setAdminStatus(`❌ ${e.message}`); }
+                      setAdminSearching(false);
+                    }}
+                    className="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs font-bold flex items-center gap-1"
+                  >
+                    <Search size={12} /> 搜楽天圖片
+                  </button>
+                </div>
+              )}
+              {adminStatus && <p className="text-[10px] text-gray-400 mt-1">{adminStatus}</p>}
 
               {/* Price range */}
               <div className="flex items-end gap-4 mt-4">
