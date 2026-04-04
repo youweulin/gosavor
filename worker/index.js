@@ -335,6 +335,7 @@ async function callGemini(env, requestBody, model) {
 // GET /api/rakuten-sync?key=YOUR_SECRET
 // =============================================
 const RAKUTEN_APP_ID = '40c15934-1373-4dc0-a3f6-e9fffa2f83c3';
+const RAKUTEN_ACCESS_KEY = 'pk_cnZ5aZt4XZnrTXsxrB0beaUrh9jeDjbJ1ek762viGfR';
 
 async function handleRakutenSync(env, url) {
   // 簡易驗證（防止隨意觸發）
@@ -389,7 +390,7 @@ async function handleRakutenSync(env, url) {
     try {
       for (const kw of keywords) {
         keyword = kw;
-        const rakutenUrl = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&keyword=${encodeURIComponent(kw)}&hits=1`;
+        const rakutenUrl = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&accessKey=${RAKUTEN_ACCESS_KEY}&keyword=${encodeURIComponent(kw)}&hits=1`;
         const rakutenRes = await fetch(rakutenUrl);
         const rawText = await rakutenRes.text();
         let data;
