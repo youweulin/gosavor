@@ -383,6 +383,40 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
             >
               楽天商品圖片同步
             </button>
+            <button
+              onClick={async () => {
+                setAdminStatus('⏳ 修正名稱中...');
+                try {
+                  const { supabase } = await import('../services/supabase');
+                  // 從 products 表拿正確名稱（楽天來的）
+                  const { data: products } = await supabase.from('products').select('jan_code, name').not('jan_code', 'is', null);
+                  if (!products?.length) { setAdminStatus('沒有 products 資料'); return; }
+
+                  let fixed = 0;
+                  for (const prod of products) {
+                    // 找 price_reports 裡同 JAN 但名稱不同的
+                    const { data: reports } = await supabase.from('price_reports')
+                      .select('id, product_name')
+                      .eq('jan_code', prod.jan_code)
+                      .neq('product_name', prod.name)
+                      .limit(50);
+
+                    if (reports?.length) {
+                      for (const r of reports) {
+                        await supabase.from('price_reports').update({ product_name: prod.name }).eq('id', r.id);
+                        fixed++;
+                      }
+                    }
+                  }
+                  setAdminStatus(`✅ 修正了 ${fixed} 筆商品名稱`);
+                } catch (err: any) {
+                  setAdminStatus(`❌ ${err.message}`);
+                }
+              }}
+              className="w-full py-2 mt-2 bg-red-900 hover:bg-red-800 text-white rounded-lg text-xs font-bold"
+            >
+              修正錯誤商品名稱（用 JAN 比對）
+            </button>
             {adminStatus && <p className="text-[10px] text-red-300 mt-1">{adminStatus}</p>}
           </div>
         )}
