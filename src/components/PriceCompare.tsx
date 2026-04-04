@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, TrendingDown, Store, Calendar } from 'lucide-react';
-import { comparePrices, getProductSummary, type PriceCompareResult } from '../services/supabase';
+import { supabase, comparePrices, getProductSummary, type PriceCompareResult } from '../services/supabase';
 
 interface PriceCompareProps {
   janCode?: string;
@@ -16,6 +16,7 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
     minPrice: number; maxPrice: number; avgPrice: number; reportCount: number;
     translatedName: string; productName: string;
   } | null>(null);
+  const [productImage, setProductImage] = useState('');
 
   useEffect(() => {
     loadData();
@@ -44,6 +45,12 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
             productName: productName || '',
           });
         }
+      }
+      // Load product image
+      const name = productName || '';
+      if (name) {
+        const { data: prod } = await supabase.from('products').select('image_url').eq('name', name).limit(1).single();
+        if (prod?.image_url) setProductImage(prod.image_url);
       }
     } catch (err) {
       console.error('[GoSavor] Compare error:', err);
@@ -85,8 +92,15 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
           <>
             {/* Product info */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <h2 className="text-xl font-black text-gray-900">{summary.translatedName}</h2>
-              <p className="text-sm text-gray-400 mt-1">{summary.productName}</p>
+              <div className="flex gap-4">
+                {productImage && (
+                  <img src={productImage} alt="" className="w-20 h-20 rounded-xl object-cover shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl font-black text-gray-900">{summary.translatedName}</h2>
+                  <p className="text-sm text-gray-400 mt-1">{summary.productName}</p>
+                </div>
+              </div>
 
               {/* Price range */}
               <div className="flex items-end gap-4 mt-4">
