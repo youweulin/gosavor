@@ -94,28 +94,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const isNative = typeof (window as any).Capacitor !== 'undefined';
 
     if (isNative) {
-      // Native iOS: use Capacitor plugin for native Apple Sign In
-      try {
-        const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
-        const result = await SignInWithApple.authorize({
-          clientId: 'com.gosavor.app',
-          redirectURI: '',
-          scopes: 'email name',
-        });
-
-        // Pass identity token to Supabase
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'apple',
-          token: result.response.identityToken,
-        });
-        if (error) throw new Error(error.message);
-      } catch (err: any) {
-        if (err?.message?.includes('canceled') || err?.message?.includes('1001')) {
-          // User cancelled - don't throw
-          return;
-        }
-        throw err;
-      }
+      // Apple Sign In — 等 Apple Developer Program 審核通過後啟用
+      throw new Error('Apple Sign In 尚未啟用，請使用 Email 登入');
     } else {
       // PWA: use Supabase OAuth redirect
       const { error } = await supabase.auth.signInWithOAuth({
