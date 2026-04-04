@@ -83,8 +83,23 @@ public class VisionOCRPlugin: CAPPlugin, CAPBridgedPlugin {
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
 
+        // Map UIImage orientation to CGImagePropertyOrientation for accurate bounding boxes
+        let cgOrientation: CGImagePropertyOrientation
+        switch uiImage.imageOrientation {
+        case .up: cgOrientation = .up
+        case .down: cgOrientation = .down
+        case .left: cgOrientation = .left
+        case .right: cgOrientation = .right
+        case .upMirrored: cgOrientation = .upMirrored
+        case .downMirrored: cgOrientation = .downMirrored
+        case .leftMirrored: cgOrientation = .leftMirrored
+        case .rightMirrored: cgOrientation = .rightMirrored
+        @unknown default: cgOrientation = .up
+        }
+        print("[GoSavor] Image orientation: \(uiImage.imageOrientation.rawValue) → CGOrientation: \(cgOrientation.rawValue)")
+
         DispatchQueue.global(qos: .userInitiated).async {
-            let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up)
+            let handler = VNImageRequestHandler(cgImage: cgImage, orientation: cgOrientation)
             do {
                 try handler.perform([request])
             } catch {
@@ -818,6 +833,10 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
     private var arOverlayLabels: [UILabel] = []
     private var photoZoomScrollView: UIScrollView?
     private var zoomContentView: UIView?
+    private var orderQuantities: [Int: Int] = [:] // idx → quantity
+    private var orderFloatingBtn: UIButton?
+    private var orderOverlay: UIView? // staff order view
+    private var orderSynthesizer: AVSpeechSynthesizer? // keep alive during playback
 
     private func showResult(on scanner: DataScannerViewController, image: UIImage, ocrResults: [(String, CGRect)], translations: [String]) {
         let screenW = UIScreen.main.bounds.width
@@ -1014,11 +1033,12 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
 
         let padding: CGFloat = 16
         var y: CGFloat = 8
+        let btnSize: CGFloat = 32
 
         for i in 0..<ocrOriginals.count {
             let original = ocrOriginals[i]
             let translated = i < ocrTranslations.count ? ocrTranslations[i] : original
-            let textW = width - padding * 2 - 16
+            let textW = width - padding * 2 - 120 // leave room for +/- buttons
 
             let card = UIView()
             card.tag = 2000 + i
@@ -1050,14 +1070,59 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
             subLabel.frame = CGRect(x: padding, y: mainLabel.frame.maxY + 4, width: textW, height: max(subSize.height, 14))
             card.addSubview(subLabel)
 
-            let cardH = subLabel.frame.maxY + 10
+            let cardH = max(subLabel.frame.maxY + 10, btnSize + 20)
+
+            // Order quantity controls (right side)
+            let qty = orderQuantities[i] ?? 0
+            let controlY = (cardH - btnSize) / 2
+
+            // Minus button
+            let minusBtn = UIButton(type: .system)
+            minusBtn.tag = 3000 + i
+            minusBtn.setTitle("−", for: .normal)
+            minusBtn.titleLabel?.font = .boldSystemFont(ofSize: 18)
+            minusBtn.tintColor = qty > 0 ? .systemOrange : .lightGray
+            minusBtn.backgroundColor = qty > 0 ? UIColor.systemOrange.withAlphaComponent(0.1) : UIColor(white: 0.9, alpha: 1)
+            minusBtn.layer.cornerRadius = btnSize / 2
+            minusBtn.frame = CGRect(x: width - padding * 2 - 110, y: controlY, width: btnSize, height: btnSize)
+            minusBtn.addTarget(self, action: #selector(orderMinusTapped(_:)), for: .touchUpInside)
+            card.addSubview(minusBtn)
+
+            // Quantity label
+            let qtyLabel = UILabel()
+            qtyLabel.tag = 4000 + i
+            qtyLabel.text = "\(qty)"
+            qtyLabel.font = .boldSystemFont(ofSize: 16)
+            qtyLabel.textColor = qty > 0 ? .systemOrange : .gray
+            qtyLabel.textAlignment = .center
+            qtyLabel.frame = CGRect(x: width - padding * 2 - 74, y: controlY, width: 30, height: btnSize)
+            card.addSubview(qtyLabel)
+
+            // Plus button
+            let plusBtn = UIButton(type: .system)
+            plusBtn.tag = 5000 + i
+            plusBtn.setTitle("+", for: .normal)
+            plusBtn.titleLabel?.font = .boldSystemFont(ofSize: 18)
+            plusBtn.tintColor = .white
+            plusBtn.backgroundColor = .systemOrange
+            plusBtn.layer.cornerRadius = btnSize / 2
+            plusBtn.frame = CGRect(x: width - padding * 2 - 40, y: controlY, width: btnSize, height: btnSize)
+            plusBtn.addTarget(self, action: #selector(orderPlusTapped(_:)), for: .touchUpInside)
+            card.addSubview(plusBtn)
+
+            // Highlight card if has quantity
+            if qty > 0 {
+                card.layer.borderWidth = 2
+                card.layer.borderColor = UIColor.systemOrange.cgColor
+            }
+
             card.frame = CGRect(x: padding, y: y, width: width - padding * 2, height: cardH)
             container.addSubview(card)
 
             y = card.frame.maxY + 6
         }
 
-        y += 30
+        y += 80 // extra space for floating button
         container.frame = CGRect(x: 0, y: 0, width: width, height: y)
         (container.superview as? UIScrollView)?.contentSize = CGSize(width: width, height: y)
     }
@@ -1137,6 +1202,192 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
         }
     }
 
+    // MARK: - Order actions
+
+    @objc private func orderPlusTapped(_ sender: UIButton) {
+        let idx = sender.tag - 5000
+        orderQuantities[idx] = (orderQuantities[idx] ?? 0) + 1
+        rebuildOrderUI()
+    }
+
+    @objc private func orderMinusTapped(_ sender: UIButton) {
+        let idx = sender.tag - 3000
+        let current = orderQuantities[idx] ?? 0
+        if current > 0 { orderQuantities[idx] = current - 1 }
+        if orderQuantities[idx] == 0 { orderQuantities.removeValue(forKey: idx) }
+        rebuildOrderUI()
+    }
+
+    private func rebuildOrderUI() {
+        let screenW = UIScreen.main.bounds.width
+        // Rebuild text list to update +/- highlights
+        if let container = textListContainer {
+            buildTextList(container: container, width: screenW, showTranslated: showingTranslation)
+        }
+        // Update floating order button
+        let totalItems = orderQuantities.values.reduce(0, +)
+        if totalItems > 0 {
+            if orderFloatingBtn == nil {
+                let btn = UIButton(type: .system)
+                btn.backgroundColor = .systemOrange
+                btn.layer.cornerRadius = 25
+                btn.layer.shadowColor = UIColor.black.cgColor
+                btn.layer.shadowOpacity = 0.3
+                btn.layer.shadowOffset = CGSize(width: 0, height: 4)
+                btn.layer.shadowRadius = 8
+                btn.addTarget(self, action: #selector(showOrderView), for: .touchUpInside)
+                resultOverlay?.addSubview(btn)
+                orderFloatingBtn = btn
+            }
+            let screenH = UIScreen.main.bounds.height
+            orderFloatingBtn?.setTitle("🛒 確認點餐（\(totalItems) 品）", for: .normal)
+            orderFloatingBtn?.titleLabel?.font = .boldSystemFont(ofSize: 17)
+            orderFloatingBtn?.tintColor = .white
+            orderFloatingBtn?.frame = CGRect(x: 20, y: screenH - 120, width: screenW - 40, height: 50)
+            orderFloatingBtn?.isHidden = false
+        } else {
+            orderFloatingBtn?.isHidden = true
+        }
+    }
+
+    @objc private func showOrderView() {
+        guard !orderQuantities.isEmpty else { return }
+        let screenW = UIScreen.main.bounds.width
+        let screenH = UIScreen.main.bounds.height
+
+        let overlay = UIView(frame: CGRect(x: 0, y: 0, width: screenW, height: screenH))
+        overlay.backgroundColor = UIColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1)
+        self.orderOverlay = overlay
+
+        // Header
+        let header = UIView(frame: CGRect(x: 0, y: 0, width: screenW, height: 100))
+        header.backgroundColor = UIColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)
+        overlay.addSubview(header)
+
+        let title = UILabel(frame: CGRect(x: 20, y: 54, width: screenW - 80, height: 30))
+        title.text = "注文 — \(orderQuantities.values.reduce(0, +)) 品"
+        title.font = .boldSystemFont(ofSize: 22)
+        title.textColor = .white
+        header.addSubview(title)
+
+        let closeBtn = UIButton(type: .system)
+        closeBtn.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+        closeBtn.tintColor = .gray
+        closeBtn.frame = CGRect(x: screenW - 50, y: 54, width: 30, height: 30)
+        closeBtn.addTarget(self, action: #selector(closeOrderView), for: .touchUpInside)
+        header.addSubview(closeBtn)
+
+        // Order items scroll
+        let scroll = UIScrollView(frame: CGRect(x: 0, y: 100, width: screenW, height: screenH - 230))
+        scroll.backgroundColor = .clear
+        overlay.addSubview(scroll)
+
+        let container = UIView()
+        scroll.addSubview(container)
+
+        var y: CGFloat = 16
+        let sorted = orderQuantities.sorted(by: { $0.key < $1.key })
+        for (idx, qty) in sorted {
+            guard qty > 0, idx < ocrOriginals.count else { continue }
+            let original = ocrOriginals[idx]
+            let translated = idx < ocrTranslations.count ? ocrTranslations[idx] : original
+
+            let card = UIView(frame: CGRect(x: 16, y: y, width: screenW - 32, height: 70))
+            card.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 1)
+            card.layer.cornerRadius = 12
+            container.addSubview(card)
+
+            let nameLabel = UILabel(frame: CGRect(x: 16, y: 10, width: screenW - 120, height: 28))
+            nameLabel.text = original
+            nameLabel.font = .boldSystemFont(ofSize: 22)
+            nameLabel.textColor = .white
+            nameLabel.adjustsFontSizeToFitWidth = true
+            nameLabel.minimumScaleFactor = 0.5
+            card.addSubview(nameLabel)
+
+            let transLabel = UILabel(frame: CGRect(x: 16, y: 38, width: screenW - 120, height: 20))
+            transLabel.text = translated
+            transLabel.font = .systemFont(ofSize: 13)
+            transLabel.textColor = .systemOrange
+            card.addSubview(transLabel)
+
+            let qtyBadge = UILabel(frame: CGRect(x: screenW - 80, y: 20, width: 36, height: 30))
+            qtyBadge.text = "×\(qty)"
+            qtyBadge.font = .boldSystemFont(ofSize: 20)
+            qtyBadge.textColor = .systemOrange
+            qtyBadge.textAlignment = .center
+            card.addSubview(qtyBadge)
+
+            y = card.frame.maxY + 8
+        }
+
+        container.frame = CGRect(x: 0, y: 0, width: screenW, height: y + 20)
+        scroll.contentSize = container.frame.size
+
+        // Play button
+        let playBtn = UIButton(type: .system)
+        playBtn.frame = CGRect(x: 20, y: screenH - 120, width: screenW - 40, height: 54)
+        playBtn.backgroundColor = .systemOrange
+        playBtn.layer.cornerRadius = 27
+        playBtn.setTitle("▶ 播放日語點餐", for: .normal)
+        playBtn.titleLabel?.font = .boldSystemFont(ofSize: 18)
+        playBtn.tintColor = .white
+        playBtn.addTarget(self, action: #selector(speakOrder), for: .touchUpInside)
+        overlay.addSubview(playBtn)
+
+        // Back button
+        let backBtn = UIButton(type: .system)
+        backBtn.frame = CGRect(x: 20, y: screenH - 60, width: screenW - 40, height: 40)
+        backBtn.setTitle("← 返回修改", for: .normal)
+        backBtn.titleLabel?.font = .systemFont(ofSize: 15)
+        backBtn.tintColor = .gray
+        backBtn.addTarget(self, action: #selector(closeOrderView), for: .touchUpInside)
+        overlay.addSubview(backBtn)
+
+        resultOverlay?.addSubview(overlay)
+    }
+
+    @objc private func closeOrderView() {
+        orderOverlay?.removeFromSuperview()
+        orderOverlay = nil
+    }
+
+    @objc private func speakOrder() {
+        let sorted = orderQuantities.sorted(by: { $0.key < $1.key })
+        var parts: [String] = []
+        for (idx, qty) in sorted {
+            guard qty > 0, idx < ocrOriginals.count else { continue }
+            let name = ocrOriginals[idx]
+            if qty == 1 {
+                parts.append(name)
+            } else {
+                parts.append("\(name)を\(qty)つ")
+            }
+        }
+        let orderText = parts.joined(separator: "、")
+        let speech = "すみません、\(orderText)、お願いします"
+
+        // Close order view first to free memory, then speak
+        orderOverlay?.removeFromSuperview()
+        orderOverlay = nil
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            do {
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                try AVAudioSession.sharedInstance().setActive(true)
+            } catch {
+                print("[GoSavor] Audio session error: \(error)")
+            }
+
+            let utterance = AVSpeechUtterance(string: speech)
+            utterance.voice = AVSpeechSynthesisVoice(language: "ja-JP")
+            utterance.rate = 0.45
+            utterance.preUtteranceDelay = 0.2
+            self.orderSynthesizer = AVSpeechSynthesizer()
+            self.orderSynthesizer?.speak(utterance)
+        }
+    }
+
     // MARK: - Actions
 
     @objc private func closeTapped() {
@@ -1167,6 +1418,9 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
             self.arOverlayLabels = []
             self.photoZoomScrollView = nil
             self.zoomContentView = nil
+            self.orderQuantities = [:]
+            self.orderFloatingBtn = nil
+            self.orderOverlay = nil
             try? self.scannerVC?.startScanning()
         }
     }

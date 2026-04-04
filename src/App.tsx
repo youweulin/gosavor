@@ -13,6 +13,7 @@ import { useAuthContext } from './contexts/AuthContext';
 import { analyzeMenuImage, analyzeReceiptImage, analyzeGeneralImage, setScanMode as setGeminiScanMode, getLastUsageInfo } from './services/gemini';
 import UsageBadge from './components/UsageBadge';
 import ARWaitingPage from './components/ARWaitingPage';
+import AROrderPicker from './components/AROrderPicker';
 import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
@@ -569,7 +570,16 @@ function AppInner() {
               onTapItem={(idx) => {
                 setHighlightIndex(idx);
                 const el = document.getElementById(`menu-item-${idx}`);
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (el) {
+                  // Calculate sticky area height (header + image)
+                  const header = document.querySelector('header');
+                  const stickyImg = document.querySelector('[class*="sticky"][class*="z-20"]');
+                  const stickyH = (header?.getBoundingClientRect().height || 53)
+                    + (stickyImg?.getBoundingClientRect().height || 0);
+                  // Scroll so item appears just below sticky area with 10px padding
+                  const y = el.getBoundingClientRect().top + window.scrollY - stickyH - 10;
+                  window.scrollTo({ top: y, behavior: 'smooth' });
+                }
                 setTimeout(() => setHighlightIndex(null), 2000);
               }}
               onImageChange={(imgIdx) => {
@@ -806,19 +816,9 @@ function AppInner() {
             <div id="share-result">
               <GeneralView data={generalResult} imageSrc={images[0]} />
             </div>
-            {/* AR → Order button */}
+            {/* AR → Quick order: select items to show staff */}
             {generalResult.items.some(i => i.category === 'AR') && images.length > 0 && (
-              <button
-                onClick={() => {
-                  setScanMode('menu');
-                  setGeneralResult(null);
-                  handleAnalyze();
-                }}
-                className="w-full mt-3 py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-md transition-colors"
-              >
-                <ShoppingCart size={20} />
-                這是菜單，我要點餐
-              </button>
+              <AROrderPicker items={generalResult.items} />
             )}
             <div className="mt-4">
               <RecommendCards loadProducts={() => getRecommendations('general', undefined, generalResult.locationGuess)} />
