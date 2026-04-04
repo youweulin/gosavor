@@ -67,10 +67,6 @@ function timeAgo(dateStr: string): string {
 const MAP_STYLES = [
   { name: 'Voyager', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr: '&copy; CartoDB' },
   { name: 'OSM', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '&copy; OSM' },
-  { name: '極簡白', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr: '&copy; CartoDB' },
-  { name: '極簡暗', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attr: '&copy; CartoDB' },
-  { name: '水彩風', url: 'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', attr: '&copy; Stadia' },
-  { name: '日本地理院', url: 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', attr: '&copy; 国土地理院' },
 ];
 
 const StoreMap = ({ onBack }: StoreMapProps) => {
