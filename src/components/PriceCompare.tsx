@@ -46,10 +46,13 @@ const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCom
           });
         }
       }
-      // Load product image
-      const name = productName || '';
-      if (name) {
-        const { data: prod } = await supabase.from('products').select('image_url').eq('name', name).limit(1).single();
+      // Load product image (JAN優先，name fallback)
+      if (janCode) {
+        const { data: prod } = await supabase.from('products').select('image_url').eq('jan_code', janCode).limit(1).single();
+        if (prod?.image_url) setProductImage(prod.image_url);
+      }
+      if (!productImage && productName) {
+        const { data: prod } = await supabase.from('products').select('image_url').eq('name', productName).limit(1).single();
         if (prod?.image_url) setProductImage(prod.image_url);
       }
     } catch (err) {

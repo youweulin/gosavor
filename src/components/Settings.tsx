@@ -342,9 +342,14 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
                   const popular = await getPopularProducts(20);
                   if (!popular?.length) { setAdminStatus('沒有排行榜資料'); return; }
 
-                  const { data: existing } = await supabase.from('products').select('name').limit(1000);
+                  const { data: existing } = await supabase.from('products').select('name, jan_code').limit(1000);
                   const existNames = new Set((existing || []).map((p: any) => p.name));
-                  const toProcess = popular.filter(p => !existNames.has(p.product_name)).slice(0, 10);
+                  const existJANs = new Set((existing || []).filter((p: any) => p.jan_code).map((p: any) => p.jan_code));
+                  const toProcess = popular.filter(p => {
+                    if (p.jan_code && existJANs.has(p.jan_code)) return false;
+                    if (existNames.has(p.product_name)) return false;
+                    return true;
+                  }).slice(0, 10);
 
                   if (!toProcess.length) { setAdminStatus('✅ 所有商品已有資料'); return; }
 

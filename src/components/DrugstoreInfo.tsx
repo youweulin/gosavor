@@ -29,12 +29,17 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
     getPopularProducts(30).then(data => {
       setPopular(data);
       setLoading(false);
-      // Load product images
-      supabase.from('products').select('name, image_url').not('image_url', 'is', null).limit(100)
+      // Load product images (by name + jan_code)
+      supabase.from('products').select('name, jan_code, image_url').not('image_url', 'is', null).limit(100)
         .then(({ data: imgs }) => {
           if (imgs) {
             const map: Record<string, string> = {};
-            imgs.forEach((p: any) => { if (p.image_url) map[p.name] = p.image_url; });
+            imgs.forEach((p: any) => {
+              if (p.image_url) {
+                if (p.name) map[`name:${p.name}`] = p.image_url;
+                if (p.jan_code) map[`jan:${p.jan_code}`] = p.image_url;
+              }
+            });
             setProductImages(map);
           }
         });
@@ -182,9 +187,9 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
                 className="w-full bg-white rounded-xl p-4 border border-gray-100 hover:border-orange-200 transition-colors text-left flex items-center gap-3"
               >
                 {/* Product image or rank badge */}
-                {productImages[product.product_name] ? (
+                {(productImages[`jan:${product.jan_code}`] || productImages[`name:${product.product_name}`]) ? (
                   <div className="relative w-12 h-12 shrink-0">
-                    <img src={productImages[product.product_name]} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                    <img src={productImages[`jan:${product.jan_code}`] || productImages[`name:${product.product_name}`]} alt="" className="w-12 h-12 rounded-lg object-cover" />
                     <span className={`absolute -top-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
                       i === 0 ? 'bg-yellow-400 text-white' : i === 1 ? 'bg-gray-300 text-white' : i === 2 ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'
                     }`}>{i + 1}</span>
