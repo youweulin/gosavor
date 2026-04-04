@@ -65,6 +65,7 @@ function timeAgo(dateStr: string): string {
 }
 
 const MAP_STYLES = [
+  { name: 'Voyager', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr: '&copy; CartoDB' },
   { name: 'OSM', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '&copy; OSM' },
   { name: '極簡白', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr: '&copy; CartoDB' },
   { name: '極簡暗', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attr: '&copy; CartoDB' },
@@ -78,7 +79,7 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
   const [selectedStore, setSelectedStore] = useState<StoreWithProducts | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingStores, setLoadingStores] = useState(false);
-  const [mapStyle, setMapStyle] = useState(1); // 預設極簡白
+  const [mapStyle, setMapStyle] = useState(0); // 預設 Voyager
   const lastFetch = useRef<string>('');
 
   // 載入所有店家 + 取得用戶位置
