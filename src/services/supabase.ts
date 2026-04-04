@@ -294,6 +294,83 @@ export const generateTourCode = async (apiKey: string, durationDays = 5, maxUses
 };
 
 // =============================================
+// Menu Reports (菜單資料上傳)
+// =============================================
+
+export interface MenuReportInput {
+  restaurantName: string;
+  items: { originalName: string; translatedName: string; price: string; category: string }[];
+  currency: string;
+  lat?: number;
+  lng?: number;
+}
+
+/** 菜單翻譯後上傳餐廳 + 菜品資料 */
+export const submitMenuReport = async (report: MenuReportInput) => {
+  const currentUserId = await getCurrentUserId();
+  if (!currentUserId || !report.restaurantName) return;
+
+  try {
+    const { data: user } = await supabase.from('users')
+      .select('id')
+      .eq('anonymous_id', currentUserId)
+      .single();
+    if (!user) return;
+
+    // 餐廳歸戶（用 stores 表，type='restaurant'）
+    const normalized = normalizeName(report.restaurantName);
+    const { data: existing } = await supabase.from('stores')
+      .select('id, report_count')
+      .eq('normalized_name', normalized)
+      .eq('type', 'restaurant')
+      .limit(1)
+      .single();
+
+    let storeId: string;
+    if (existing) {
+      await supabase.from('stores').update({
+        report_count: (existing.report_count || 0) + 1,
+        last_reported_at: new Date().toISOString(),
+        ...(report.lat && !existing.report_count ? { lat: report.lat, lng: report.lng } : {}),
+      }).eq('id', existing.id);
+      storeId = existing.id;
+    } else {
+      const { data: newStore } = await supabase.from('stores').insert({
+        name: report.restaurantName,
+        normalized_name: normalized,
+        type: 'restaurant',
+        lat: report.lat || null,
+        lng: report.lng || null,
+        report_count: 1,
+      }).select('id').single();
+      storeId = newStore?.id || '';
+    }
+
+    if (!storeId) return;
+
+    // 批次上傳菜品
+    const menuItems = report.items.map(item => ({
+      store_id: storeId,
+      store_name: report.restaurantName,
+      original_name: item.originalName,
+      translated_name: item.translatedName,
+      price: parseFloat(item.price) || 0,
+      currency: report.currency || '¥',
+      category: item.category,
+      user_id: user.id,
+    }));
+
+    if (menuItems.length > 0) {
+      await supabase.from('menu_reports').insert(menuItems);
+    }
+
+    console.log('[GoSavor] Menu report saved:', report.restaurantName, menuItems.length, 'items');
+  } catch (err) {
+    console.warn('[GoSavor] Menu report error:', err);
+  }
+};
+
+// =============================================
 // Usage Tracking
 // =============================================
 
@@ -668,6 +745,7 @@ export interface StoreWithProducts {
   id: string;
   name: string;
   branch: string | null;
+  type: string;
   lat: number;
   lng: number;
   is_tax_free: boolean;
@@ -728,6 +806,7 @@ export const getNearbyStores = async (
         id: store.id,
         name: store.name,
         branch: store.branch,
+        type: store.type || 'drugstore',
         lat: store.lat,
         lng: store.lng,
         is_tax_free: store.is_tax_free,
@@ -758,6 +837,7 @@ export const getAllStores = async (): Promise<StoreWithProducts[]> => {
       id: store.id,
       name: store.name,
       branch: store.branch,
+      type: store.type || 'drugstore',
       lat: store.lat,
       lng: store.lng,
       is_tax_free: store.is_tax_free,

@@ -20,6 +20,13 @@ const taxFreeIcon = L.divIcon({
   iconAnchor: [18, 18],
 });
 
+const restaurantIcon = L.divIcon({
+  className: '',
+  html: `<div style="background:#ef4444;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🍜</div>`,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+});
+
 const userIcon = L.divIcon({
   className: '',
   html: `<div style="background:#3b82f6;color:white;border-radius:50%;width:20px;height:20px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>`,
@@ -75,7 +82,8 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
   const [selectedStore, setSelectedStore] = useState<StoreWithProducts | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingStores, setLoadingStores] = useState(false);
-  const [mapStyle, setMapStyle] = useState(0); // 預設 Voyager
+  const [mapStyle, setMapStyle] = useState(0);
+  const [filter, setFilter] = useState<'all' | 'drugstore' | 'restaurant'>('all');
   const lastFetch = useRef<string>('');
 
   // 載入所有店家 + 取得用戶位置
@@ -125,9 +133,26 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
     loadStores(center.lat, center.lng);
   };
 
+  const getStoreIcon = (store: StoreWithProducts) => {
+    if (store.type === 'restaurant') return restaurantIcon;
+    if (store.is_tax_free) return taxFreeIcon;
+    return storeIcon;
+  };
+
+  const filteredStores = filter === 'all' ? stores : stores.filter(s => (s.type || 'drugstore') === filter);
+
   const openGoogleMaps = (store: StoreWithProducts) => {
     const q = encodeURIComponent(`${store.name} ${store.branch || ''}`);
     window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
+  };
+
+  const openGoogleNav = (store: StoreWithProducts) => {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}`, '_blank');
+  };
+
+  const openTabelog = (store: StoreWithProducts) => {
+    const q = encodeURIComponent(store.name);
+    window.open(`https://tabelog.com/rst/rstsch/?vs=1&sw=${q}`, '_blank');
   };
 
   if (loading) {
@@ -144,7 +169,7 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
   return (
     <div className="min-h-screen bg-gray-50 relative">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-3">
+      <div className="absolute top-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="p-1"><ArrowLeft size={20} /></button>
@@ -152,7 +177,7 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
           </div>
           <div className="flex items-center gap-2">
             {loadingStores && <Loader2 size={16} className="animate-spin text-orange-500" />}
-            <span className="text-xs text-gray-400">{stores.length} 家店</span>
+            <span className="text-xs text-gray-400">{filteredStores.length} 家</span>
             <button
               onClick={() => setMapStyle((mapStyle + 1) % MAP_STYLES.length)}
               className="px-2 py-1 bg-gray-100 rounded-full text-[10px] font-medium text-gray-600"
@@ -161,10 +186,24 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
             </button>
           </div>
         </div>
+        {/* Filter tabs */}
+        <div className="flex gap-2 mt-2">
+          {([['all', '全部'], ['restaurant', '🍜 餐廳'], ['drugstore', '🛒 藥妝']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                filter === key ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Map */}
-      <div className="w-full" style={{ height: selectedStore ? '55vh' : '100vh', paddingTop: 56 }}>
+      <div className="w-full" style={{ height: selectedStore ? '55vh' : '100vh', paddingTop: 88 }}>
         {userPos && (
           <MapContainer
             center={userPos}
@@ -184,11 +223,11 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
             <Marker position={userPos} icon={userIcon} />
 
             {/* 店家 Pins */}
-            {stores.map(store => (
+            {filteredStores.map(store => (
               <Marker
                 key={store.id}
                 position={[store.lat, store.lng]}
-                icon={store.is_tax_free ? taxFreeIcon : storeIcon}
+                icon={getStoreIcon(store)}
                 eventHandlers={{
                   click: () => setSelectedStore(store),
                 }}
@@ -241,7 +280,7 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
             {/* 店名 + 關閉 */}
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h2 className="font-bold text-lg">{selectedStore.name}</h2>
+                <h2 className="font-bold text-lg">{selectedStore.type === 'restaurant' ? '🍜' : '🛒'} {selectedStore.name}</h2>
                 {selectedStore.branch && (
                   <p className="text-sm text-gray-500">{selectedStore.branch}</p>
                 )}
@@ -260,7 +299,7 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
                 </span>
               )}
               <span className="px-2.5 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
-                📊 {selectedStore.report_count} 筆回報
+                {selectedStore.type === 'restaurant' ? `📸 ${selectedStore.report_count} 人掃過` : `📊 ${selectedStore.report_count} 筆回報`}
               </span>
               <span className="px-2.5 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
                 🕐 {timeAgo(selectedStore.last_reported_at)}
@@ -270,7 +309,7 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
             {/* 熱門商品 */}
             {selectedStore.topProducts && selectedStore.topProducts.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-sm font-bold text-gray-500 mb-2">🏷️ 熱門商品</h3>
+                <h3 className="text-sm font-bold text-gray-500 mb-2">{selectedStore.type === 'restaurant' ? '🔥 熱門菜色' : '🏷️ 熱門商品'}</h3>
                 <div className="space-y-2">
                   {selectedStore.topProducts.map((product, i) => (
                     <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
@@ -287,14 +326,40 @@ const StoreMap = ({ onBack }: StoreMapProps) => {
               </div>
             )}
 
-            {/* 導航按鈕 */}
-            <button
-              onClick={() => openGoogleMaps(selectedStore)}
-              className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"
-            >
-              <Navigation size={16} />
-              Google Maps 導航
-            </button>
+            {/* 按鈕區 */}
+            {selectedStore.type === 'restaurant' ? (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openGoogleMaps(selectedStore)}
+                    className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1"
+                  >
+                    ⭐ Google 評價
+                  </button>
+                  <button
+                    onClick={() => openTabelog(selectedStore)}
+                    className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1"
+                  >
+                    🍽 Tabelog
+                  </button>
+                </div>
+                <button
+                  onClick={() => openGoogleNav(selectedStore)}
+                  className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                >
+                  <Navigation size={16} />
+                  導航
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => openGoogleNav(selectedStore)}
+                className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+              >
+                <Navigation size={16} />
+                導航
+              </button>
+            )}
           </div>
         </div>
       )}

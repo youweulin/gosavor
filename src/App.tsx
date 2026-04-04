@@ -17,7 +17,7 @@ import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
 
-import { supabase, trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode, generateTourCode, getGuideTourCodes, type TourCodeInfo } from './services/supabase';
+import { supabase, trackScanEvent, getNickname, updateNickname, submitPriceReports, submitMenuReport, getUserProfile, redeemCode as submitRedeemCode, generateTourCode, getGuideTourCodes, type TourCodeInfo } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
 import { AuthProvider } from './contexts/AuthContext';
@@ -209,6 +209,23 @@ function AppInner() {
           currency: results[0]?.currency || '¥', items: allItems, images,
         });
         trackScanEvent('menu');
+        // 上傳餐廳 + 菜品到 Supabase（背景執行）
+        if (results[0]?.restaurantName) {
+          navigator.geolocation?.getCurrentPosition(
+            (pos) => submitMenuReport({
+              restaurantName: results[0].restaurantName!,
+              items: allItems.map(i => ({ originalName: i.originalName, translatedName: i.translatedName, price: i.price, category: i.category || '' })),
+              currency: results[0].currency || '¥',
+              lat: pos.coords.latitude, lng: pos.coords.longitude,
+            }),
+            () => submitMenuReport({
+              restaurantName: results[0].restaurantName!,
+              items: allItems.map(i => ({ originalName: i.originalName, translatedName: i.translatedName, price: i.price, category: i.category || '' })),
+              currency: results[0].currency || '¥',
+            }),
+            { timeout: 3000 }
+          );
+        }
       } else if (scanMode === 'receipt') {
         const result = await analyzeReceiptImage(imageData, targetLangLabel, apiKey);
         setReceiptResult(result);
