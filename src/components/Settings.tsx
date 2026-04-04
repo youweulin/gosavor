@@ -356,10 +356,13 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
                   let ok = 0;
                   let errors: string[] = [];
                   for (const product of toProcess) {
-                    // 嘗試多種關鍵字：完整名 → 去規格 → 去數字
+                    // 嘗試多種關鍵字：JAN → 完整名 → 去規格
                     const full = product.product_name.substring(0, 30);
                     const short = product.product_name.replace(/[\d\s\-_\.・]+[錠包枚個入g粒ml本袋箱]+$/g, '').substring(0, 20);
-                    const keywords = [full, short].filter((v, i, a) => v && a.indexOf(v) === i);
+                    const keywords = [
+                      ...(product.jan_code ? [product.jan_code] : []),
+                      full, short
+                    ].filter((v, i, a) => v && a.indexOf(v) === i);
 
                     let found = false;
                     for (const kw of keywords) {
