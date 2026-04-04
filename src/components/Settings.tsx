@@ -505,18 +505,19 @@ const warnStyle = "bg-red-500/10 border-l-2 border-red-500 p-3 rounded-r-lg text
 
 const PrivacyContent = () => (
   <div className={sectionStyle}>
-    <p className="text-xs text-gray-500">Last updated: April 3, 2026</p>
+    <p className="text-xs text-gray-500">Last updated: April 4, 2026</p>
     <p>GoSavor ("the Service") values your privacy. This policy describes how we collect, use, store, and protect your information.</p>
 
     <h2 className={h2Style}>1. Information We Collect</h2>
     <div className={highlightStyle}>
-      <strong>Anonymous by default:</strong> GoSavor uses anonymous authentication. We do not require account registration and do not collect your name, email address, or phone number.
+      <strong>Account registration:</strong> GoSavor requires Email registration or Apple Sign In. We collect your email address for authentication purposes only.
     </div>
 
     <h3 className={h3Style}>1.1 Automatically Collected</h3>
     <ul>
-      <li className={liStyle}>Anonymous user ID — device identification and quota tracking</li>
-      <li className={liStyle}>Device platform (iOS) — technical support</li>
+      <li className={liStyle}>User ID and email — account identification and quota tracking</li>
+      <li className={liStyle}>Authentication provider (Email / Apple) — login management</li>
+      <li className={liStyle}>Device platform (iOS / PWA) — technical support</li>
       <li className={liStyle}>App version — version management and debugging</li>
       <li className={liStyle}>Daily usage count — quota management</li>
       <li className={liStyle}>Scan events (type and timestamp) — feature analytics</li>
@@ -534,8 +535,13 @@ const PrivacyContent = () => (
     <h3 className={h3Style}>1.3 Location Information (Authorization Required)</h3>
     <p>Used to display your current city and weather, verify whether you are in Japan, and record receipt location data. You may disable location permissions at any time.</p>
 
-    <h3 className={h3Style}>1.4 Price Report Data</h3>
-    <p>When you scan receipts, product names, prices, and store information are automatically extracted and de-identified for use in our crowdsourced price comparison service.</p>
+    <h3 className={h3Style}>1.4 Receipt & Price Report Data</h3>
+    <p>When you scan receipts, the following information is automatically extracted and anonymously collected for our crowdsourced price comparison service:</p>
+    <ul>
+      <li className={liStyle}><strong>Collected:</strong> Store name, product names, prices, quantities, JAN codes (barcodes), tax-free status, purchase date</li>
+      <li className={liStyle}><strong>NOT collected:</strong> Credit card numbers, cardholder names, or any personal payment information</li>
+    </ul>
+    <p>This data is de-identified and used solely to provide price comparison services to all users. Individual purchase records cannot be traced back to specific users.</p>
 
     <h2 className={h2Style}>2. How Your Data Is Used</h2>
     <ul>
