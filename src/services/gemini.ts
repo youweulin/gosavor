@@ -792,11 +792,19 @@ export const analyzeShelfImage = async (
   }));
 
   const prompt = `You are a drugstore product scanner. Analyze ${images.length} shelf/display photo(s) from a Japanese drugstore.
-Extract ALL visible products with their names and prices.
+Extract ALL visible products with their FULL names, specs, and prices.
+
+IMPORTANT: productName must include the FULL product name with brand, variant, size/quantity/weight as shown on the price tag or packaging.
+Examples:
+- ✅ "龍角散ダイレクト ミント 20包" (includes variant + quantity)
+- ✅ "パブロンゴールドA錠 210錠" (includes variant + count)
+- ✅ "ビオレUV アクアリッチ ウォータリーエッセンス 110g" (includes size)
+- ❌ "龍角散" (too vague, missing spec)
+- ❌ "パブロン" (too vague, missing variant)
 
 For each product:
-- productName: the original Japanese product name as shown on the shelf/price tag
-- translatedName: translate to ${targetLanguage}
+- productName: FULL original Japanese name with brand + variant + size/quantity (e.g. "ロキソニンS 12錠")
+- translatedName: translate to ${targetLanguage}, include spec (e.g. "樂可舒寧S 12錠")
 - price: number only, tax-included price if visible (e.g. 1280)
 - category: product category in ${targetLanguage} (e.g. 感冒藥, 止痛藥, 面膜, 護膚品, 零食)
 
