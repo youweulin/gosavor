@@ -804,7 +804,11 @@ function AppInner() {
               </button>
             </div>
             <div id="share-result">
-              <GeneralView data={generalResult} imageSrc={images[0]} />
+              <GeneralView data={generalResult} imageSrc={images[0]} onSwitchToMenu={() => {
+                setScanMode('menu');
+                setGeneralResult(null);
+                handleAnalyze();
+              }} />
             </div>
             <div className="flex justify-center mt-3">
             </div>

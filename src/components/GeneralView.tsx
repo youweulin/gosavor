@@ -1,17 +1,18 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Sparkles, Info, Volume2, MapPin } from 'lucide-react';
+import { Sparkles, Info, Volume2, MapPin, ShoppingCart } from 'lucide-react';
 import type { GeneralAnalysisResult } from '../types';
 import { useT } from '../i18n/context';
 
 interface GeneralViewProps {
   data: GeneralAnalysisResult;
   imageSrc?: string; // AR translate image
+  onSwitchToMenu?: () => void; // AR → re-analyze as menu for ordering
 }
 
 const isMedicineOrBeauty = (category?: string) =>
   ['Medicine', 'Beauty', 'Snack'].includes(category || '');
 
-const GeneralView = ({ data, imageSrc }: GeneralViewProps) => {
+const GeneralView = ({ data, imageSrc, onSwitchToMenu }: GeneralViewProps) => {
   const speakText = (text: string) => {
     const u = new SpeechSynthesisUtterance(text);
     window.speechSynthesis.speak(u);
@@ -37,6 +38,16 @@ const GeneralView = ({ data, imageSrc }: GeneralViewProps) => {
               : <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
                   <img src={imageSrc} alt="AR translate" className="block w-full" />
                 </div>
+          )}
+          {/* AR → Order button */}
+          {onSwitchToMenu && (
+            <button
+              onClick={onSwitchToMenu}
+              className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-md transition-colors"
+            >
+              <ShoppingCart size={20} />
+              這是菜單，我要點餐
+            </button>
           )}
           {/* AR text list below image */}
           <div className="space-y-2">
