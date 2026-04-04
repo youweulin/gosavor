@@ -804,14 +804,22 @@ function AppInner() {
               </button>
             </div>
             <div id="share-result">
-              <GeneralView data={generalResult} imageSrc={images[0]} onSwitchToMenu={() => {
-                setScanMode('menu');
-                setGeneralResult(null);
-                handleAnalyze();
-              }} />
+              <GeneralView data={generalResult} imageSrc={images[0]} />
             </div>
-            <div className="flex justify-center mt-3">
-            </div>
+            {/* AR → Order button */}
+            {generalResult.items.some(i => i.category === 'AR') && images.length > 0 && (
+              <button
+                onClick={() => {
+                  setScanMode('menu');
+                  setGeneralResult(null);
+                  handleAnalyze();
+                }}
+                className="w-full mt-3 py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-md transition-colors"
+              >
+                <ShoppingCart size={20} />
+                這是菜單，我要點餐
+              </button>
+            )}
             <div className="mt-4">
               <RecommendCards loadProducts={() => getRecommendations('general', undefined, generalResult.locationGuess)} />
             </div>
