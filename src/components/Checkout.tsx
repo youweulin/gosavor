@@ -112,7 +112,7 @@ const Checkout = ({
   const speakOrder = async () => {
     setIsSpeaking(true);
     try {
-      await speakText(orderText, 'ja-JP', 0.9);
+      await speakText(orderText, 'ja-JP');
       // Add to chat log
       setChatLog(prev => [...prev, { role: 'you', ja: orderText, translated: '（你的點餐內容）' }]);
     } catch { /* ignore */ }
@@ -123,7 +123,7 @@ const Checkout = ({
   const speakCustom = async (text: string) => {
     setIsSpeaking(true);
     try {
-      await speakText(text, 'ja-JP', 0.9);
+      await speakText(text, 'ja-JP');
     } catch { /* ignore */ }
     setTimeout(() => setIsSpeaking(false), 1500);
   };

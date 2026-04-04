@@ -837,6 +837,7 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
     private var orderFloatingBtn: UIButton?
     private var orderOverlay: UIView? // staff order view
     private var orderSynthesizer: AVSpeechSynthesizer? // keep alive during playback
+    private var isMenuMode = false // true if OCR contains price patterns (¥, 円)
 
     private func showResult(on scanner: DataScannerViewController, image: UIImage, ocrResults: [(String, CGRect)], translations: [String]) {
         let screenW = UIScreen.main.bounds.width
@@ -851,6 +852,11 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
         self.ocrOriginals = ocrResults.map { $0.0 }
         self.ocrTranslations = translations
         self.showingTranslation = true
+        // Detect menu: if OCR text contains price patterns → show order buttons
+        let allText = ocrResults.map { $0.0 }.joined()
+        self.isMenuMode = allText.contains("¥") || allText.contains("￥") || allText.contains("円") || allText.range(of: #"\d+円"#, options: .regularExpression) != nil
+        self.orderQuantities = [:]
+        print("[GoSavor] Menu mode: \(isMenuMode)")
         self.arOverlayLabels = []
 
         let resultView = UIView(frame: scanner.view.bounds)
@@ -1038,7 +1044,7 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
         for i in 0..<ocrOriginals.count {
             let original = ocrOriginals[i]
             let translated = i < ocrTranslations.count ? ocrTranslations[i] : original
-            let textW = width - padding * 2 - 120 // leave room for +/- buttons
+            let textW = isMenuMode ? width - padding * 2 - 120 : width - padding * 2 - 16 // leave room for +/- buttons only in menu mode
 
             let card = UIView()
             card.tag = 2000 + i
@@ -1070,50 +1076,52 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
             subLabel.frame = CGRect(x: padding, y: mainLabel.frame.maxY + 4, width: textW, height: max(subSize.height, 14))
             card.addSubview(subLabel)
 
-            let cardH = max(subLabel.frame.maxY + 10, btnSize + 20)
+            let cardH = isMenuMode ? max(subLabel.frame.maxY + 10, btnSize + 20) : subLabel.frame.maxY + 10
 
-            // Order quantity controls (right side)
-            let qty = orderQuantities[i] ?? 0
-            let controlY = (cardH - btnSize) / 2
+            if isMenuMode {
+                // Order quantity controls (right side)
+                let qty = orderQuantities[i] ?? 0
+                let controlY = (cardH - btnSize) / 2
 
-            // Minus button
-            let minusBtn = UIButton(type: .system)
-            minusBtn.tag = 3000 + i
-            minusBtn.setTitle("−", for: .normal)
-            minusBtn.titleLabel?.font = .boldSystemFont(ofSize: 18)
-            minusBtn.tintColor = qty > 0 ? .systemOrange : .lightGray
-            minusBtn.backgroundColor = qty > 0 ? UIColor.systemOrange.withAlphaComponent(0.1) : UIColor(white: 0.9, alpha: 1)
-            minusBtn.layer.cornerRadius = btnSize / 2
-            minusBtn.frame = CGRect(x: width - padding * 2 - 110, y: controlY, width: btnSize, height: btnSize)
-            minusBtn.addTarget(self, action: #selector(orderMinusTapped(_:)), for: .touchUpInside)
-            card.addSubview(minusBtn)
+                // Minus button
+                let minusBtn = UIButton(type: .system)
+                minusBtn.tag = 3000 + i
+                minusBtn.setTitle("−", for: .normal)
+                minusBtn.titleLabel?.font = .boldSystemFont(ofSize: 18)
+                minusBtn.tintColor = qty > 0 ? .systemOrange : .lightGray
+                minusBtn.backgroundColor = qty > 0 ? UIColor.systemOrange.withAlphaComponent(0.1) : UIColor(white: 0.9, alpha: 1)
+                minusBtn.layer.cornerRadius = btnSize / 2
+                minusBtn.frame = CGRect(x: width - padding * 2 - 110, y: controlY, width: btnSize, height: btnSize)
+                minusBtn.addTarget(self, action: #selector(orderMinusTapped(_:)), for: .touchUpInside)
+                card.addSubview(minusBtn)
 
-            // Quantity label
-            let qtyLabel = UILabel()
-            qtyLabel.tag = 4000 + i
-            qtyLabel.text = "\(qty)"
-            qtyLabel.font = .boldSystemFont(ofSize: 16)
-            qtyLabel.textColor = qty > 0 ? .systemOrange : .gray
-            qtyLabel.textAlignment = .center
-            qtyLabel.frame = CGRect(x: width - padding * 2 - 74, y: controlY, width: 30, height: btnSize)
-            card.addSubview(qtyLabel)
+                // Quantity label
+                let qtyLabel = UILabel()
+                qtyLabel.tag = 4000 + i
+                qtyLabel.text = "\(qty)"
+                qtyLabel.font = .boldSystemFont(ofSize: 16)
+                qtyLabel.textColor = qty > 0 ? .systemOrange : .gray
+                qtyLabel.textAlignment = .center
+                qtyLabel.frame = CGRect(x: width - padding * 2 - 74, y: controlY, width: 30, height: btnSize)
+                card.addSubview(qtyLabel)
 
-            // Plus button
-            let plusBtn = UIButton(type: .system)
-            plusBtn.tag = 5000 + i
-            plusBtn.setTitle("+", for: .normal)
-            plusBtn.titleLabel?.font = .boldSystemFont(ofSize: 18)
-            plusBtn.tintColor = .white
-            plusBtn.backgroundColor = .systemOrange
-            plusBtn.layer.cornerRadius = btnSize / 2
-            plusBtn.frame = CGRect(x: width - padding * 2 - 40, y: controlY, width: btnSize, height: btnSize)
-            plusBtn.addTarget(self, action: #selector(orderPlusTapped(_:)), for: .touchUpInside)
-            card.addSubview(plusBtn)
+                // Plus button
+                let plusBtn = UIButton(type: .system)
+                plusBtn.tag = 5000 + i
+                plusBtn.setTitle("+", for: .normal)
+                plusBtn.titleLabel?.font = .boldSystemFont(ofSize: 18)
+                plusBtn.tintColor = .white
+                plusBtn.backgroundColor = .systemOrange
+                plusBtn.layer.cornerRadius = btnSize / 2
+                plusBtn.frame = CGRect(x: width - padding * 2 - 40, y: controlY, width: btnSize, height: btnSize)
+                plusBtn.addTarget(self, action: #selector(orderPlusTapped(_:)), for: .touchUpInside)
+                card.addSubview(plusBtn)
 
-            // Highlight card if has quantity
-            if qty > 0 {
-                card.layer.borderWidth = 2
-                card.layer.borderColor = UIColor.systemOrange.cgColor
+                // Highlight card if has quantity
+                if qty > 0 {
+                    card.layer.borderWidth = 2
+                    card.layer.borderColor = UIColor.systemOrange.cgColor
+                }
             }
 
             card.frame = CGRect(x: padding, y: y, width: width - padding * 2, height: cardH)
