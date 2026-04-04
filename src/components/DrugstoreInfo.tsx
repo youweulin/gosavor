@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { ArrowLeft, Search, TrendingUp, ChevronRight, Map, Camera } from 'lucide-react';
-import { getPopularProducts, searchProducts, type ProductRanking } from '../services/supabase';
+import { supabase, getPopularProducts, searchProducts, type ProductRanking } from '../services/supabase';
 import PriceCompare from './PriceCompare';
 
 const StoreMap = lazy(() => import('./StoreMap'));
@@ -23,11 +23,21 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<ProductRanking | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [productImages, setProductImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     getPopularProducts(30).then(data => {
       setPopular(data);
       setLoading(false);
+      // Load product images
+      supabase.from('products').select('name, image_url').not('image_url', 'is', null).limit(100)
+        .then(({ data: imgs }) => {
+          if (imgs) {
+            const map: Record<string, string> = {};
+            imgs.forEach((p: any) => { if (p.image_url) map[p.name] = p.image_url; });
+            setProductImages(map);
+          }
+        });
     });
   }, []);
 
@@ -171,15 +181,24 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
                 onClick={() => setSelectedProduct(product)}
                 className="w-full bg-white rounded-xl p-4 border border-gray-100 hover:border-orange-200 transition-colors text-left flex items-center gap-3"
               >
-                {/* Rank badge */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
-                  i === 0 ? 'bg-yellow-400 text-white' :
-                  i === 1 ? 'bg-gray-300 text-white' :
-                  i === 2 ? 'bg-amber-600 text-white' :
-                  'bg-gray-100 text-gray-500'
-                }`}>
-                  {i + 1}
-                </div>
+                {/* Product image or rank badge */}
+                {productImages[product.product_name] ? (
+                  <div className="relative w-12 h-12 shrink-0">
+                    <img src={productImages[product.product_name]} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                    <span className={`absolute -top-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                      i === 0 ? 'bg-yellow-400 text-white' : i === 1 ? 'bg-gray-300 text-white' : i === 2 ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'
+                    }`}>{i + 1}</span>
+                  </div>
+                ) : (
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
+                    i === 0 ? 'bg-yellow-400 text-white' :
+                    i === 1 ? 'bg-gray-300 text-white' :
+                    i === 2 ? 'bg-amber-600 text-white' :
+                    'bg-gray-100 text-gray-500'
+                  }`}>
+                    {i + 1}
+                  </div>
+                )}
 
                 {/* Product info */}
                 <div className="flex-1 min-w-0">

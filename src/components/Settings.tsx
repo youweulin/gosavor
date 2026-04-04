@@ -337,16 +337,14 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
                   const RAKUTEN_ACCESS_KEY = 'pk_cnZ5aZt4XZnrTXsxrB0beaUrh9jeDjbJ1ek762viGfR';
                   const { supabase } = await import('../services/supabase');
 
-                  // 1. 撈沒圖的商品
-                  const { data: reports } = await supabase.from('price_reports').select('product_name, jan_code').order('created_at', { ascending: false }).limit(30);
-                  if (!reports?.length) { setAdminStatus('沒有商品'); return; }
+                  // 1. 撈排行榜前 20 名熱門商品
+                  const { getPopularProducts } = await import('../services/supabase');
+                  const popular = await getPopularProducts(20);
+                  if (!popular?.length) { setAdminStatus('沒有排行榜資料'); return; }
 
-                  const seen = new Set<string>();
-                  const unique = reports.filter(r => { const k = r.jan_code || r.product_name; if (seen.has(k)) return false; seen.add(k); return true; });
-
-                  const { data: existing } = await supabase.from('products').select('name, jan_code').limit(1000);
-                  const existNames = new Set((existing || []).map(p => p.name));
-                  const toProcess = unique.filter(p => !existNames.has(p.product_name)).slice(0, 10);
+                  const { data: existing } = await supabase.from('products').select('name').limit(1000);
+                  const existNames = new Set((existing || []).map((p: any) => p.name));
+                  const toProcess = popular.filter(p => !existNames.has(p.product_name)).slice(0, 10);
 
                   if (!toProcess.length) { setAdminStatus('✅ 所有商品已有資料'); return; }
 
