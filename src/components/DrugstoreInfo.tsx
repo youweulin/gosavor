@@ -216,9 +216,11 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
                 {/* Product info */}
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-gray-900 truncate">
-                    {(product.jan_code && productNames[product.jan_code]) || product.translated_name}
+                    {product.translated_name}
                   </p>
-                  <p className="text-xs text-gray-400 truncate">{product.product_name}</p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {(product.jan_code && productNames[product.jan_code]) || product.product_name}
+                  </p>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs font-medium text-green-600">
                       ¥{product.min_price.toLocaleString()}
