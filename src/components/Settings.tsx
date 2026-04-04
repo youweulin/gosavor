@@ -21,6 +21,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
   const t = useT();
   const { userEmail, authProvider, signOut } = useAuthContext();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [adminStatus, setAdminStatus] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [keyDraft, setKeyDraft] = useState(settings.geminiApiKey);
   const [keySaved, setKeySaved] = useState(false);
@@ -324,6 +325,65 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
           </button>
         </div>
 
+        {/* Admin: Rakuten Sync (only for admin email) */}
+        {userEmail === 'metaworldfood@gmail.com' && (
+          <div className="bg-red-900/30 border border-red-800 rounded-xl p-4">
+            <p className="text-xs font-bold text-red-400 mb-2">🔧 管理員工具</p>
+            <button
+              onClick={async () => {
+                setAdminStatus('⏳ 同步中...');
+                try {
+                  const RAKUTEN_APP_ID = '40c15934-1373-4dc0-a3f6-e9fffa2f83c3';
+                  const RAKUTEN_ACCESS_KEY = 'pk_cnZ5aZt4XZnrTXsxrB0beaUrh9jeDjbJ1ek762viGfR';
+                  const { supabase } = await import('../services/supabase');
+
+                  // 1. 撈沒圖的商品
+                  const { data: reports } = await supabase.from('price_reports').select('product_name, jan_code').order('created_at', { ascending: false }).limit(30);
+                  if (!reports?.length) { setAdminStatus('沒有商品'); return; }
+
+                  const seen = new Set<string>();
+                  const unique = reports.filter(r => { const k = r.jan_code || r.product_name; if (seen.has(k)) return false; seen.add(k); return true; });
+
+                  const { data: existing } = await supabase.from('products').select('name, jan_code').limit(1000);
+                  const existNames = new Set((existing || []).map(p => p.name));
+                  const toProcess = unique.filter(p => !existNames.has(p.product_name)).slice(0, 10);
+
+                  if (!toProcess.length) { setAdminStatus('✅ 所有商品已有資料'); return; }
+
+                  let ok = 0;
+                  for (const product of toProcess) {
+                    const kw = product.product_name.replace(/[\d\s\-_\.・]+[錠包枚個入g粒ml本袋箱]+$/g, '').substring(0, 20) || product.product_name.substring(0, 20);
+                    try {
+                      const res = await fetch(`https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&accessKey=${RAKUTEN_ACCESS_KEY}&keyword=${encodeURIComponent(kw)}&hits=1`);
+                      const data = await res.json();
+                      const items = data.Items || [];
+                      if (items.length > 0) {
+                        const item = items[0].Item;
+                        const img = (item.mediumImageUrls?.[0]?.imageUrl || '').replace('?_ex=128x128', '?_ex=300x300');
+                        let jan = product.jan_code || null;
+                        if (!jan && item.itemCaption) {
+                          const m = item.itemCaption.match(/JAN[:\s]?(\d{13})/i) || item.itemCaption.match(/(49\d{11}|45\d{11})/);
+                          if (m) jan = m[1];
+                        }
+                        await supabase.from('products').upsert({ jan_code: jan, name: product.product_name, image_url: img, rakuten_price: item.itemPrice, rakuten_url: item.itemUrl, updated_at: new Date().toISOString() }, { onConflict: 'jan_code' });
+                        ok++;
+                      }
+                    } catch { /* skip */ }
+                    await new Promise(r => setTimeout(r, 1200));
+                  }
+                  setAdminStatus(`✅ 完成！${ok}/${toProcess.length} 個商品有圖片`);
+                } catch (err: any) {
+                  setAdminStatus(`❌ ${err.message}`);
+                }
+              }}
+              className="w-full py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold"
+            >
+              楽天商品圖片同步
+            </button>
+            {adminStatus && <p className="text-[10px] text-red-300 mt-1">{adminStatus}</p>}
+          </div>
+        )}
+
         {/* About & Version */}
         <div className="text-center pb-6">
           <button
@@ -332,7 +392,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
           >
             關於 GoSavor
           </button>
-          <p className="text-xs text-gray-600">GoSavor v0.8.1 Beta</p>
+          <p className="text-xs text-gray-600">GoSavor v0.8.8 Beta</p>
           <p className="text-[10px] text-gray-700 mt-1">Made with 🪿 in Taiwan</p>
         </div>
       </div>
