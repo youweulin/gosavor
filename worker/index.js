@@ -379,11 +379,22 @@ async function handleRakutenSync(env, url) {
 
   // 3. 搜尋楽天
   for (const product of toProcess) {
-    const keyword = product.product_name.replace(/[\s\-_\.・]/g, ' ').substring(0, 30);
+    // 嘗試完整名、截短名、去數字名
+    const fullName = product.product_name.replace(/[\s\-_\.・]/g, ' ').substring(0, 30);
+    const shortName = product.product_name.replace(/[\d\s\-_\.・]+[錠包枚個入g粒ml本袋箱]+$/g, '').substring(0, 20);
+    const keywords = [fullName, shortName].filter((v, i, a) => v && a.indexOf(v) === i);
+
+    let items = [];
+    let keyword = fullName;
     try {
-      const rakutenRes = await fetch(`https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&keyword=${encodeURIComponent(keyword)}&hits=1`);
-      const data = await rakutenRes.json();
-      const items = data.Items || [];
+      for (const kw of keywords) {
+        keyword = kw;
+        const rakutenRes = await fetch(`https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&keyword=${encodeURIComponent(kw)}&hits=1`);
+        const data = await rakutenRes.json();
+        items = data.Items || [];
+        if (items.length > 0) break;
+        await new Promise(r => setTimeout(r, 1100));
+      }
 
       if (items.length === 0) {
         results.push({ name: keyword, status: 'not_found' });
