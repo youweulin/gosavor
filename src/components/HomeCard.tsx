@@ -10,6 +10,7 @@ interface LocationData { city: string; area: string; }
 interface HomeCardProps {
   nickname?: string;
   userPlan?: string;
+  guideName?: string;
   onDiary?: () => void;
   onExpenses?: () => void;
   onHistory?: () => void;
@@ -42,7 +43,7 @@ const planLabel: Record<string, { emoji: string; name: string }> = {
   'guide-member': { emoji: '🎌', name: '旅遊團' },
 };
 
-const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory }: HomeCardProps) => {
+const HomeCard = ({ nickname, userPlan = 'free', guideName, onDiary, onExpenses, onHistory }: HomeCardProps) => {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [, setLoading] = useState(true);
@@ -105,7 +106,10 @@ const HomeCard = ({ nickname, userPlan = 'free', onDiary, onExpenses, onHistory 
 
   const greeting = getGreeting();
   const locationText = location ? `${location.city}${location.area ? '・' + location.area : ''}` : null;
-  const plan = planLabel[userPlan] || planLabel.free;
+  const basePlan = planLabel[userPlan] || planLabel.free;
+  const plan = userPlan === 'guide-member' && guideName
+    ? { emoji: '🎌', name: `導遊${guideName}贊助版` }
+    : basePlan;
 
   return (
     <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl border border-orange-100 overflow-hidden">

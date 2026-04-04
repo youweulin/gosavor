@@ -195,6 +195,37 @@ export const redeemCode = async (code: string): Promise<RedeemResult> => {
 // Guide Tour Code (導遊生成團員碼)
 // =============================================
 
+export interface TourCodeInfo {
+  code: string;
+  used_count: number;
+  max_uses: number;
+  duration_days: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+/** 查詢導遊已生成的團員碼 */
+export const getGuideTourCodes = async (): Promise<TourCodeInfo[]> => {
+  const currentUserId = await getCurrentUserId();
+  if (!currentUserId) return [];
+  try {
+    const { data: user } = await supabase.from('users')
+      .select('id')
+      .eq('anonymous_id', currentUserId)
+      .single();
+    if (!user) return [];
+
+    const { data } = await supabase.from('redeem_codes')
+      .select('code, used_count, max_uses, duration_days, is_active, created_at')
+      .eq('referrer_id', user.id)
+      .eq('plan', 'guide-member')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    return data || [];
+  } catch { return []; }
+};
+
 export interface GenerateTourCodeResult {
   success: boolean;
   code?: string;
@@ -218,9 +249,11 @@ export const generateTourCode = async (apiKey: string, durationDays = 5, maxUses
     }
     const guideName = user.nickname || '導遊';
 
-    // Generate random code: TOUR-XXXX
+    // Generate code: TOUR-MMDD-XXXX
+    const now = new Date();
+    const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const code = `TOUR-${randomPart}`;
+    const code = `TOUR-${mmdd}-${randomPart}`;
 
     // Insert into redeem_codes
     const { error } = await supabase.from('redeem_codes').insert({
@@ -237,7 +270,7 @@ export const generateTourCode = async (apiKey: string, durationDays = 5, maxUses
     if (error) {
       // Duplicate code? retry once
       if (error.code === '23505') {
-        const retry = `TOUR-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const retry = `TOUR-${mmdd}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         await supabase.from('redeem_codes').insert({
           code: retry,
           plan: 'guide-member',

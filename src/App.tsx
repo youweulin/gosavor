@@ -17,7 +17,7 @@ import { saveOrder, saveScan } from './services/storage';
 import { startLiveTranslate, pickNativeImage } from './services/LiveTranslate';
 import DrugstoreInfo from './components/DrugstoreInfo';
 
-import { supabase, trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode, generateTourCode } from './services/supabase';
+import { supabase, trackScanEvent, getNickname, updateNickname, submitPriceReports, getUserProfile, redeemCode as submitRedeemCode, generateTourCode, getGuideTourCodes, type TourCodeInfo } from './services/supabase';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { I18nProvider, useT } from './i18n/context';
 import { AuthProvider } from './contexts/AuthContext';
@@ -67,6 +67,10 @@ function AppInner() {
             if (codeData?.note) setGuideName(codeData.note.split('·')[0].trim());
           } catch { /* silent */ }
         }
+        // Load guide's tour codes
+        if (p?.plan === 'guide') {
+          getGuideTourCodes().then(setTourCodes);
+        }
       });
     }
   }, [isAuthenticated]);
@@ -88,6 +92,7 @@ function AppInner() {
   const [userPlan, setUserPlan] = useState('free');
   const [sharedApiKey, setSharedApiKey] = useState('');
   const [guideName, setGuideName] = useState('');
+  const [tourCodes, setTourCodes] = useState<TourCodeInfo[]>([]);
   const [usageInfo, setUsageInfo] = useState<ReturnType<typeof getLastUsageInfo>>(null);
   const [menuResults, setMenuResults] = useState<MenuAnalysisResult[]>([]);
   const [activeMenuPage, setActiveMenuPage] = useState(0);
@@ -600,6 +605,7 @@ function AppInner() {
                 <HomeCard
                   nickname={profileNickname}
                   userPlan={userPlan}
+                  guideName={guideName}
                   onDiary={() => setPage('diary')}
                   onExpenses={() => setPage('expenses')}
                   onHistory={() => setPage('history')}
@@ -976,37 +982,40 @@ function AppInner() {
             {userPlan === 'guide' && settings.geminiApiKey && (
               <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-3">
                 <p className="text-sm font-bold text-green-800 mb-2">🎌 導遊工具</p>
+
+                {/* Existing tour codes */}
+                {tourCodes.length > 0 && (
+                  <div className="mb-3 space-y-1.5">
+                    {tourCodes.filter(c => c.is_active).map(c => (
+                      <div key={c.code} className="flex items-center gap-2 bg-green-100 rounded-lg px-3 py-2">
+                        <span className="flex-1 font-mono text-sm font-bold text-green-800 tracking-wider">{c.code}</span>
+                        <span className="text-[10px] text-green-600">{c.used_count}/{c.max_uses}人</span>
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(c.code); setRedeemStatus(`✅ 已複製：${c.code}`); }}
+                          className="px-2 py-1 bg-green-700 text-white rounded text-[10px] font-bold"
+                        >
+                          複製
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <button
                   onClick={async () => {
                     setRedeemStatus('⏳ 生成中...');
                     const result = await generateTourCode(settings.geminiApiKey, 5, 40);
-                    if (result.success && result.code) {
-                      setRedeemStatus(`✅ 團員碼：${result.code}`);
+                    if (result.success) {
+                      setRedeemStatus(`✅ ${result.message}`);
+                      getGuideTourCodes().then(setTourCodes);
                     } else {
                       setRedeemStatus(`❌ ${result.message}`);
                     }
                   }}
                   className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"
                 >
-                  生成團員兌換碼（5天 / 40人）
+                  生成新團員碼（5天 / 40人）
                 </button>
-                {redeemStatus.includes('團員碼：') && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="flex-1 text-center font-mono text-lg font-black text-green-800 bg-green-100 rounded-lg py-2 tracking-widest">
-                      {redeemStatus.split('團員碼：')[1]}
-                    </span>
-                    <button
-                      onClick={() => {
-                        const code = redeemStatus.split('團員碼：')[1];
-                        navigator.clipboard.writeText(code);
-                        setRedeemStatus(`✅ 已複製：${code}`);
-                      }}
-                      className="px-3 py-2 bg-green-700 text-white rounded-lg text-xs font-bold shrink-0"
-                    >
-                      複製
-                    </button>
-                  </div>
-                )}
                 <p className="text-[10px] text-green-600 mt-1.5">團員兌換後自動使用你的 API Key，每人每日 15 次</p>
               </div>
             )}
