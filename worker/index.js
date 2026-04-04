@@ -389,7 +389,9 @@ async function handleRakutenSync(env, url) {
     try {
       for (const kw of keywords) {
         keyword = kw;
-        const rakutenRes = await fetch(`https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&keyword=${encodeURIComponent(kw)}&hits=1`);
+        const rakutenRes = await fetch(`https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?format=json&applicationId=${RAKUTEN_APP_ID}&keyword=${encodeURIComponent(kw)}&hits=1`, {
+          headers: { 'Referer': 'https://gosavor-api.metaworldfood.workers.dev/' },
+        });
         const data = await rakutenRes.json();
         items = data.Items || [];
         if (items.length > 0) break;
