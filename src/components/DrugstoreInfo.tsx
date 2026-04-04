@@ -27,23 +27,28 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
   const [selectedProduct, setSelectedProduct] = useState<ProductRanking | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [productImages, setProductImages] = useState<Record<string, string>>({});
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     getPopularProducts(30).then(data => {
       setPopular(data);
       setLoading(false);
-      // Load product images (by name + jan_code)
-      supabase.from('products').select('name, jan_code, image_url').not('image_url', 'is', null).limit(100)
+      // Load product images + correct names (by name + jan_code)
+      supabase.from('products').select('name, jan_code, image_url').limit(200)
         .then(({ data: imgs }) => {
           if (imgs) {
-            const map: Record<string, string> = {};
+            const imgMap: Record<string, string> = {};
+            const nameMap: Record<string, string> = {};
             imgs.forEach((p: any) => {
               if (p.image_url) {
-                if (p.name) map[`name:${p.name}`] = p.image_url;
-                if (p.jan_code) map[`jan:${p.jan_code}`] = p.image_url;
+                if (p.name) imgMap[`name:${p.name}`] = p.image_url;
+                if (p.jan_code) imgMap[`jan:${p.jan_code}`] = p.image_url;
               }
+              // 用 JAN 對應正確名稱（楽天的名稱）
+              if (p.jan_code && p.name) nameMap[p.jan_code] = p.name;
             });
-            setProductImages(map);
+            setProductImages(imgMap);
+            setProductNames(nameMap);
           }
         });
     });
@@ -210,7 +215,9 @@ const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage 
 
                 {/* Product info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 truncate">{product.translated_name}</p>
+                  <p className="font-bold text-sm text-gray-900 truncate">
+                    {(product.jan_code && productNames[product.jan_code]) || product.translated_name}
+                  </p>
                   <p className="text-xs text-gray-400 truncate">{product.product_name}</p>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs font-medium text-green-600">
