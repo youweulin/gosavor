@@ -179,7 +179,10 @@ STEP 1 — Classify each block:
 - PRICE: contains digits and/or ¥ or ￥ symbol (e.g. "¥90", "130", "￥430")
 - IGNORE: headers, page numbers, store names, decorative text, bullet points, numbered prefixes (①②③ etc.)
 
-STEP 2 — Pair each DISH NAME block with its nearest PRICE block on the same horizontal line.
+STEP 2 — Pair each DISH NAME block with its nearest PRICE block.
+IMPORTANT: Japanese menus can be written VERTICALLY (縦書き/tategaki) or horizontally.
+- For HORIZONTAL menus: pair dish name with price on the same horizontal line.
+- For VERTICAL menus: text reads top-to-bottom, columns go right-to-left. Pair dish name with price in the same column or adjacent column. Look at the IMAGE to determine layout direction.
 
 STEP 3 — For each paired menu item output:
 - originalName: the dish name text as-is
@@ -362,6 +365,7 @@ For EACH menu item found, return:
   4. Items at the TOP of menu → small ymin (~0-200). Items at BOTTOM → large ymin (~700-1000)
   5. Items on LEFT side → small xmin (~0-300). Items on RIGHT → large xmin (~600-1000)
   6. Box height should be ~30-80 (tight around text), NOT covering the entire menu
+  7. VERTICAL menus (縦書き): text reads top-to-bottom, columns right-to-left. Adjust bounding boxes accordingly — each column is a separate item area
 - imageIndex: which image (0-based) this item appears in.${allergenPart}
 Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]").`;
 
