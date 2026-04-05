@@ -123,8 +123,8 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
               : 'bg-gray-100 text-gray-500 border border-gray-200'
           }`}
         >
-          <span>{forceAI ? '✨ 純 AI 模式' : '📱 標準模式'}</span>
-          <span className="text-[10px] opacity-60">{forceAI ? '直書/手寫菜單推薦' : '橫書菜單推薦'}</span>
+          <span>{forceAI ? '✨ 純 AI 模式（直書/手寫推薦）' : '📱 標準模式'}</span>
+          {!forceAI && <span className="text-[10px] opacity-60">可切換 AI 模式（直書/手寫推薦）</span>}
         </button>
       )}
 
