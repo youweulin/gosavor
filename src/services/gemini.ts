@@ -402,16 +402,9 @@ For EACH menu item found, return:
   4. Items at the TOP of menu → small ymin (~0-200). Items at BOTTOM → large ymin (~700-1000)
   5. Items on LEFT side → small xmin (~0-300). Items on RIGHT → large xmin (~600-1000)
   6. Box height should be ~30-80 (tight around text), NOT covering the entire menu
-  7. VERTICAL menus (縦書き): text reads top-to-bottom, columns go right-to-left.
-     - Each item occupies its OWN vertical column. The box should cover just the dish name text area.
-     - Items in the RIGHTMOST column → xmin ~700-900. Next column left → xmin ~500-700. And so on.
-     - Each item MUST have a distinctly different xmin — spread them across the full width of the menu area.
-     - Box width should be ~30-80 (tight around one column), NOT spanning multiple columns.
+  7. VERTICAL menus (縦書き): text reads top-to-bottom, columns right-to-left. Adjust bounding boxes accordingly — each column is a separate item area
 - imageIndex: which image (0-based) this item appears in.${allergenPart}
-Also return:
-- currency (use ¥ for JPY)
-- restaurantName (exactly as written on the menu, no prefix or tags)
-- layoutDirection: "vertical" if the menu uses vertical Japanese writing (縦書き, columns top-to-bottom, right-to-left), "horizontal" if text reads left-to-right in rows.`;
+Also return currency (use ¥ for JPY) and restaurantName (exactly as written on the menu, no prefix or tags).`;
 
   const imageParts = pwaResized.map((img) => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
@@ -426,7 +419,6 @@ Also return:
       properties: {
         currency: { type: Type.STRING },
         restaurantName: { type: Type.STRING },
-        layoutDirection: { type: Type.STRING },
         items: {
           type: Type.ARRAY,
           items: {
@@ -445,7 +437,7 @@ Also return:
           },
         },
       },
-      required: ['currency', 'items', 'layoutDirection'],
+      required: ['currency', 'items'],
     },
   };
 
