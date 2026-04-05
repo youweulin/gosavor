@@ -15,7 +15,7 @@ interface InlineImageMapProps {
 
 const InlineImageMap = ({
   images, items, highlightIndex, activeCategory,
-  activeImageIndex, layoutDirection, onTapItem, onImageChange
+  activeImageIndex, onTapItem, onImageChange
 }: InlineImageMapProps) => {
   const [showMarkers, setShowMarkers] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
