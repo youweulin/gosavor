@@ -186,10 +186,8 @@ export const analyzeMenuImage = async (
 
       if (!isVerticalTextFailure && ocrBlocks.length >= 3) {
         // OCR quality is good — use OCR text + Gemini for translation
-        // Menu always uses 2.5-flash for accurate sourceIds/bounding box matching
-        // Fallback chain: gemini-2.5-flash → modelName (if 2.5 quota exceeded)
-        const preferredModel = 'gemini-2.5-flash';
-        let effectiveModel = preferredModel;
+        // 統一用 3.1-lite（避免模型差異造成不穩定）
+        let effectiveModel = modelName;
         // We have OCR blocks! Send text exclusively to Gemini
         const textToAnalyze = ocrBlocks.map(b => ({ id: b.id, imgIdx: b.imageIndex, text: b.text }));
 
@@ -279,18 +277,7 @@ STEP 5 — Also return:
             config: menuConfig,
           });
         } catch (err: any) {
-          // If 2.5-flash quota exceeded (429) or unavailable (503), fallback to 3.1-lite
-          const errStr = JSON.stringify(err) + (err?.message || '') + (err?.status || '');
-          if (effectiveModel === 'gemini-2.5-flash' && (errStr.includes('429') || errStr.includes('503') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED'))) {
-            effectiveModel = modelName; // fallback to default model
-            response = await ai.models.generateContent({
-              model: effectiveModel,
-              contents: { parts: [...thumbs, { text: prompt }] },
-              config: menuConfig,
-            });
-          } else {
-            throw err;
-          }
+          throw err;
         }
 
         if (!response.text) throw new Error('No response from AI');
@@ -453,38 +440,12 @@ Also return:
     },
   };
 
-  let response;
-  try {
-    response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: { parts: [...imageParts, { text: prompt }] },
-      config: pwaMenuConfig,
-    });
-  } catch (err: any) {
-    const errStr = String(err?.message || '') + JSON.stringify(err);
-    if (errStr.includes('429') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED')) {
-      // 等 5 秒後重試一次 2.5-flash（短暫額度限制通常很快恢復）
-      console.warn('[GoSavor] ⚠️ 2.5-flash quota exceeded, waiting 5s and retrying...');
-      await new Promise(r => setTimeout(r, 5000));
-      try {
-        response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: { parts: [...imageParts, { text: prompt }] },
-          config: pwaMenuConfig,
-        });
-      } catch {
-        // 重試也失敗 → 用 3.1-lite 但提醒標記可能不準
-        console.warn('[GoSavor] ⚠️ Retry failed, falling back to', modelName);
-        response = await ai.models.generateContent({
-          model: modelName,
-          contents: { parts: [...imageParts, { text: prompt }] },
-          config: pwaMenuConfig,
-        });
-      }
-    } else {
-      throw err;
-    }
-  }
+  // 統一用 3.1-lite（穩定、免費額度大、避免模型切換造成不穩定）
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: { parts: [...imageParts, { text: prompt }] },
+    config: pwaMenuConfig,
+  });
 
   if (!response.text) throw new Error('No response from AI');
   const result = safeParseJSON<MenuAnalysisResult>(response.text);
