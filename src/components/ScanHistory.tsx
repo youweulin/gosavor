@@ -113,7 +113,7 @@ const ScanHistory = ({ onLoadScan, pageSize: propPageSize }: ScanHistoryProps) =
               )}
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 text-sm truncate">{scan.restaurantName}</p>
+                <p className="font-medium text-gray-900 text-sm truncate">{(scan.restaurantName || '').replace(/^\[(Native|Cloud)\]\s*/i, '')}</p>
                 <p className="text-xs text-gray-400">
                   <span className={`${cfg.color} font-medium`}>{mode === 'ar-translate' ? 'AR翻譯' : t(cfg.labelKey)}</span> · {getSubtitle(scan)} · {relativeTime(scan.timestamp)}
                 </p>
