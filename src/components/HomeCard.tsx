@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, BookOpen, Wallet, Clock } from 'lucide-react';
+import { MapPin, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, BookOpen, Wallet, Clock, Search } from 'lucide-react';
 import { getScanHistory, getExpenses, getActiveTrip } from '../services/storage';
 
 
@@ -196,7 +196,7 @@ const HomeCard = ({ nickname, userPlan = 'free', guideName, compact = true, onDi
             {totalMeals > 0 && <span className="text-xs text-gray-400">{totalMeals} 餐</span>}
           </button>
           <button onClick={onDrugstore} className="flex flex-col items-center gap-1.5 py-4 bg-orange-50 rounded-xl hover:bg-orange-100/60 transition-colors">
-            <span className="text-2xl">💊</span>
+            <Search size={26} className="text-orange-500" />
             <span className="text-sm font-bold text-gray-700">藥妝情報</span>
             <span className="text-xs text-orange-400">比價搜尋</span>
           </button>
