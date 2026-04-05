@@ -10,8 +10,8 @@ interface PriceCompareProps {
   onBack: () => void;
 }
 
-const RAKUTEN_APP_ID = '40c15934-1373-4dc0-a3f6-e9fffa2f83c3';
-const RAKUTEN_ACCESS_KEY = 'pk_cnZ5aZt4XZnrTXsxrB0beaUrh9jeDjbJ1ek762viGfR';
+const RAKUTEN_APP_ID = import.meta.env.VITE_RAKUTEN_APP_ID || '';
+const RAKUTEN_ACCESS_KEY = import.meta.env.VITE_RAKUTEN_ACCESS_KEY || '';
 
 const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCompareProps) => {
   const { userEmail } = useAuthContext();

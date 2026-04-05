@@ -352,8 +352,8 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free', onSh
               onClick={async () => {
                 setAdminStatus('⏳ 同步中...');
                 try {
-                  const RAKUTEN_APP_ID = '40c15934-1373-4dc0-a3f6-e9fffa2f83c3';
-                  const RAKUTEN_ACCESS_KEY = 'pk_cnZ5aZt4XZnrTXsxrB0beaUrh9jeDjbJ1ek762viGfR';
+                  const RAKUTEN_APP_ID = import.meta.env.VITE_RAKUTEN_APP_ID || '';
+                  const RAKUTEN_ACCESS_KEY = import.meta.env.VITE_RAKUTEN_ACCESS_KEY || '';
                   const { supabase } = await import('../services/supabase');
 
                   // 1. 撈排行榜前 20 名熱門商品
