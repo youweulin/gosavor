@@ -69,6 +69,7 @@ const getAI = (apiKey: string) => {
         const geminiRequest: any = {
           contents: [{ parts }],
           generationConfig: {
+            temperature: 0,
             thinkingConfig: { thinkingBudget: 0 }, // 不要花時間思考，直接回答
           },
         };
@@ -240,7 +241,8 @@ STEP 5 — Also return:
         );
 
         const menuConfig = {
-          thinkingConfig: { thinkingBudget: 0 },
+          temperature: 0,
+            thinkingConfig: { thinkingBudget: 0 },
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
@@ -421,7 +423,8 @@ Also return:
 
   // PWA menu: try 2.5-flash first, fallback to 3.1-lite if quota exceeded
   const pwaMenuConfig = {
-    thinkingConfig: { thinkingBudget: 0 },
+    temperature: 0,
+            thinkingConfig: { thinkingBudget: 0 },
     responseMimeType: 'application/json' as const,
     responseSchema: {
       type: Type.OBJECT,
@@ -542,7 +545,8 @@ IMPORTANT: price = total for that line, NOT unit price. Check the receipt carefu
       model: modelName,
       contents: { parts: [{ inlineData: { mimeType: 'image/jpeg', data: thumb } }, { text: prompt }] },
       config: {
-        thinkingConfig: { thinkingBudget: 0 },
+        temperature: 0,
+            thinkingConfig: { thinkingBudget: 0 },
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -621,7 +625,8 @@ Also extract: merchantName (keep original, INCLUDE branch name), date, currency 
     model: modelName,
     contents: { parts: [...imageParts, { text: prompt }] },
     config: {
-      thinkingConfig: { thinkingBudget: 0 },
+      temperature: 0,
+            thinkingConfig: { thinkingBudget: 0 },
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
@@ -771,7 +776,8 @@ Also return locationGuess in ${targetLanguage} if identifiable.`;
     model: modelName,
     contents: { parts: [thumbPart, { text: prompt }] },
     config: {
-      thinkingConfig: { thinkingBudget: 0 },
+      temperature: 0,
+            thinkingConfig: { thinkingBudget: 0 },
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
