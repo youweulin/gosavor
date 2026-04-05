@@ -404,7 +404,7 @@ For EACH menu item found, return:
   6. Box height should be ~30-80 (tight around text), NOT covering the entire menu
   7. VERTICAL menus (縦書き): text reads top-to-bottom, columns right-to-left. Adjust bounding boxes accordingly — each column is a separate item area
 - imageIndex: which image (0-based) this item appears in.${allergenPart}
-Also return currency (use ¥ for JPY) and restaurantName (exactly as written on the menu, no prefix or tags).`;
+Also return currency (use ¥ for JPY), restaurantName (exactly as written on the menu, no prefix or tags), and layoutDirection ("vertical" or "horizontal").`;
 
   const imageParts = pwaResized.map((img) => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
@@ -419,6 +419,7 @@ Also return currency (use ¥ for JPY) and restaurantName (exactly as written on 
       properties: {
         currency: { type: Type.STRING },
         restaurantName: { type: Type.STRING },
+        layoutDirection: { type: Type.STRING },
         items: {
           type: Type.ARRAY,
           items: {
@@ -437,7 +438,7 @@ Also return currency (use ¥ for JPY) and restaurantName (exactly as written on 
           },
         },
       },
-      required: ['currency', 'items'],
+      required: ['currency', 'items', 'layoutDirection'],
     },
   };
 
