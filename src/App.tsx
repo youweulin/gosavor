@@ -1268,7 +1268,11 @@ function AppInner() {
                 const base64 = (reader.result as string).split(',')[1];
                 setImages([`data:image/jpeg;base64,${base64}`]);
                 setShowCamera(true);
-                setTimeout(() => setAutoAnalyze(true), 50);
+                // Menu mode: show photo first, user presses "analyze" manually
+                // Other modes: auto-analyze immediately
+                if (mode !== 'menu') {
+                  setTimeout(() => setAutoAnalyze(true), 50);
+                }
               };
               reader.readAsDataURL(file);
             };
