@@ -345,7 +345,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free', onSh
         </div>
 
         {/* Admin: Rakuten Sync (only for admin email) */}
-        {userEmail === 'metaworldfood@gmail.com' && (
+        {userEmail === import.meta.env.VITE_ADMIN_EMAIL && (
           <div className="bg-red-900/30 border border-red-800 rounded-xl p-4">
             <p className="text-xs font-bold text-red-400 mb-2">🔧 管理員工具</p>
             <button

@@ -34,7 +34,7 @@ const upsertUserRecord = async (user: User) => {
     anonymous_id: user.id,
     email,
     auth_provider: provider,
-    platform: 'ios',
+    platform: typeof (window as any).Capacitor !== 'undefined' ? 'ios' : 'pwa',
     app_version: '0.8.9',
     last_active_at: new Date().toISOString(),
   }, { onConflict: 'anonymous_id' });
