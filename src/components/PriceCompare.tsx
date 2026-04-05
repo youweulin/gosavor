@@ -15,7 +15,7 @@ const RAKUTEN_ACCESS_KEY = import.meta.env.VITE_RAKUTEN_ACCESS_KEY || '';
 
 const PriceCompare = ({ janCode, productName, translatedName, onBack }: PriceCompareProps) => {
   const { userEmail } = useAuthContext();
-  const isAdmin = userEmail === 'metaworldfood@gmail.com';
+  const isAdmin = userEmail === import.meta.env.VITE_ADMIN_EMAIL;
   const [stores, setStores] = useState<PriceCompareResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<{
