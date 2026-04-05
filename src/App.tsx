@@ -175,20 +175,22 @@ function AppInner() {
   };
 
   const handleAnalyze = async () => {
-    // Step 1: 檢查 plan
-    if (userPlan === 'free') {
-      setError('請先輸入兌換碼開通使用權限。點右上角 👤 → 輸入兌換碼');
-      return;
-    }
-
-    // Step 2: 檢查 API Key（guide-member 走 Worker 不需要自帶 Key）
     const apiKey = getApiKey();
-    if (!apiKey && needsOwnKey) {
-      setError('請先到設定 ⚙️ 輸入你的 Gemini API Key。點「如何取得免費 API Key？」查看教學。');
-      return;
+
+    // 有自帶 Key → 直接用（不檢查 plan，不花系統錢）
+    // 沒 Key → 必須有 plan
+    if (!apiKey) {
+      if (userPlan === 'free') {
+        setError('請先輸入兌換碼開通使用權限。點右上角 👤 → 輸入兌換碼');
+        return;
+      }
+      if (needsOwnKey) {
+        setError('請先到設定 ⚙️ 輸入你的 Gemini API Key。點「如何取得免費 API Key？」查看教學。');
+        return;
+      }
     }
 
-    // Step 3: 檢查每日額度
+    // 檢查每日額度
     if (!checkDailyLimit()) {
       setError(`今日已達 ${DAILY_LIMIT} 次翻譯上限，明天 00:00 重置。`);
       return;
