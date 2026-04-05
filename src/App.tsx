@@ -134,20 +134,26 @@ function AppInner() {
     }, () => {}, { timeout: 5000 });
   }, []);
 
+  // API Key: guide-member 走 Worker（共用 Key），其他 plan 必須自帶 Key
   const getApiKey = useCallback((): string | null => {
-    // 用戶自帶 Key（shared key 已移至 Worker 端處理）
     if (settings.geminiApiKey) return settings.geminiApiKey;
+    // guide-member 沒自帶 Key → 回 null，由 workerProxy 處理（用導遊共用 Key）
     return null;
   }, [settings.geminiApiKey]);
 
+  // guide-member 可以不帶 Key（走 Worker），其他 plan 必須自帶
+  const needsOwnKey = userPlan !== 'guide-member' && userPlan !== 'free';
+
   const targetLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
 
-  // 限額：supporter/pro/guide=無限, guide-member=15, beta=iOS50/PWA30
+  // 每日額度（前端 UI 顯示用，真正限制在 Worker）
   const getDailyLimit = (): number => {
+    if (userPlan === 'free') return 0;
+    if (userPlan === 'guide-member') return 15;
+    if (userPlan === 'beta') return Infinity; // 公測期不限（Worker 控制過期）
     if (userPlan === 'supporter' || userPlan === 'pro' || userPlan === 'guide') return Infinity;
-    if (userPlan === 'guide-member') return 15; // 導遊團員用共用 Key
-    const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
-    return isNative ? 50 : 30;
+    if (userPlan === 'rental') return 50;
+    return 0;
   };
   const DAILY_LIMIT = getDailyLimit();
   const checkDailyLimit = (): boolean => {
@@ -170,14 +176,22 @@ function AppInner() {
   };
 
   const handleAnalyze = async () => {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError('請先到設定輸入你的 Gemini API Key。贊助版用戶可使用「如何取得免費 API Key？」教學取得。');
+    // Step 1: 檢查 plan
+    if (userPlan === 'free') {
+      setError('請先輸入兌換碼開通使用權限。點右上角 👤 → 輸入兌換碼');
       return;
     }
-    const isUnlimited = userPlan === 'supporter' || userPlan === 'pro';
-    if (!isUnlimited && !checkDailyLimit()) {
-      setError(`今日已達 ${DAILY_LIMIT} 次翻譯上限，明天 00:00 重置。開通贊助版可享無限翻譯！`);
+
+    // Step 2: 檢查 API Key（guide-member 走 Worker 不需要自帶 Key）
+    const apiKey = getApiKey();
+    if (!apiKey && needsOwnKey) {
+      setError('請先到設定 ⚙️ 輸入你的 Gemini API Key。點「如何取得免費 API Key？」查看教學。');
+      return;
+    }
+
+    // Step 3: 檢查每日額度
+    if (!checkDailyLimit()) {
+      setError(`今日已達 ${DAILY_LIMIT} 次翻譯上限，明天 00:00 重置。`);
       return;
     }
     setGeminiScanMode(scanMode);
@@ -195,7 +209,7 @@ function AppInner() {
         const results: MenuAnalysisResult[] = [];
         for (let i = 0; i < pagesToTranslate.length; i++) {
           const pageImageData = [{ base64: pagesToTranslate[i].split(',')[1], mimeType: 'image/jpeg' }];
-          const result = await analyzeMenuImage(pageImageData, targetLangLabel, apiKey, settings.allergens);
+          const result = await analyzeMenuImage(pageImageData, targetLangLabel, apiKey || '', settings.allergens);
           results.push(result);
         }
         setMenuResults(results);
@@ -228,7 +242,7 @@ function AppInner() {
           );
         }
       } else if (scanMode === 'receipt') {
-        const result = await analyzeReceiptImage(imageData, targetLangLabel, apiKey);
+        const result = await analyzeReceiptImage(imageData, targetLangLabel, apiKey || '');
         setReceiptResult(result);
         setUsageInfo(getLastUsageInfo());
         saveScan({
@@ -275,7 +289,7 @@ function AppInner() {
           );
         }
       } else {
-        const result = await analyzeGeneralImage(imageData, targetLangLabel, apiKey);
+        const result = await analyzeGeneralImage(imageData, targetLangLabel, apiKey || '');
         setGeneralResult(result);
         setUsageInfo(getLastUsageInfo());
         saveScan({
