@@ -1570,17 +1570,24 @@ extension LiveTranslatePlugin: PHPickerViewControllerDelegate {
         }
         guard result.itemProvider.canLoadObject(ofClass: UIImage.self) else { return }
 
-        // Use loadDataRepresentation to get FULL resolution image (not thumbnail)
-        result.itemProvider.loadDataRepresentation(forTypeIdentifier: "public.image") { [weak self] data, error in
-            guard let self = self, let data = data, let image = UIImage(data: data) else {
-                // Fallback to loadObject if loadDataRepresentation fails
+        // Use loadFileRepresentation to get FULL resolution image file
+        result.itemProvider.loadFileRepresentation(forTypeIdentifier: "public.image") { [weak self] url, error in
+            guard let self = self else { return }
+            if let url = url, let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
+                print("[GoSavor] pickImage via file: \(image.size)")
+                self.handlePickedImage(image, result: result)
+            } else {
+                // Fallback: try loadObject
                 result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
-                    guard let self = self, let image = object as? UIImage else { return }
+                    guard let self = self, let image = object as? UIImage else {
+                        self?.pickImageCall?.resolve(["cancelled": true])
+                        self?.pickImageCall = nil
+                        return
+                    }
+                    print("[GoSavor] pickImage via object fallback: \(image.size)")
                     self.handlePickedImage(image, result: result)
                 }
-                return
             }
-            self.handlePickedImage(image, result: result)
         }
     }
 }
