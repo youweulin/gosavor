@@ -12,6 +12,8 @@ export interface ARTranslateResult {
   imageBase64?: string;
   itemsJSON?: string;
   timestamp?: string;
+  needsAIFallback?: boolean;
+  fullImageBase64?: string;
 }
 
 interface LiveTranslatePlugin {
@@ -40,6 +42,16 @@ export const startLiveTranslate = async (targetLang = 'zh-Hant', onPhotoTaken?: 
       throw new Error('Device does not support DataScanner');
     }
     const result = await LiveTranslate.start({ targetLang });
+
+    // Apple Vision can't read vertical Japanese text (縦書き).
+    // When detected, native side sends image for Gemini AI processing.
+    if (result.needsAIFallback && result.imageBase64) {
+      console.log('[GoSavor] AR: vertical text detected, falling back to Gemini AI');
+      // Show loading indicator before Gemini processes
+      onPhotoTaken?.();
+      return await processWithGeminiAI(result.imageBase64, result.fullImageBase64 || result.imageBase64, targetLang);
+    }
+
     if (!result.hasData) return null;
 
     let items: ARTranslateItem[] = [];
@@ -158,6 +170,68 @@ Only return valid JSON, no markdown.`;
     input.oncancel = () => resolve(null);
     input.click();
   });
+};
+
+/**
+ * AI fallback for vertical Japanese text (縦書き) that Apple Vision can't read.
+ * Sends image to Gemini for OCR + translation.
+ */
+const processWithGeminiAI = async (
+  apiBase64: string,
+  fullBase64: string,
+  targetLang: string
+): Promise<{ items: ARTranslateItem[]; imageBase64: string; timestamp: number } | null> => {
+  const settings = JSON.parse(localStorage.getItem('gosavor_settings') || '{}');
+  const apiKey = settings.geminiApiKey || '';
+
+  const arPrompt = `Detect ALL text regions in this image. This menu likely uses VERTICAL Japanese writing (縦書き/tategaki) — text reads top-to-bottom, columns go right-to-left.
+Group text by logical blocks (e.g. dish name, price, category header).
+For each text block, translate to ${targetLang}.
+Return JSON array with bounding boxes:
+[{"original":"日文原文","translated":"${targetLang}翻譯","boundingBox":[ymin,xmin,ymax,xmax]}]
+- boundingBox: coordinates in 0-1000 scale relative to image dimensions
+- Each block should be a meaningful text group, NOT individual characters
+- For vertical menus, each column of text is typically one item
+Only return valid JSON, no markdown.`;
+
+  try {
+    let items: ARTranslateItem[] = [];
+
+    if (apiKey) {
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey });
+      const res = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite-preview',
+        contents: [
+          { inlineData: { mimeType: 'image/jpeg', data: apiBase64 } },
+          { text: arPrompt },
+        ],
+      });
+      const text = res.text?.trim() || '[]';
+      items = JSON.parse(text.replace(/```\w*\s*/g, '').replace(/```/g, '').trim());
+    } else {
+      const { callGeminiViaWorker } = await import('./workerProxy');
+      const geminiRequest = {
+        contents: [{ parts: [
+          { inlineData: { mimeType: 'image/jpeg', data: apiBase64 } },
+          { text: arPrompt },
+        ]}],
+      };
+      const workerResult = await callGeminiViaWorker(geminiRequest, 'ar-translate', 'gemini-3.1-flash-lite-preview');
+      const text = workerResult.result?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+      items = JSON.parse(text.replace(/```\w*\s*/g, '').replace(/```/g, '').trim());
+    }
+
+    return { items, imageBase64: fullBase64, timestamp: Date.now() };
+  } catch (e: any) {
+    console.error('[GoSavor] AI fallback translate error:', e);
+    const msg = e?.message || String(e);
+    if (msg.includes('GPS')) alert('系統翻譯僅限日本境內使用。請在設定中輸入自己的 API Key。');
+    else if (msg.includes('LIMIT')) alert('今日免費體驗額度已用完。開通贊助版享無限翻譯！');
+    else if (msg.includes('quota')) alert('請在設定中輸入 Gemini API Key 或稍後再試。');
+    else alert('AI翻譯失敗：' + msg.substring(0, 100));
+    return null;
+  }
 };
 
 export const stopLiveTranslate = async () => {

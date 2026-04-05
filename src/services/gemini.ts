@@ -134,9 +134,12 @@ export const analyzeMenuImage = async (
     ? `\nUser allergens: [${allergens.join(',')}]. For each item, return matching allergen IDs in "allergens" array.`
     : '';
 
-  // === STRATEGY: Native Apple Vision OCR ===
+  // === STRATEGY: Skip Native OCR, always use Gemini Vision ===
+  // Apple Vision OCR struggles with vertical Japanese text (縦書き) and mixed layouts.
+  // Gemini Vision handles both horizontal and vertical menus accurately.
+  // Native OCR is still used in AR mode (LiveTranslatePlugin) for speed.
   let ocrSource = 'Cloud';
-  if (Capacitor.isNativePlatform()) {
+  if (false && Capacitor.isNativePlatform()) { // Disabled: Gemini Vision is more reliable
     try {
       ocrSource = 'Native';
       let blockIdCounter = 0;
@@ -153,15 +156,36 @@ export const analyzeMenuImage = async (
             id: blockIdCounter++,
             imageIndex: imgIdx,
             text: res.text,
-            box: [ymin, xmin, ymax, xmax]
+            box: [ymin, xmin, ymax, xmax],
+            confidence: res.confidence ?? 1,
           });
         });
       }
 
-      if (ocrBlocks.length >= 5) {
-        // Need at least 5 OCR blocks for meaningful menu parsing
-        // Vertical Japanese menus (縦書き) often get < 5 blocks from Apple Vision
-        // In that case, fall through to Cloud/Gemini Vision which handles vertical text better
+      // Detect vertical text (縦書き) failure: Apple Vision fragments vertical text
+      // into single characters instead of reading columns as words.
+      const singleCharBlocks = ocrBlocks.filter(b => b.text.length <= 1).length;
+      const singleCharRatio = ocrBlocks.length > 0 ? singleCharBlocks / ocrBlocks.length : 1;
+      const totalChars = ocrBlocks.reduce((sum, b) => sum + b.text.length, 0);
+      const avgCharsPerBlock = ocrBlocks.length > 0 ? totalChars / ocrBlocks.length : 0;
+      const avgConfidence = ocrBlocks.length > 0
+        ? ocrBlocks.reduce((sum, b) => sum + b.confidence, 0) / ocrBlocks.length : 0;
+      // Count blocks with low confidence (<0.5) — even if a few blocks (like titles) read well,
+      // many low-confidence blocks means Apple Vision is struggling with the text layout
+      const lowConfBlocks = ocrBlocks.filter(b => b.confidence < 0.5).length;
+      const lowConfRatio = ocrBlocks.length > 0 ? lowConfBlocks / ocrBlocks.length : 1;
+      const isVerticalTextFailure = ocrBlocks.length === 0 ||
+        singleCharRatio > 0.5 ||
+        (avgCharsPerBlock < 2.0 && ocrBlocks.length >= 5) ||
+        avgConfidence < 0.5 ||
+        lowConfRatio > 0.3; // >30% of blocks have low confidence
+
+      if (isVerticalTextFailure) {
+        console.warn(`[GoSavor OCR] Vertical text detected (avg=${avgCharsPerBlock.toFixed(1)}, single=${(singleCharRatio*100).toFixed(0)}%, conf=${avgConfidence.toFixed(2)}, lowConf=${(lowConfRatio*100).toFixed(0)}%) → falling back to Gemini Vision`);
+      }
+
+      if (!isVerticalTextFailure && ocrBlocks.length >= 3) {
+        // OCR quality is good — use OCR text + Gemini for translation
         // Menu always uses 2.5-flash for accurate sourceIds/bounding box matching
         // Fallback chain: gemini-2.5-flash → modelName (if 2.5 quota exceeded)
         const preferredModel = 'gemini-2.5-flash';
@@ -196,8 +220,17 @@ STEP 3 — For each paired menu item output:
 - sourceIds: [dish_name_block_id, price_block_id] — these are the id values from the OCR blocks above
 - imageIndex: imgIdx of the source blocks${allergenPart}
 
-STEP 4 — Also return: currency (use ¥ for JPY), restaurantName (if visible in blocks, else empty string).
-IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append anything. (We'll handle flags internally).`;
+STEP 4 — Cultural & Hidden Fee Detection:
+- Scan for "お通し" (Otoshi), "席料" (Seat charge), or "サービス料" (Service charge). 
+- If found, include them as regular items but add a "⚠️" prefix to the translatedName.
+- In the "description", explain what it is (e.g., "Standard Japanese table charge includes a small appetizer").
+- If the menu looks HANDWRITTEN (手話き/tategaki/messy), use your visual understanding to infer names even if OCR text is fragmented.
+
+STEP 5 — Also return:
+- currency (use ¥ for JPY)
+- restaurantName (if visible in blocks, else empty string). IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append anything.
+- layoutDirection: "vertical" if the menu uses vertical Japanese writing (縦書き/tategaki, columns read top-to-bottom, right-to-left), "horizontal" if text reads left-to-right in rows. Look at the IMAGE to determine this.
+- izakayaAlert: If the menu contains many snacks, alcohol, or mentions Otoshi, provide a 1-sentence friendly reminder about Izakaya culture in ${targetLanguage}.`;
 
         // Send tiny thumbnails (200px) so AI can see the menu for better descriptions
         const thumbs = await Promise.all(
@@ -214,6 +247,7 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
             properties: {
               currency: { type: Type.STRING },
               restaurantName: { type: Type.STRING },
+              layoutDirection: { type: Type.STRING },
               items: {
                 type: Type.ARRAY,
                 items: {
@@ -232,7 +266,7 @@ IMPORTANT: restaurantName should be EXACTLY what is in the menu. Do NOT append a
                 },
               },
             },
-            required: ['currency', 'items'],
+            required: ['currency', 'items', 'layoutDirection'],
           },
         };
 
@@ -368,9 +402,16 @@ For EACH menu item found, return:
   4. Items at the TOP of menu → small ymin (~0-200). Items at BOTTOM → large ymin (~700-1000)
   5. Items on LEFT side → small xmin (~0-300). Items on RIGHT → large xmin (~600-1000)
   6. Box height should be ~30-80 (tight around text), NOT covering the entire menu
-  7. VERTICAL menus (縦書き): text reads top-to-bottom, columns right-to-left. Adjust bounding boxes accordingly — each column is a separate item area
+  7. VERTICAL menus (縦書き): text reads top-to-bottom, columns go right-to-left.
+     - Each item occupies its OWN vertical column. The box should cover just the dish name text area.
+     - Items in the RIGHTMOST column → xmin ~700-900. Next column left → xmin ~500-700. And so on.
+     - Each item MUST have a distinctly different xmin — spread them across the full width of the menu area.
+     - Box width should be ~30-80 (tight around one column), NOT spanning multiple columns.
 - imageIndex: which image (0-based) this item appears in.${allergenPart}
-Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]").`;
+Also return:
+- currency (use ¥ for JPY)
+- restaurantName (prefix with "[Cloud]")
+- layoutDirection: "vertical" if the menu uses vertical Japanese writing (縦書き, columns top-to-bottom, right-to-left), "horizontal" if text reads left-to-right in rows.`;
 
   const imageParts = pwaResized.map((img) => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
@@ -385,6 +426,7 @@ Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]")
       properties: {
         currency: { type: Type.STRING },
         restaurantName: { type: Type.STRING },
+        layoutDirection: { type: Type.STRING },
         items: {
           type: Type.ARRAY,
           items: {
@@ -403,7 +445,7 @@ Also return currency (use ¥ for JPY) and restaurantName (prefix with "[Cloud]")
           },
         },
       },
-      required: ['currency', 'items'],
+      required: ['currency', 'items', 'layoutDirection'],
     },
   };
 

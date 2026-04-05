@@ -8,13 +8,14 @@ interface InlineImageMapProps {
   highlightIndex: number | null;
   activeCategory: string | null;
   activeImageIndex: number;
+  layoutDirection?: 'vertical' | 'horizontal';
   onTapItem: (index: number) => void;
   onImageChange: (imageIndex: number) => void;
 }
 
 const InlineImageMap = ({
   images, items, highlightIndex, activeCategory,
-  activeImageIndex, onTapItem, onImageChange
+  activeImageIndex, layoutDirection, onTapItem, onImageChange
 }: InlineImageMapProps) => {
   const [showMarkers, setShowMarkers] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -160,42 +161,100 @@ const InlineImageMap = ({
         />
 
         {/* Numbered markers */}
-        {showMarkers && visibleItems.map(({ item, idx }) => {
-          const active = highlightIndex === idx;
+        {showMarkers && (() => {
+          const isVertical = layoutDirection === 'vertical';
 
-          if (hasBox(item)) {
-            const [ymin, xmin, ymax, xmax] = normalize(item.boundingBox!);
-            return (
-              <div
-                key={idx}
-                onClick={() => onTapItem(idx)}
-                className={`absolute cursor-pointer ${active ? 'z-10' : ''}`}
-                style={{
-                  top: `${ymin * 100}%`,
-                  left: `${xmin * 100}%`,
-                  width: `${(xmax - xmin) * 100}%`,
-                  height: `${(ymax - ymin) * 100}%`,
-                }}
-              >
-                <span
-                  className={`absolute flex items-center justify-center rounded-full font-black transition-all duration-300
-                    ${active
-                      ? '-top-3 -left-3 w-9 h-9 text-base bg-orange-500 text-white shadow-[0_0_0_2px_white,0_0_12px_rgba(249,115,22,0.7)] animate-bounce'
-                      : '-top-2 -left-2 w-5 h-5 text-[9px] bg-white/50 text-gray-900 border-2 border-gray-900 font-black'
-                    }`}
+          // Detect if bounding boxes are clustered (Gemini sometimes returns bad positions for vertical text)
+          const boxedItems = visibleItems.filter(({ item }) => hasBox(item));
+          const areClustered = boxedItems.length >= 2 && (() => {
+            const boxes = boxedItems.map(({ item }) => normalize(item.boundingBox!));
+            const xmins = boxes.map(b => b[1]);
+            const xRange = Math.max(...xmins) - Math.min(...xmins);
+            return xRange < 0.15; // all boxes within 15% horizontal range → clustered
+          })();
+
+          // Use grid fallback when boxes are clustered (regardless of layout direction)
+          const useGrid = areClustered && visibleItems.length > 1;
+
+          return visibleItems.map(({ item, idx }, posIndex) => {
+            const active = highlightIndex === idx;
+
+            if (useGrid) {
+              const total = visibleItems.length;
+              let topPct: number, leftPct: number;
+
+              if (isVertical) {
+                // Vertical: columns right-to-left, items top-to-bottom within each column
+                const rowsPerCol = Math.max(2, Math.ceil(Math.sqrt(total)));
+                const cols = Math.ceil(total / rowsPerCol);
+                const col = Math.floor(posIndex / rowsPerCol);
+                const row = posIndex % rowsPerCol;
+                const actualRows = Math.min(rowsPerCol, total - col * rowsPerCol);
+                leftPct = 88 - col * (80 / Math.max(cols, 1));
+                topPct = 8 + row * (80 / Math.max(actualRows, 1));
+              } else {
+                // Horizontal: rows top-to-bottom, items left-to-right
+                const cols = Math.min(6, total);
+                const row = Math.floor(posIndex / cols);
+                const col = posIndex % cols;
+                topPct = 5 + row * 12;
+                leftPct = 3 + col * (90 / cols);
+              }
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => onTapItem(idx)}
+                  className={`absolute cursor-pointer ${active ? 'z-10' : ''}`}
+                  style={{ top: `${topPct}%`, left: `${leftPct}%` }}
                 >
-                  {idx + 1}
-                </span>
-              </div>
-            );
-          } else {
+                  <span
+                    className={`flex items-center justify-center rounded-full font-black transition-all duration-300
+                      ${active
+                        ? 'w-9 h-9 text-base bg-orange-500 text-white shadow-[0_0_0_2px_white,0_0_12px_rgba(249,115,22,0.7)] animate-bounce'
+                        : 'w-6 h-6 text-[10px] bg-white/60 text-gray-900 border-2 border-gray-900'
+                      }`}
+                  >
+                    {idx + 1}
+                  </span>
+                </div>
+              );
+            }
+
+            if (hasBox(item)) {
+              const [ymin, xmin, ymax, xmax] = normalize(item.boundingBox!);
+              return (
+                <div
+                  key={idx}
+                  onClick={() => onTapItem(idx)}
+                  className={`absolute cursor-pointer ${active ? 'z-10' : ''}`}
+                  style={{
+                    top: `${ymin * 100}%`,
+                    left: `${xmin * 100}%`,
+                    width: `${(xmax - xmin) * 100}%`,
+                    height: `${(ymax - ymin) * 100}%`,
+                  }}
+                >
+                  <span
+                    className={`absolute flex items-center justify-center rounded-full font-black transition-all duration-300
+                      ${active
+                        ? '-top-3 -left-3 w-9 h-9 text-base bg-orange-500 text-white shadow-[0_0_0_2px_white,0_0_12px_rgba(249,115,22,0.7)] animate-bounce'
+                        : '-top-2 -left-2 w-5 h-5 text-[9px] bg-white/50 text-gray-900 border-2 border-gray-900 font-black'
+                      }`}
+                  >
+                    {idx + 1}
+                  </span>
+                </div>
+              );
+            }
+
+            // No bounding box at all — grid fallback
             const gridItems = visibleItems.filter(({ item: it }) => !hasBox(it));
             const posInGrid = gridItems.findIndex(g => g.idx === idx);
             if (posInGrid < 0) return null;
             const cols = Math.min(6, gridItems.length);
             const row = Math.floor(posInGrid / cols);
             const col = posInGrid % cols;
-
             return (
               <div
                 key={idx}
@@ -214,8 +273,8 @@ const InlineImageMap = ({
                 </span>
               </div>
             );
-          }
-        })}
+          });
+        })()}
 
         {/* Swipe hint arrows on edges */}
         {images.length > 1 && activeImageIndex > 0 && (

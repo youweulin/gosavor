@@ -10,6 +10,7 @@ export interface BoundingBox {
 export interface OCRResult {
   text: string;
   boundingBox: BoundingBox;
+  confidence: number;
 }
 
 export interface VisionOCRPlugin {

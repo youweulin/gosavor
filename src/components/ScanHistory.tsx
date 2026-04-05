@@ -6,6 +6,7 @@ import { useT } from '../i18n/context';
 
 interface ScanHistoryProps {
   onLoadScan: (scan: SavedScan) => void;
+  pageSize?: number;
 }
 
 const modeIcons = {
@@ -29,13 +30,13 @@ const relativeTime = (ts: number): string => {
   return new Date(ts).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }).replace('/', '月') + '日';
 };
 
-const ScanHistory = ({ onLoadScan }: ScanHistoryProps) => {
+const ScanHistory = ({ onLoadScan, pageSize: propPageSize }: ScanHistoryProps) => {
   const t = useT();
   const [scans, setScans] = useState<SavedScan[]>([]);
 
   const [filter, setFilter] = useState<'all' | 'menu' | 'receipt' | 'general' | 'ar-translate'>('all');
   const [page, setPage] = useState(0);
-  const PAGE_SIZE = 4;
+  const PAGE_SIZE = propPageSize || 4;
 
   useEffect(() => {
     getScanHistory().then(setScans);

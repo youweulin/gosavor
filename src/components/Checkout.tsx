@@ -341,11 +341,11 @@ const Checkout = ({
                 <div className="space-y-1.5 text-xs text-amber-200/80">
                   <div className="flex justify-between">
                     <span>🍶 お通し（強制小菜費）</span>
-                    <span className="text-amber-400">¥300~500/人</span>
+                    <span className="text-amber-400">¥400~800/人</span>
                   </div>
                   <div className="flex justify-between">
                     <span>💺 席料（座位費）</span>
-                    <span className="text-amber-400">¥200~500/人</span>
+                    <span className="text-amber-400">¥300~500/人</span>
                   </div>
                   <div className="flex justify-between">
                     <span>🧾 サービス料（服務費）</span>

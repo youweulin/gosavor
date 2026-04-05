@@ -11,9 +11,11 @@ interface HomeCardProps {
   nickname?: string;
   userPlan?: string;
   guideName?: string;
+  compact?: boolean; // true = standard (3-col), false = clean (2x2 grid)
   onDiary?: () => void;
   onExpenses?: () => void;
   onHistory?: () => void;
+  onDrugstore?: () => void;
 }
 
 const WeatherIcon = ({ icon }: { icon: string }) => {
@@ -43,7 +45,7 @@ const planLabel: Record<string, { emoji: string; name: string }> = {
   'guide-member': { emoji: '🎌', name: '旅遊團' },
 };
 
-const HomeCard = ({ nickname, userPlan = 'free', guideName, onDiary, onExpenses, onHistory }: HomeCardProps) => {
+const HomeCard = ({ nickname, userPlan = 'free', guideName, compact = true, onDiary, onExpenses, onHistory, onDrugstore }: HomeCardProps) => {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [, setLoading] = useState(true);
@@ -66,10 +68,12 @@ const HomeCard = ({ nickname, userPlan = 'free', guideName, onDiary, onExpenses,
     });
     getExpenses().then(exps => {
       const filtered = trip ? exps.filter(e => e.timestamp >= trip.startDate) : exps;
-      const byC: Record<string, number> = {};
-      filtered.forEach(e => { byC[e.currency] = (byC[e.currency] || 0) + e.amount; });
-      const parts = Object.entries(byC).map(([c, a]) => `${c}${Math.round(a).toLocaleString()}`);
-      setTotalSpent(parts.join(' '));
+      // Sum all expenses, treating JPY/¥/円 as the same currency
+      let total = 0;
+      filtered.forEach(e => { total += e.amount; });
+      if (total > 0) {
+        setTotalSpent(`¥${Math.round(total).toLocaleString()}`);
+      }
     });
   }, []);
 
@@ -151,26 +155,53 @@ const HomeCard = ({ nickname, userPlan = 'free', guideName, onDiary, onExpenses,
         </div>
       </div>
 
-      {/* Lower: Quick Actions with stats */}
-      <div className="flex border-t border-orange-100/60">
-        <button onClick={onDiary} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
-          <BookOpen size={20} className="text-orange-500" />
-          <span className="text-xs font-medium text-gray-600">旅遊日記</span>
-          {totalScans > 0 && <span className="text-[10px] text-gray-400">{totalScans} 次翻譯</span>}
-        </button>
-        <div className="w-px bg-orange-100/60" />
-        <button onClick={onExpenses} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
-          <Wallet size={20} className="text-orange-500" />
-          <span className="text-xs font-medium text-gray-600">記帳簿</span>
-          {totalSpent && <span className="text-[10px] text-orange-500 font-medium">{totalSpent}</span>}
-        </button>
-        <div className="w-px bg-orange-100/60" />
-        <button onClick={onHistory} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
-          <Clock size={20} className="text-orange-500" />
-          <span className="text-xs font-medium text-gray-600">點餐紀錄</span>
-          {totalMeals > 0 && <span className="text-[10px] text-gray-400">{totalMeals} 餐</span>}
-        </button>
-      </div>
+      {/* Quick Actions */}
+      {compact ? (
+        /* Standard: 3-column row */
+        <div className="flex border-t border-orange-100/60">
+          <button onClick={onDiary} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
+            <BookOpen size={20} className="text-orange-500" />
+            <span className="text-xs font-medium text-gray-600">旅遊日記</span>
+            {totalScans > 0 && <span className="text-[10px] text-gray-400">{totalScans} 次翻譯</span>}
+          </button>
+          <div className="w-px bg-orange-100/60" />
+          <button onClick={onExpenses} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
+            <Wallet size={20} className="text-orange-500" />
+            <span className="text-xs font-medium text-gray-600">記帳簿</span>
+            {totalSpent && <span className="text-[10px] text-orange-500 font-medium">{totalSpent}</span>}
+          </button>
+          <div className="w-px bg-orange-100/60" />
+          <button onClick={onHistory} className="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-orange-100/30 transition-colors">
+            <Clock size={20} className="text-orange-500" />
+            <span className="text-xs font-medium text-gray-600">點餐紀錄</span>
+            {totalMeals > 0 && <span className="text-[10px] text-gray-400">{totalMeals} 餐</span>}
+          </button>
+        </div>
+      ) : (
+        /* Clean: 2x2 grid with bigger tiles */
+        <div className="grid grid-cols-2 gap-2.5 p-3 border-t border-orange-100/60">
+          <button onClick={onDiary} className="flex flex-col items-center gap-1.5 py-4 bg-orange-50 rounded-xl hover:bg-orange-100/60 transition-colors">
+            <BookOpen size={26} className="text-orange-500" />
+            <span className="text-sm font-bold text-gray-700">旅遊日記</span>
+            {totalScans > 0 && <span className="text-xs text-gray-400">{totalScans} 次翻譯</span>}
+          </button>
+          <button onClick={onExpenses} className="flex flex-col items-center gap-1.5 py-4 bg-orange-50 rounded-xl hover:bg-orange-100/60 transition-colors">
+            <Wallet size={26} className="text-orange-500" />
+            <span className="text-sm font-bold text-gray-700">記帳簿</span>
+            {totalSpent && <span className="text-xs text-orange-500 font-bold">{totalSpent}</span>}
+          </button>
+          <button onClick={onHistory} className="flex flex-col items-center gap-1.5 py-4 bg-orange-50 rounded-xl hover:bg-orange-100/60 transition-colors">
+            <Clock size={26} className="text-orange-500" />
+            <span className="text-sm font-bold text-gray-700">點餐紀錄</span>
+            {totalMeals > 0 && <span className="text-xs text-gray-400">{totalMeals} 餐</span>}
+          </button>
+          <button onClick={onDrugstore} className="flex flex-col items-center gap-1.5 py-4 bg-orange-50 rounded-xl hover:bg-orange-100/60 transition-colors">
+            <span className="text-2xl">💊</span>
+            <span className="text-sm font-bold text-gray-700">藥妝情報</span>
+            <span className="text-xs text-orange-400">比價搜尋</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

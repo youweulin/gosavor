@@ -666,29 +666,76 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
         let ocrResults = await self.performOCR(on: image)
         print("[GoSavor] 📷 OCR found \(ocrResults.count) text blocks")
 
+        // Detect vertical text (縦書き) failure:
+        // Apple Vision can't read vertical Japanese properly — it either returns nothing,
+        // or fragments each column into single characters with low confidence.
+        let needsAIFallback: Bool
         if ocrResults.isEmpty {
-            processingView.removeFromSuperview()
-            let emptyLabel = UILabel()
-            emptyLabel.text = "未偵測到文字，請重試"
-            emptyLabel.textColor = .white
-            emptyLabel.font = .boldSystemFont(ofSize: 16)
-            emptyLabel.backgroundColor = UIColor.red.withAlphaComponent(0.6)
-            emptyLabel.layer.cornerRadius = 12
-            emptyLabel.clipsToBounds = true
-            emptyLabel.textAlignment = .center
-            emptyLabel.frame = CGRect(x: 40, y: scanner.view.bounds.midY - 20, width: scanner.view.bounds.width - 80, height: 40)
-            scanner.view.addSubview(emptyLabel)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                emptyLabel.removeFromSuperview()
-                try? scanner.startScanning()
+            needsAIFallback = true
+            print("[GoSavor] 📷 OCR empty → AI fallback")
+        } else {
+            let totalChars = ocrResults.reduce(0) { $0 + $1.0.count }
+            let avgCharsPerBlock = Double(totalChars) / Double(ocrResults.count)
+            let singleCharBlocks = ocrResults.filter { $0.0.count <= 1 }.count
+            let singleCharRatio = Double(singleCharBlocks) / Double(ocrResults.count)
+            let avgConfidence = Double(ocrResults.reduce(Float(0)) { $0 + $1.2 }) / Double(ocrResults.count)
+            let lowConfBlocks = ocrResults.filter { $0.2 < 0.5 }.count
+            let lowConfRatio = Double(lowConfBlocks) / Double(ocrResults.count)
+            // Indicator 1: >50% single-char blocks
+            // Indicator 2: avg < 2 chars with many blocks
+            // Indicator 3: low average confidence (<0.5)
+            // Indicator 4: >30% of blocks have low confidence (catches mixed results)
+            needsAIFallback = singleCharRatio > 0.5 ||
+                (avgCharsPerBlock < 2.0 && ocrResults.count >= 5) ||
+                avgConfidence < 0.5 ||
+                lowConfRatio > 0.3
+            if needsAIFallback {
+                print("[GoSavor] 📷 Vertical text detected (avg=\(String(format:"%.1f", avgCharsPerBlock)) chars, single=\(Int(singleCharRatio*100))%, conf=\(String(format:"%.2f", avgConfidence)), lowConf=\(Int(lowConfRatio*100))%) → AI fallback")
             }
+        }
+
+        if needsAIFallback {
+            processingView.removeFromSuperview()
+
+            // Compress image for JS/Gemini processing
+            let maxDim: CGFloat = 800
+            let imgScale = min(maxDim / image.size.width, maxDim / image.size.height, 1.0)
+            let newSize = CGSize(width: image.size.width * imgScale, height: image.size.height * imgScale)
+            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+            let resized = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            let apiBase64 = (resized ?? image).jpegData(compressionQuality: 0.7)?.base64EncodedString() ?? ""
+
+            // Full-res for diary display
+            let fullScale = min(800.0 / image.size.width, 800.0 / image.size.height, 1.0)
+            let fullSize = CGSize(width: image.size.width * fullScale, height: image.size.height * fullScale)
+            UIGraphicsBeginImageContextWithOptions(fullSize, false, 1.0)
+            image.draw(in: CGRect(origin: .zero, size: fullSize))
+            let fullResized = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            let fullBase64 = (fullResized ?? image).jpegData(compressionQuality: 0.6)?.base64EncodedString() ?? ""
+
+            print("[GoSavor] 📷 AI fallback: sending \(apiBase64.count/1024)KB to JS")
+
+            // Resolve startCall so JS can process with Gemini
+            self.startCall?.resolve([
+                "hasData": false,
+                "needsAIFallback": true,
+                "imageBase64": apiBase64,
+                "fullImageBase64": fullBase64,
+            ])
+            self.startCall = nil
+            self.dismissAll()
             return
         }
 
-        let translations = await self.translateTexts(ocrResults.map { $0.0 })
+        // Strip confidence for downstream methods that expect (String, CGRect)
+        let ocrPairs = ocrResults.map { ($0.0, $0.1) }
+        let translations = await self.translateTexts(ocrPairs.map { $0.0 })
 
         processingView.removeFromSuperview()
-        self.showResult(on: scanner, image: image, ocrResults: ocrResults, translations: translations)
+        self.showResult(on: scanner, image: image, ocrResults: ocrPairs, translations: translations)
 
         // Auto-save to diary
         self.autoSaveToDiary()
@@ -696,7 +743,7 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
 
     // MARK: - Vision OCR (returns normalized rects 0-1, UIKit top-left origin)
 
-    private func performOCR(on image: UIImage) async -> [(String, CGRect)] {
+    private func performOCR(on image: UIImage) async -> [(String, CGRect, Float)] {
         guard let cgImage = image.cgImage else { return [] }
 
         // Convert UIImage orientation to CGImagePropertyOrientation for Vision
@@ -720,7 +767,7 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
                     return
                 }
 
-                var results: [(String, CGRect)] = []
+                var results: [(String, CGRect, Float)] = []
 
                 for obs in observations {
                     guard let candidate = obs.topCandidates(1).first else { continue }
@@ -732,7 +779,7 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
                         width: bb.width,
                         height: bb.height
                     )
-                    results.append((candidate.string, rect))
+                    results.append((candidate.string, rect, obs.confidence))
                 }
 
                 continuation.resume(returning: results)

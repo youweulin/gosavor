@@ -22,27 +22,20 @@ const CORS_HEADERS = {
 // Plan-based daily limits (system API only)
 // supporter/pro use own key, don't hit Worker
 // =============================================
-const IS_BETA_PERIOD = true; // flip to false when 正式版 launches
+// 公測期限：2026-05-05 23:59:59 UTC+9 (JST)
+const BETA_EXPIRES = new Date('2026-05-05T23:59:59+09:00');
+const IS_BETA_PERIOD = () => new Date() < BETA_EXPIRES;
+
+// 公測獎勵期限：2027-05-05（過期後 beta plan 歸零）
+const BETA_REWARD_EXPIRES = new Date('2027-05-05T23:59:59+09:00');
+const IS_BETA_REWARD = () => new Date() < BETA_REWARD_EXPIRES;
 
 const DAILY_LIMITS = {
-  free:    IS_BETA_PERIOD ? 5 : 2,    // 免費：公測5次，正式2次
-  rental:  50,                         // 旅遊包：50次/天 硬上限
-  // 點數包：無日上限，用完點數就沒了
+  free:          0,                     // 免費：不能用系統 API（需先兌換碼）
+  guide_member: 15,                     // 旅遊團：15次/天
+  unlimited:    9999,                   // 其他有效 plan：不限
+  rental:       50,                     // 旅遊包：50次/天 硬上限（正式版用）
 };
-
-// =============================================
-// Japan GPS geofence
-// =============================================
-const JAPAN_BOUNDS = {
-  latMin: 24.0, latMax: 46.0,
-  lonMin: 122.0, lonMax: 154.0,
-};
-
-function isInJapan(lat, lon) {
-  if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) return false;
-  return lat >= JAPAN_BOUNDS.latMin && lat <= JAPAN_BOUNDS.latMax &&
-         lon >= JAPAN_BOUNDS.lonMin && lon <= JAPAN_BOUNDS.lonMax;
-}
 
 // =============================================
 // JWT verification (via Supabase JWKS)
@@ -159,29 +152,37 @@ async function updateUser(supabaseUrl, supabaseKey, userId, updates) {
 function getUserLimit(user) {
   const plan = user?.plan || 'free';
 
-  // supporter/pro should use own key, not system API
-  // but if they somehow hit Worker, give them free-tier limit
-  if (plan === 'supporter' || plan === 'pro') {
-    return DAILY_LIMITS.free;
+  // free = 沒兌換碼，不能用系統 API
+  if (plan === 'free') {
+    return DAILY_LIMITS.free; // 0
+  }
+
+  // guide-member（旅遊團）: 15次/天
+  if (plan === 'guide-member') {
+    return DAILY_LIMITS.guide_member;
   }
 
   // rental (旅遊包): check expiry
   if (plan === 'rental') {
     const expires = user.rental_expires ? new Date(user.rental_expires) : null;
     if (expires && expires > new Date()) {
-      return DAILY_LIMITS.rental; // 50次/天
+      return DAILY_LIMITS.rental;
     }
-    // expired → fall back to free
     return DAILY_LIMITS.free;
   }
 
   // has credits (點數包): no daily limit, just deduct credits
   if ((user?.credits || 0) > 0) {
-    return 9999; // 無日上限，靠點數餘額控制
+    return 9999;
   }
 
-  // free
-  return DAILY_LIMITS.free;
+  // beta plan: 公測期不限 → 過期後 15 次/天（獎勵到 2027/5/5）→ 之後歸零
+  if (plan === 'beta' && !IS_BETA_PERIOD()) {
+    return IS_BETA_REWARD() ? 15 : 0;
+  }
+
+  // 其他有效 plan（beta公測中, guide, supporter, pro）: 不限次數
+  return DAILY_LIMITS.unlimited;
 }
 
 function getDailyUsage(user) {
@@ -334,6 +335,7 @@ async function callGemini(env, requestBody, model) {
 // 楽天商品圖片 Bot（管理員觸發）
 // GET /api/rakuten-sync?key=YOUR_SECRET
 // =============================================
+const RAKUTEN_APP_ID = '40c15934-1373-4dc0-a3f6-e9fffa2f83c3';
 const RAKUTEN_AFF_ID = '52834e1e.f525d9b8.52834e1f.1db22431';
 
 async function handleRakutenSync(env, url) {
@@ -500,27 +502,23 @@ export default {
       const user = await getUser(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, userId);
       const plan = user?.plan || 'free';
 
-      // 3. If supporter/pro → they should use own key
-      if (plan === 'supporter' || plan === 'pro') {
+      // 3. Free users = no redeem code, block entirely
+      if (plan === 'free') {
         return json({
-          error: 'USE_OWN_KEY',
-          message: '請使用自帶 API Key（設定 → API Key）',
+          error: 'NO_PLAN',
+          message: '請先輸入兌換碼開通使用權限',
           plan,
         }, 403);
       }
 
-      // 4. GPS check (system API = Japan only)
+      // 4. GPS check: not in Japan → cap at 15 times/day (prevent abuse)
       const lat = parseFloat(request.headers.get('X-Latitude') || '');
       const lon = parseFloat(request.headers.get('X-Longitude') || '');
-      if (!isNaN(lat) && !isNaN(lon) && !isInJapan(lat, lon)) {
-        return json({
-          error: 'GPS_NOT_JAPAN',
-          message: '系統翻譯僅限日本境內使用',
-        }, 403);
-      }
+      const inJapan = isNaN(lat) || isNaN(lon) || // no GPS = assume Japan
+        (lat >= 24.0 && lat <= 46.0 && lon >= 122.0 && lon <= 154.0);
 
       // 5. Check daily usage
-      const limit = getUserLimit(user);
+      const limit = inJapan ? getUserLimit(user) : Math.min(getUserLimit(user), 15);
       const usage = getDailyUsage(user);
 
       if (usage >= limit) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, MessageCircle, Shield, Info, Bug, Send, LogOut, Mail } from 'lucide-react';
+import { ArrowLeft, Key, Globe, AlertTriangle, RotateCcw, Eye, EyeOff, Check, Coins, MessageCircle, Shield, Info, Bug, Send, LogOut, Mail, BookOpen } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 import { TARGET_LANGUAGES, COMMON_ALLERGEN_IDS, HOME_CURRENCIES } from '../types';
 import { fetchRates } from './CurrencyBar';
@@ -13,9 +13,10 @@ interface SettingsProps {
   onReset: () => void;
   onBack: () => void;
   userPlan?: string;
+  onShowOnboarding?: () => void;
 }
 
-const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: SettingsProps) => {
+const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free', onShowOnboarding }: SettingsProps) => {
   const canUseApiKey = userPlan === 'supporter' || userPlan === 'pro' || userPlan === 'beta' || userPlan === 'guide';
   const hasSharedKey = userPlan === 'guide-member';
   const t = useT();
@@ -291,6 +292,24 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free' }: Se
             </a>
           </div>
         </div>
+
+        {/* Usage Guide */}
+        {onShowOnboarding && (
+          <div>
+            <button
+              onClick={onShowOnboarding}
+              className="w-full flex items-center gap-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl hover:bg-orange-500/20 transition-colors"
+            >
+              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
+                <BookOpen size={18} className="text-white" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-white">使用說明</p>
+                <p className="text-xs text-gray-400">查看功能介紹與操作教學</p>
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Privacy Policy & Terms */}
         <div>

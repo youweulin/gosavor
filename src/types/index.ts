@@ -15,6 +15,7 @@ export interface MenuItem {
 export interface MenuAnalysisResult {
   currency: string;
   restaurantName?: string;
+  layoutDirection?: 'vertical' | 'horizontal';
   items: MenuItem[];
   ocrDebug?: {
     source: string;
@@ -140,6 +141,7 @@ export interface AppSettings {
   targetLanguage: string;
   allergens: string[];
   homeCurrency: string; // e.g. "TWD"
+  uiMode: 'standard' | 'clean';
 }
 
 // === User Auth ===
@@ -177,4 +179,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   targetLanguage: 'zh-TW',
   allergens: [],
   homeCurrency: 'TWD',
+  uiMode: 'standard',
 };

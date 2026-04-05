@@ -6,6 +6,26 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // =============================================
+// GPS: Japan geofence (skip DB uploads outside Japan)
+// =============================================
+const JAPAN_BOUNDS = { latMin: 24.0, latMax: 46.0, lonMin: 122.0, lonMax: 154.0 };
+
+const isInJapanGPS = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(true); return; } // no GPS = allow (benefit of doubt)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        resolve(lat >= JAPAN_BOUNDS.latMin && lat <= JAPAN_BOUNDS.latMax &&
+                lon >= JAPAN_BOUNDS.lonMin && lon <= JAPAN_BOUNDS.lonMax);
+      },
+      () => resolve(true), // GPS error = allow
+      { timeout: 3000, maximumAge: 300000 }
+    );
+  });
+};
+
+// =============================================
 // Auth Helper
 // =============================================
 
@@ -305,10 +325,11 @@ export interface MenuReportInput {
   lng?: number;
 }
 
-/** 菜單翻譯後上傳餐廳 + 菜品資料 */
+/** 菜單翻譯後上傳餐廳 + 菜品資料（僅日本境內） */
 export const submitMenuReport = async (report: MenuReportInput) => {
   const currentUserId = await getCurrentUserId();
   if (!currentUserId || !report.restaurantName) return;
+  if (!await isInJapanGPS()) { console.log('[GoSavor] Skip menu report: not in Japan'); return; }
 
   try {
     const { data: user } = await supabase.from('users')
@@ -377,6 +398,7 @@ export const submitMenuReport = async (report: MenuReportInput) => {
 export const trackScanEvent = async (scanMode: string, category?: string) => {
   const currentUserId = await getCurrentUserId();
   if (!currentUserId) return;
+  if (!await isInJapanGPS()) { console.log('[GoSavor] Skip scan tracking: not in Japan'); return; }
 
   try {
     // 1. Get user's DB id
@@ -494,8 +516,9 @@ export interface PriceReportInput {
   receiptDate?: string;
 }
 
-/** 上傳價格報告（從收據掃描自動收集，自動店家歸戶） */
+/** 上傳價格報告（從收據掃描自動收集，僅日本境內） */
 export const submitPriceReport = async (report: PriceReportInput) => {
+  if (!await isInJapanGPS()) { console.log('[GoSavor] Skip price report: not in Japan'); return; }
   const currentUserId = await getCurrentUserId();
   if (!currentUserId) {
     console.warn('[GoSavor] Price report skipped: 用戶未登入');

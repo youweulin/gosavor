@@ -35,6 +35,7 @@ import InlineImageMap from './components/InlineImageMap';
 import ScanHistory from './components/ScanHistory';
 import ReceiptView from './components/ReceiptView';
 import HomeCard from './components/HomeCard';
+import OnboardingGuide from './components/OnboardingGuide';
 
 import GeneralView from './components/GeneralView';
 import ChatTranslator from './components/ChatTranslator';
@@ -87,6 +88,7 @@ function AppInner() {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('gosavor_onboarding_done'));
   const [profileNickname, setProfileNickname] = useState('旅人');
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemStatus, setRedeemStatus] = useState('');
@@ -443,6 +445,7 @@ function AppInner() {
         onReset={resetSettings}
         onBack={() => setPage('home')}
         userPlan={userPlan}
+        onShowOnboarding={() => { setPage('home'); setShowOnboarding(true); }}
       />
     );
   }
@@ -485,6 +488,24 @@ function AppInner() {
             <UsageBadge usage={usageInfo} hasOwnKey={!!settings.geminiApiKey} />
           </button>
           <div className="flex items-center gap-1">
+            {/* UI Mode Toggle */}
+            <button
+              onClick={() => updateSettings({ uiMode: settings.uiMode === 'clean' ? 'standard' : 'clean' })}
+              className="relative flex items-center w-14 h-7 rounded-full bg-gray-100 border border-gray-200 p-0.5 transition-colors"
+              title={settings.uiMode === 'clean' ? '簡潔模式' : '標準模式'}
+            >
+              <div
+                className={`absolute w-6 h-6 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 shadow-md transition-transform duration-300 ease-in-out ${
+                  settings.uiMode === 'clean' ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+              <span className={`relative z-10 flex-1 text-center text-[10px] font-bold transition-colors ${
+                settings.uiMode !== 'clean' ? 'text-white' : 'text-gray-400'
+              }`}>📋</span>
+              <span className={`relative z-10 flex-1 text-center text-[10px] font-bold transition-colors ${
+                settings.uiMode === 'clean' ? 'text-white' : 'text-gray-400'
+              }`}>⚡</span>
+            </button>
             <button
               onClick={async () => {
                 const name = await getNickname();
@@ -565,6 +586,7 @@ function AppInner() {
               highlightIndex={highlightIndex}
               activeCategory={activeCategory}
               activeImageIndex={menuResults.length > 1 ? 0 : activeImageIdx}
+              layoutDirection={menuResult.layoutDirection}
               onTapItem={(idx) => {
                 setHighlightIndex(idx);
                 const el = document.getElementById(`menu-item-${idx}`);
@@ -626,37 +648,50 @@ function AppInner() {
             {/* Home screen content when no photos/results */}
             {images.length === 0 && !isAnalyzing && !showCamera ? (
               <div className="space-y-4">
-                {/* Welcome + Location + Weather */}
-                <HomeCard
-                  nickname={profileNickname}
-                  userPlan={userPlan}
-                  guideName={guideName}
-                  onDiary={() => setPage('diary')}
-                  onExpenses={() => setPage('expenses')}
-                  onHistory={() => setPage('history')}
-                />
-
-                {/* Drugstore Info */}
-                <button
-                  onClick={() => setPage('drugstore')}
-                  className="w-full bg-blue-50/80 border border-blue-100 rounded-2xl p-4 text-left hover:bg-blue-100/60 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
+                {settings.uiMode === 'clean' ? (
+                  /* ═══ Clean Mode ═══ */
+                  <>
+                    <HomeCard
+                      nickname={profileNickname}
+                      userPlan={userPlan}
+                      guideName={guideName}
+                      compact={false}
+                      onDiary={() => setPage('diary')}
+                      onExpenses={() => setPage('expenses')}
+                      onHistory={() => setPage('history')}
+                      onDrugstore={() => setPage('drugstore')}
+                    />
+                    <ScanHistory key={scanRefreshKey} onLoadScan={handleLoadScan} pageSize={2} />
+                  </>
+                ) : (
+                  /* ═══ Standard Mode ═══ */
+                  <>
+                    <HomeCard
+                      nickname={profileNickname}
+                      userPlan={userPlan}
+                      guideName={guideName}
+                      onDiary={() => setPage('diary')}
+                      onExpenses={() => setPage('expenses')}
+                      onHistory={() => setPage('history')}
+                    />
+                    <button
+                      onClick={() => setPage('drugstore')}
+                      className="w-full bg-blue-50/80 border border-blue-100 rounded-2xl p-4 text-left hover:bg-blue-100/60 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-bold text-base text-slate-800">💊 藥妝情報・比價搜尋</h3>
+                          <p className="text-sm text-slate-500 mt-1">查看熱門商品排行、跨店比價</p>
+                        </div>
+                        <span className="text-2xl text-blue-400">📊</span>
+                      </div>
+                    </button>
                     <div>
-                      <h3 className="font-bold text-base text-slate-800">💊 藥妝情報・比價搜尋</h3>
-                      <p className="text-sm text-slate-500 mt-1">查看熱門商品排行、跨店比價</p>
+                      <RecommendCards loadProducts={() => getRecommendations(scanMode, undefined, undefined, gpsCity)} context="home" />
                     </div>
-                    <span className="text-2xl text-blue-400">📊</span>
-                  </div>
-                </button>
-
-                {/* Recommendations */}
-                <div>
-                  <RecommendCards loadProducts={() => getRecommendations(scanMode, undefined, undefined, gpsCity)} context="home" />
-                </div>
-
-                {/* Recent Scans */}
-                <ScanHistory key={scanRefreshKey} onLoadScan={handleLoadScan} />
+                    <ScanHistory key={scanRefreshKey} onLoadScan={handleLoadScan} />
+                  </>
+                )}
               </div>
             ) : (
               /* Camera capture + analyzing state */
@@ -1244,6 +1279,14 @@ function AppInner() {
       {/* AR Processing waiting page (PWA only) */}
       {isARProcessing && (
         <ARWaitingPage onClose={() => setIsARProcessing(false)} />
+      )}
+
+      {/* Onboarding guide (first launch or from settings) */}
+      {showOnboarding && (
+        <OnboardingGuide onClose={() => {
+          setShowOnboarding(false);
+          localStorage.setItem('gosavor_onboarding_done', '1');
+        }} />
       )}
 
       <BottomTabBar
