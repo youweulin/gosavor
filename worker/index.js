@@ -531,12 +531,17 @@ export default {
         }, 429);
       }
 
-      // 6. Proxy to Gemini
+      // 6. Proxy to Gemini — only allow users with shared_api_key (guide-member)
+      //    All other plans must use their own key from the frontend, not the system key.
       const body = await request.json();
-      // guide-member: use guide's shared API key instead of system key
-      const effectiveEnv = user?.shared_api_key
-        ? { ...env, GEMINI_API_KEY: user.shared_api_key, GCP_PRIVATE_KEY: null }
-        : env;
+      if (!user?.shared_api_key) {
+        return json({
+          error: 'USE_OWN_KEY',
+          message: '請在設定中輸入你的 Gemini API Key',
+          plan,
+        }, 403);
+      }
+      const effectiveEnv = { ...env, GEMINI_API_KEY: user.shared_api_key, GCP_PRIVATE_KEY: null };
 
       const result = await callGemini(
         effectiveEnv,
