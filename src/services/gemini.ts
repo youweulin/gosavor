@@ -158,7 +158,10 @@ export const analyzeMenuImage = async (
         });
       }
 
-      if (ocrBlocks.length > 0) {
+      if (ocrBlocks.length >= 5) {
+        // Need at least 5 OCR blocks for meaningful menu parsing
+        // Vertical Japanese menus (縦書き) often get < 5 blocks from Apple Vision
+        // In that case, fall through to Cloud/Gemini Vision which handles vertical text better
         // Menu always uses 2.5-flash for accurate sourceIds/bounding box matching
         // Fallback chain: gemini-2.5-flash → modelName (if 2.5 quota exceeded)
         const preferredModel = 'gemini-2.5-flash';
