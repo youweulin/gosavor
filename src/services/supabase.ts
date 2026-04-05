@@ -88,7 +88,23 @@ export interface RedeemResult {
   guideName?: string;
 }
 
+// Rate limit redeem attempts (prevent brute force)
+const _redeemAttempts: { count: number; resetAt: number } = { count: 0, resetAt: 0 };
+const REDEEM_MAX_ATTEMPTS = 5;
+const REDEEM_COOLDOWN_MS = 60 * 1000; // 1 minute
+
 export const redeemCode = async (code: string): Promise<RedeemResult> => {
+  // Rate limit: max 5 attempts per minute
+  const now = Date.now();
+  if (now > _redeemAttempts.resetAt) {
+    _redeemAttempts.count = 0;
+    _redeemAttempts.resetAt = now + REDEEM_COOLDOWN_MS;
+  }
+  _redeemAttempts.count++;
+  if (_redeemAttempts.count > REDEEM_MAX_ATTEMPTS) {
+    return { success: false, message: '嘗試次數過多，請稍後再試' };
+  }
+
   const currentUserId = await getCurrentUserId();
   if (!currentUserId) return { success: false, message: '請先登入' };
 

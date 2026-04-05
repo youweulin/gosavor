@@ -18,7 +18,7 @@ interface DrugstoreInfoProps {
 
 const DrugstoreInfo = ({ onBack, userPlan = 'free', apiKey = '', targetLanguage = 'Traditional Chinese' }: DrugstoreInfoProps) => {
   const { userEmail } = useAuthContext();
-  const isAdmin = userEmail === 'metaworldfood@gmail.com';
+  const isAdmin = userEmail === import.meta.env.VITE_ADMIN_EMAIL;
   const [popular, setPopular] = useState<ProductRanking[]>([]);
   const [searchResults, setSearchResults] = useState<ProductRanking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
