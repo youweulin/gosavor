@@ -43,7 +43,7 @@ export const getUserProfile = async () => {
   if (!userId) return null;
   try {
     const { data } = await supabase.from('users')
-      .select('nickname, plan, credits, daily_usage, last_reset_date, total_scans, price_report_count, email, auth_provider, shared_api_key, referrer_code')
+      .select('nickname, plan, credits, daily_usage, last_reset_date, total_scans, price_report_count, email, auth_provider, referrer_code')
       .eq('anonymous_id', userId)
       .single();
     return data;

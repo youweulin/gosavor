@@ -126,7 +126,7 @@ async function verifyJWT(token, secret, supabaseUrl) {
 // =============================================
 async function getUser(supabaseUrl, supabaseKey, userId) {
   const res = await fetch(
-    `${supabaseUrl}/rest/v1/users?anonymous_id=eq.${userId}&select=plan,credits,daily_usage,last_reset_date,rental_expires`,
+    `${supabaseUrl}/rest/v1/users?anonymous_id=eq.${userId}&select=plan,credits,daily_usage,last_reset_date,rental_expires,shared_api_key`,
     { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
   );
   const data = await res.json();
@@ -533,8 +533,13 @@ export default {
 
       // 6. Proxy to Gemini
       const body = await request.json();
+      // guide-member: use guide's shared API key instead of system key
+      const effectiveEnv = user?.shared_api_key
+        ? { ...env, GEMINI_API_KEY: user.shared_api_key, GCP_PRIVATE_KEY: null }
+        : env;
+
       const result = await callGemini(
-        env,
+        effectiveEnv,
         body.geminiRequest,
         body.model || 'gemini-3.1-flash-lite-preview'
       );

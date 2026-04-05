@@ -58,7 +58,7 @@ function AppInner() {
       getNickname().then(setProfileNickname);
       getUserProfile().then(async p => {
         if (p?.plan) setUserPlan(p.plan);
-        if (p?.shared_api_key) setSharedApiKey(p.shared_api_key);
+        // shared_api_key is now handled server-side (Worker) for security
         // Load guide name for guide-member
         if (p?.plan === 'guide-member' && p?.referrer_code) {
           try {
@@ -93,7 +93,7 @@ function AppInner() {
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemStatus, setRedeemStatus] = useState('');
   const [userPlan, setUserPlan] = useState('free');
-  const [sharedApiKey, setSharedApiKey] = useState('');
+  // shared_api_key removed from frontend for security — handled by Worker
   const [guideName, setGuideName] = useState('');
   const [tourCodes, setTourCodes] = useState<TourCodeInfo[]>([]);
   const [usageInfo, setUsageInfo] = useState<ReturnType<typeof getLastUsageInfo>>(null);
@@ -135,12 +135,10 @@ function AppInner() {
   }, []);
 
   const getApiKey = useCallback((): string | null => {
-    // 1. 用戶自帶 Key 優先
+    // 用戶自帶 Key（shared key 已移至 Worker 端處理）
     if (settings.geminiApiKey) return settings.geminiApiKey;
-    // 2. 導遊共用 Key（兌換碼帶入，用戶看不到）
-    if (sharedApiKey) return sharedApiKey;
     return null;
-  }, [settings.geminiApiKey, sharedApiKey]);
+  }, [settings.geminiApiKey]);
 
   const targetLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === settings.targetLanguage)?.label || 'English';
 
@@ -1022,10 +1020,7 @@ function AppInner() {
                       setRedeemCode('');
                       if (result.plan) setUserPlan(result.plan);
                       if (result.guideName) setGuideName(result.guideName);
-                      if (result.plan === 'guide-member') {
-                        // Reload profile to get shared_api_key
-                        getUserProfile().then(p => { if (p?.shared_api_key) setSharedApiKey(p.shared_api_key); });
-                      }
+                      // guide-member shared key is now handled by Worker
                     }
                   }}
                   className="px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold shrink-0"
