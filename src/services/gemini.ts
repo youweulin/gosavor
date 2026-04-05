@@ -135,12 +135,11 @@ export const analyzeMenuImage = async (
     ? `\nUser allergens: [${allergens.join(',')}]. For each item, return matching allergen IDs in "allergens" array.`
     : '';
 
-  // === STRATEGY: Skip Native OCR, always use Gemini Vision ===
-  // Apple Vision OCR struggles with vertical Japanese text (縦書き) and mixed layouts.
-  // Gemini Vision handles both horizontal and vertical menus accurately.
-  // Native OCR is still used in AR mode (LiveTranslatePlugin) for speed.
+  // === STRATEGY: iOS uses Apple Vision OCR (accurate bounding boxes for horizontal text)
+  // If vertical text detected → falls through to Gemini Vision
+  // PWA always uses Gemini Vision
   let ocrSource = 'Cloud';
-  if (false && Capacitor.isNativePlatform()) { // Disabled: Gemini Vision is more reliable
+  if (Capacitor.isNativePlatform()) {
     try {
       ocrSource = 'Native';
       let blockIdCounter = 0;
