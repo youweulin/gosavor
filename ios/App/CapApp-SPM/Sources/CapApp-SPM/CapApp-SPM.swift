@@ -83,23 +83,27 @@ public class VisionOCRPlugin: CAPPlugin, CAPBridgedPlugin {
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
 
-        // Map UIImage orientation to CGImagePropertyOrientation for accurate bounding boxes
-        let cgOrientation: CGImagePropertyOrientation
-        switch uiImage.imageOrientation {
-        case .up: cgOrientation = .up
-        case .down: cgOrientation = .down
-        case .left: cgOrientation = .left
-        case .right: cgOrientation = .right
-        case .upMirrored: cgOrientation = .upMirrored
-        case .downMirrored: cgOrientation = .downMirrored
-        case .leftMirrored: cgOrientation = .leftMirrored
-        case .rightMirrored: cgOrientation = .rightMirrored
-        @unknown default: cgOrientation = .up
+        // Normalize image orientation to .up before sending to Vision OCR
+        // This avoids all orientation mapping issues between UIImage and CGImage
+        let normalizedImage: UIImage
+        if uiImage.imageOrientation != .up {
+            UIGraphicsBeginImageContextWithOptions(uiImage.size, false, uiImage.scale)
+            uiImage.draw(in: CGRect(origin: .zero, size: uiImage.size))
+            normalizedImage = UIGraphicsGetImageFromCurrentImageContext() ?? uiImage
+            UIGraphicsEndImageContext()
+            print("[GoSavor] Image normalized from orientation \(uiImage.imageOrientation.rawValue) → .up, size: \(normalizedImage.size)")
+        } else {
+            normalizedImage = uiImage
+            print("[GoSavor] Image already .up, size: \(normalizedImage.size)")
         }
-        print("[GoSavor] Image orientation: \(uiImage.imageOrientation.rawValue) → CGOrientation: \(cgOrientation.rawValue)")
+
+        guard let normalizedCG = normalizedImage.cgImage else {
+            call.reject("Failed to normalize image")
+            return
+        }
 
         DispatchQueue.global(qos: .userInitiated).async {
-            let handler = VNImageRequestHandler(cgImage: cgImage, orientation: cgOrientation)
+            let handler = VNImageRequestHandler(cgImage: normalizedCG, orientation: .up)
             do {
                 try handler.perform([request])
             } catch {
