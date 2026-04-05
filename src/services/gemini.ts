@@ -464,6 +464,7 @@ Also return:
   } catch (err: any) {
     const errStr = String(err?.message || '') + JSON.stringify(err);
     if (errStr.includes('429') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED')) {
+      console.warn('[GoSavor] ⚠️ 2.5-flash quota exceeded, falling back to', modelName, '(bounding box may be less accurate)');
       response = await ai.models.generateContent({
         model: modelName,
         contents: { parts: [...imageParts, { text: prompt }] },
