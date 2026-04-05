@@ -404,7 +404,16 @@ For EACH menu item found, return:
   6. Box height should be ~30-80 (tight around text), NOT covering the entire menu
   7. VERTICAL menus (縦書き): text reads top-to-bottom, columns right-to-left. Adjust bounding boxes accordingly — each column is a separate item area
 - imageIndex: which image (0-based) this item appears in.${allergenPart}
-Also return currency (use ¥ for JPY), restaurantName (exactly as written on the menu, no prefix or tags), and layoutDirection ("vertical" or "horizontal").`;
+
+Cultural & Hidden Fee Detection:
+- Scan for "お通し" (Otoshi), "席料" (Seat charge), or "サービス料" (Service charge).
+- If found, include them as regular items but add a "⚠️" prefix to the translatedName.
+- In the "description", explain what it is (e.g., "Standard Japanese table charge includes a small appetizer").
+
+Also return:
+- currency (use ¥ for JPY)
+- restaurantName (exactly as written on the menu, no prefix or tags)
+- layoutDirection: "vertical" if the menu uses vertical Japanese writing (縦書き), "horizontal" if text reads left-to-right in rows.`;
 
   const imageParts = pwaResized.map((img) => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
