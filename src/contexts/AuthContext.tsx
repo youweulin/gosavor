@@ -35,7 +35,7 @@ const upsertUserRecord = async (user: User) => {
     email,
     auth_provider: provider,
     platform: 'ios',
-    app_version: '0.8.8',
+    app_version: '0.8.9',
     last_active_at: new Date().toISOString(),
   }, { onConflict: 'anonymous_id' });
 

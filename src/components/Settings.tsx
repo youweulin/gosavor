@@ -479,7 +479,7 @@ const Settings = ({ settings, onUpdate, onReset, onBack, userPlan = 'free', onSh
           >
             關於 GoSavor
           </button>
-          <p className="text-xs text-gray-600">GoSavor v0.8.8 Beta</p>
+          <p className="text-xs text-gray-600">GoSavor v0.8.9 Beta</p>
           <p className="text-[10px] text-gray-700 mt-1">Made with 🪿 in Taiwan</p>
         </div>
       </div>
