@@ -661,7 +661,7 @@ function AppInner() {
                       onHistory={() => setPage('history')}
                       onDrugstore={() => setPage('drugstore')}
                     />
-                    <ScanHistory key={scanRefreshKey} onLoadScan={handleLoadScan} pageSize={2} />
+                    <ScanHistory key={scanRefreshKey} onLoadScan={handleLoadScan} pageSize={5} />
                   </>
                 ) : (
                   /* ═══ Standard Mode ═══ */
