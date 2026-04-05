@@ -295,8 +295,8 @@ STEP 5 — Also return:
         if (!response.text) throw new Error('No response from AI');
         const parsed = safeParseJSON<any>(response.text);
         
-        // Append source tag to restaurant name
-        parsed.restaurantName = `[${ocrSource}] ${parsed.restaurantName || ''}`.trim();
+        // Keep restaurant name clean (no prefix tags)
+        parsed.restaurantName = (parsed.restaurantName || '').trim();
         
         // Post-process: Calculate bounding boxes from sourceIds
         parsed.items = parsed.items.map((item: any) => {
@@ -410,7 +410,7 @@ For EACH menu item found, return:
 - imageIndex: which image (0-based) this item appears in.${allergenPart}
 Also return:
 - currency (use ¥ for JPY)
-- restaurantName (prefix with "[Cloud]")
+- restaurantName (exactly as written on the menu, no prefix or tags)
 - layoutDirection: "vertical" if the menu uses vertical Japanese writing (縦書き, columns top-to-bottom, right-to-left), "horizontal" if text reads left-to-right in rows.`;
 
   const imageParts = pwaResized.map((img) => ({
