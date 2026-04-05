@@ -11,9 +11,11 @@ interface CameraCaptureProps {
   isAnalyzing: boolean;
   scanMode: ScanMode;
   onAddPage?: () => void;
+  forceAI?: boolean;
+  onForceAIChange?: (v: boolean) => void;
 }
 
-const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onAddPage }: CameraCaptureProps) => {
+const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMode, onAddPage, forceAI, onForceAIChange }: CameraCaptureProps) => {
   const t = useT();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const albumInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +111,21 @@ const CameraCapture = ({ images, onImagesChange, onAnalyze, isAnalyzing, scanMod
             )}
           </div>
         )
+      )}
+
+      {/* Pure AI toggle (iOS menu only — for vertical/handwritten menus) */}
+      {images.length > 0 && Capacitor.isNativePlatform() && scanMode === 'menu' && onForceAIChange && (
+        <button
+          onClick={() => onForceAIChange(!forceAI)}
+          className={`w-full py-2 mb-2 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+            forceAI
+              ? 'bg-purple-100 text-purple-700 border border-purple-300'
+              : 'bg-gray-100 text-gray-500 border border-gray-200'
+          }`}
+        >
+          <span>{forceAI ? '✨ 純 AI 模式' : '📱 標準模式'}</span>
+          <span className="text-[10px] opacity-60">{forceAI ? '直書/手寫菜單推薦' : '橫書菜單推薦'}</span>
+        </button>
       )}
 
       {/* Analyze button */}

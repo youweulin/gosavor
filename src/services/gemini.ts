@@ -127,7 +127,8 @@ export const analyzeMenuImage = async (
   targetLanguage: string,
   apiKey: string,
   allergens: string[] = [],
-  modelName = 'gemini-3.1-flash-lite-preview'
+  modelName = 'gemini-3.1-flash-lite-preview',
+  forceAI = false, // 跳過 Apple OCR，直接走 Gemini Vision
 ): Promise<MenuAnalysisResult> => {
 
   const ai = getAI(apiKey);
@@ -139,7 +140,7 @@ export const analyzeMenuImage = async (
   // If vertical text detected → falls through to Gemini Vision
   // PWA always uses Gemini Vision
   let ocrSource = 'Cloud';
-  if (Capacitor.isNativePlatform()) {
+  if (Capacitor.isNativePlatform() && !forceAI) {
     try {
       ocrSource = 'Native';
       let blockIdCounter = 0;

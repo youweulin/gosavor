@@ -84,6 +84,7 @@ function AppInner() {
   const [scanMode, setScanMode] = useState<ScanMode>('menu');
   const [activeTab, setActiveTab] = useState('menu');
   const [autoAnalyze, setAutoAnalyze] = useState(false);
+  const [forceAI, setForceAI] = useState(false); // 純AI模式（跳過 Apple OCR）
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
@@ -210,7 +211,7 @@ function AppInner() {
         const results: MenuAnalysisResult[] = [];
         for (let i = 0; i < pagesToTranslate.length; i++) {
           const pageImageData = [{ base64: pagesToTranslate[i].split(',')[1], mimeType: 'image/jpeg' }];
-          const result = await analyzeMenuImage(pageImageData, targetLangLabel, apiKey || '', settings.allergens);
+          const result = await analyzeMenuImage(pageImageData, targetLangLabel, apiKey || '', settings.allergens, undefined, forceAI);
           results.push(result);
         }
         setMenuResults(results);
@@ -722,6 +723,8 @@ function AppInner() {
                   onAnalyze={handleAnalyze}
                   isAnalyzing={isAnalyzing}
                   scanMode={scanMode}
+                  forceAI={forceAI}
+                  onForceAIChange={setForceAI}
                   onAddPage={async () => {
                     const { pickNativeImage } = await import('./services/LiveTranslate');
                     const base64 = await pickNativeImage('album');
@@ -763,6 +766,9 @@ function AppInner() {
                   <span>·</span>
                   <button onClick={() => { setScanMode('receipt'); handleAnalyze(); }} className="text-blue-500 hover:underline">收據</button>
                   <button onClick={() => { setScanMode('general'); handleAnalyze(); }} className="text-slate-500 hover:underline">萬用</button>
+                  {(window as any).Capacitor?.isNativePlatform?.() && !forceAI && (
+                    <button onClick={() => { setForceAI(true); handleAnalyze(); }} className="text-purple-500 hover:underline">純AI</button>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1.5 ml-2">
