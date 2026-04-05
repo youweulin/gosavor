@@ -33,7 +33,15 @@ const AuthModal = () => {
         setSuccess(t('auth.confirmEmail'));
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      // Generic error message to prevent account enumeration
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('Invalid login')) {
+        setError('電子郵件或密碼不正確');
+      } else if (msg.includes('already registered') || msg.includes('already exists')) {
+        setError('登入或註冊失敗，請再試一次');
+      } else {
+        setError('登入失敗，請確認資訊後再試');
+      }
     } finally {
       setLoading(false);
     }
@@ -44,8 +52,8 @@ const AuthModal = () => {
     setLoading(true);
     try {
       await signInWithApple();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Apple Sign In failed');
+    } catch {
+      setError('Apple 登入失敗，請再試一次');
     } finally {
       setLoading(false);
     }
