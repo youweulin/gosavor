@@ -1531,6 +1531,31 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
     }
 }
 
+    private func handlePickedImage(_ image: UIImage, result: PHPickerResult) {
+        print("[GoSavor] pickImage: full-res image \(image.size)")
+
+        // If from pickImage call → return base64
+        if let call = self.pickImageCall {
+            guard let jpegData = image.jpegData(compressionQuality: 0.85) else {
+                call.resolve(["cancelled": true])
+                self.pickImageCall = nil
+                return
+            }
+            call.resolve([
+                "cancelled": false,
+                "base64": jpegData.base64EncodedString(),
+            ])
+            self.pickImageCall = nil
+            return
+        }
+
+        // Otherwise from AR translate flow
+        Task { @MainActor in
+            self.scannerVC?.stopScanning()
+            await self.processImage(image)
+        }
+    }
+
 // MARK: - PHPickerViewControllerDelegate (album photo selection)
 @available(iOS 16.0, *)
 extension LiveTranslatePlugin: PHPickerViewControllerDelegate {
@@ -1545,39 +1570,17 @@ extension LiveTranslatePlugin: PHPickerViewControllerDelegate {
         }
         guard result.itemProvider.canLoadObject(ofClass: UIImage.self) else { return }
 
-        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
-            guard let self = self, let image = object as? UIImage else { return }
-
-            // If from pickImage call → return base64
-            if let call = self.pickImageCall {
-                // Ensure image is large enough for OCR (at least 1200px on longest side)
-                let finalImage: UIImage
-                let maxDim = max(image.size.width, image.size.height)
-                if maxDim < 1200 {
-                    finalImage = image
-                    print("[GoSavor] pickImage: small image \(image.size), using as-is")
-                } else {
-                    finalImage = image
+        // Use loadDataRepresentation to get FULL resolution image (not thumbnail)
+        result.itemProvider.loadDataRepresentation(forTypeIdentifier: "public.image") { [weak self] data, error in
+            guard let self = self, let data = data, let image = UIImage(data: data) else {
+                // Fallback to loadObject if loadDataRepresentation fails
+                result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
+                    guard let self = self, let image = object as? UIImage else { return }
+                    self.handlePickedImage(image, result: result)
                 }
-                print("[GoSavor] pickImage: returning image \(finalImage.size)")
-                guard let jpegData = finalImage.jpegData(compressionQuality: 0.85) else {
-                    call.resolve(["cancelled": true])
-                    self.pickImageCall = nil
-                    return
-                }
-                call.resolve([
-                    "cancelled": false,
-                    "base64": jpegData.base64EncodedString(),
-                ])
-                self.pickImageCall = nil
                 return
             }
-
-            // Otherwise from AR translate flow
-            Task { @MainActor in
-                self.scannerVC?.stopScanning()
-                await self.processImage(image)
-            }
+            self.handlePickedImage(image, result: result)
         }
     }
 }
