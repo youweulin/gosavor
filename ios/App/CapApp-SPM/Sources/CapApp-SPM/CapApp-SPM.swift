@@ -472,6 +472,10 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
 
     @objc func pickImage(_ call: CAPPluginCall) {
         let source = call.getString("source") ?? "album" // "camera" or "album"
+        // Clean up any stuck previous call
+        if let prev = self.pickImageCall {
+            prev.resolve(["cancelled": true])
+        }
         call.keepAlive = true
         self.pickImageCall = call
 
@@ -1546,7 +1550,17 @@ extension LiveTranslatePlugin: PHPickerViewControllerDelegate {
 
             // If from pickImage call → return base64
             if let call = self.pickImageCall {
-                guard let jpegData = image.jpegData(compressionQuality: 0.8) else {
+                // Ensure image is large enough for OCR (at least 1200px on longest side)
+                let finalImage: UIImage
+                let maxDim = max(image.size.width, image.size.height)
+                if maxDim < 1200 {
+                    finalImage = image
+                    print("[GoSavor] pickImage: small image \(image.size), using as-is")
+                } else {
+                    finalImage = image
+                }
+                print("[GoSavor] pickImage: returning image \(finalImage.size)")
+                guard let jpegData = finalImage.jpegData(compressionQuality: 0.85) else {
                     call.resolve(["cancelled": true])
                     self.pickImageCall = nil
                     return
