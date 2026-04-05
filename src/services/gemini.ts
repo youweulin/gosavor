@@ -464,12 +464,24 @@ Also return:
   } catch (err: any) {
     const errStr = String(err?.message || '') + JSON.stringify(err);
     if (errStr.includes('429') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED')) {
-      console.warn('[GoSavor] ⚠️ 2.5-flash quota exceeded, falling back to', modelName, '(bounding box may be less accurate)');
-      response = await ai.models.generateContent({
-        model: modelName,
-        contents: { parts: [...imageParts, { text: prompt }] },
-        config: pwaMenuConfig,
-      });
+      // 等 5 秒後重試一次 2.5-flash（短暫額度限制通常很快恢復）
+      console.warn('[GoSavor] ⚠️ 2.5-flash quota exceeded, waiting 5s and retrying...');
+      await new Promise(r => setTimeout(r, 5000));
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: { parts: [...imageParts, { text: prompt }] },
+          config: pwaMenuConfig,
+        });
+      } catch {
+        // 重試也失敗 → 用 3.1-lite 但提醒標記可能不準
+        console.warn('[GoSavor] ⚠️ Retry failed, falling back to', modelName);
+        response = await ai.models.generateContent({
+          model: modelName,
+          contents: { parts: [...imageParts, { text: prompt }] },
+          config: pwaMenuConfig,
+        });
+      }
     } else {
       throw err;
     }
