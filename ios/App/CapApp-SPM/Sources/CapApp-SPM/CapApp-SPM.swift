@@ -1529,7 +1529,6 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
             self.scannerVC = nil
         }
     }
-}
 
     private func handlePickedImage(_ image: UIImage, result: PHPickerResult) {
         print("[GoSavor] pickImage: full-res image \(image.size)")
@@ -1555,6 +1554,7 @@ public class LiveTranslatePlugin: CAPPlugin, CAPBridgedPlugin, UIImagePickerCont
             await self.processImage(image)
         }
     }
+}
 
 // MARK: - PHPickerViewControllerDelegate (album photo selection)
 @available(iOS 16.0, *)
