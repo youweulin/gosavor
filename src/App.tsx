@@ -137,7 +137,6 @@ function AppInner() {
   // API Key: guide-member 走 Worker（共用 Key），其他 plan 必須自帶 Key
   const getApiKey = useCallback((): string | null => {
     if (settings.geminiApiKey) return settings.geminiApiKey;
-    // guide-member 沒自帶 Key → 回 null，由 workerProxy 處理（用導遊共用 Key）
     return null;
   }, [settings.geminiApiKey]);
 

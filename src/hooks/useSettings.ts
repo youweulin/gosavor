@@ -38,15 +38,14 @@ const detectCurrency = (): string => {
 export const useSettings = () => {
   const [settings, setSettings] = useState<AppSettings>(() => {
     const saved = getSettings();
-    // If never saved before (fresh user), auto-detect
-    if (!saved.targetLanguage || saved.targetLanguage === DEFAULT_SETTINGS.targetLanguage) {
+    // Only auto-detect language for truly fresh users (never saved settings before)
+    const hasUserSaved = !!localStorage.getItem('gosavor_settings');
+    if (!hasUserSaved) {
       const detected = detectLanguage();
       const currency = detectCurrency();
-      if (detected !== DEFAULT_SETTINGS.targetLanguage || currency !== DEFAULT_SETTINGS.homeCurrency) {
-        const auto = { ...saved, targetLanguage: detected, homeCurrency: currency };
-        saveSettings(auto);
-        return auto;
-      }
+      const auto = { ...saved, targetLanguage: detected, homeCurrency: currency };
+      saveSettings(auto);
+      return auto;
     }
     return saved;
   });
